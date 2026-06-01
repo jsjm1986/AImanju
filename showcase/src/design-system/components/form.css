@@ -1,0 +1,135 @@
+/* ========================================
+   表单控件样式
+   ======================================== */
+
+/* 输入框 */
+.input {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    background: var(--bg-input);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    transition: all var(--duration-fast);
+}
+
+.input::placeholder {
+    color: var(--text-muted);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px var(--primary-light);
+    background: var(--bg-input-focus);
+}
+
+.input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* 尺寸 */
+.input-sm {
+    padding: var(--space-2) var(--space-3);
+    font-size: var(--text-sm);
+    border-radius: var(--radius-md);
+}
+
+.input-lg {
+    padding: var(--space-4) var(--space-5);
+    font-size: var(--text-lg);
+    border-radius: var(--radius-xl);
+}
+
+/* 状态 */
+.input-error {
+    border-color: var(--error);
+}
+
+.input-error:focus {
+    box-shadow: 0 0 0 3px var(--error-light);
+}
+
+.input-success {
+    border-color: var(--success);
+}
+
+/* 带图标 */
+.input-wrapper {
+    position: relative;
+}
+
+.input-wrapper .input {
+    padding-left: 44px;
+}
+
+.input-icon {
+    position: absolute;
+    left: var(--space-4);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+/* 文本域 */
+.textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+/* 选择框 */
+.select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+/* 复选框 */
+.checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.checkbox input {
+    width: 20px;
+    height: 20px;
+    accent-color: var(--primary);
+}
+
+/* 表单组 */
+.form-group {
+    margin-bottom: var(--space-5);
+}
+
+.form-label {
+    display: block;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: var(--space-2);
+}
+
+.form-label.required::after {
+    content: '*';
+    color: var(--error);
+    margin-left: var(--space-1);
+}
+
+.form-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-top: var(--space-2);
+}
+
+.form-error {
+    font-size: var(--text-xs);
+    color: var(--error);
+    margin-top: var(--space-2);
+}

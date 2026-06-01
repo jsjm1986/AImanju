@@ -1,0 +1,37 @@
+/**
+ * 森林主题
+ * Forest Theme - 自然护眼
+ */
+
+:root[data-theme="forest"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #0D1F17;
+    --bg-surface: #132A1F;
+    --bg-elevated: #1A3829;
+    --bg-hover: #224A35;
+    --bg-active: #2E5E44;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #E8F5E9;
+    --text-secondary: #A5D6A7;
+    --text-tertiary: #6B9B71;
+    --text-muted: #4A7052;
+
+    /* ========== 边框 ========== */
+    --border-default: #224A35;
+    --border-hover: #2E5E44;
+    --border-focus: #4CAF50;
+
+    /* ========== 主色 - Emerald ========== */
+    --primary: #4CAF50;
+    --primary-hover: #66BB6A;
+    --primary-active: #388E3C;
+    --primary-muted: rgba(76, 175, 80, 0.15);
+    --primary-border: rgba(76, 175, 80, 0.3);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.5);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(0, 0, 0, 0.6);
+}

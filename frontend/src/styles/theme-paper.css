@@ -1,0 +1,52 @@
+/**
+ * 纸张主题
+ * Paper Theme - 仿纸质书（护眼浅色）
+ */
+
+:root[data-theme="paper"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #F7F5E8;
+    /* 米白/纸色 */
+    --bg-surface: #FDFBF6;
+    --bg-elevated: #ECEAD9;
+    --bg-hover: #E6E3D0;
+    --bg-active: #D9D5BC;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #2C241B;
+    /* 深褐灰色，比纯黑柔和 */
+    --text-secondary: #5C4F41;
+    --text-tertiary: #8C7C6D;
+    --text-muted: #B0A294;
+
+    /* ========== 边框 ========== */
+    --border-default: #E6E3D0;
+    --border-hover: #D9D5BC;
+    --border-focus: #8D6E63;
+    /* 棕色 */
+
+    /* ========== 主色 - Brown/Coffee ========== */
+    --primary: #8D6E63;
+    --primary-hover: #A1887F;
+    --primary-active: #6D4C41;
+    --primary-muted: rgba(141, 110, 99, 0.15);
+    --primary-border: rgba(141, 110, 99, 0.3);
+
+    /* ========== 按钮/彩色背景上的文字 ========== */
+    --text-on-primary: #FFFFFF;
+    --text-on-success: #FFFFFF;
+    --text-on-warning: #FFFFFF;
+    --text-on-error: #FFFFFF;
+
+    /* ========== 语义色 muted (降低透明度适配浅色) ========== */
+    --success-muted: rgba(34, 197, 94, 0.1);
+    --warning-muted: rgba(245, 158, 11, 0.1);
+    --error-muted: rgba(239, 68, 68, 0.1);
+    --info-muted: rgba(59, 130, 246, 0.1);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(62, 39, 35, 0.1);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(62, 39, 35, 0.3);
+}

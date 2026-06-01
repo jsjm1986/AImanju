@@ -1,0 +1,56 @@
+/**
+ * 咖啡主题
+ * Coffee Theme - 醇香温暖（深色暖调）
+ */
+
+:root[data-theme="coffee"] {
+    /* ========== 背景层级 (Dark Roast) ========== */
+    --bg-base: #201616;
+    /* Deep Espresso */
+    --bg-surface: #2C1E1E;
+    /* Dark Roast */
+    --bg-elevated: #3A2828;
+    /* Medium Roast */
+    --bg-hover: #4E3636;
+    --bg-active: #5D4037;
+
+    /* ========== 文字层级 (Crema/Latte) ========== */
+    --text-primary: #D7CCC8;
+    /* Latte Foam */
+    --text-secondary: #A1887F;
+    /* Light Brown */
+    --text-tertiary: #8D6E63;
+    /* Medium Brown */
+    --text-muted: #5D4037;
+
+    /* ========== 边框 ========== */
+    --border-default: #3E2723;
+    --border-hover: #4E342E;
+    --border-focus: #8D6E63;
+
+    /* ========== 主色 - Caramel/Bronze ========== */
+    --primary: #BCAAA4;
+    /* Mocha */
+    --primary-hover: #D7CCC8;
+    /* Latte */
+    --primary-active: #8D6E63;
+
+    --primary-muted: rgba(188, 170, 164, 0.15);
+    --primary-border: rgba(188, 170, 164, 0.3);
+
+    /* ========== 语义色 (Earthy Tones) ========== */
+    --success: #81C784;
+    /* Matcha Green */
+    --warning: #FFB74D;
+    /* Orange Peel */
+    --error: #E57373;
+    /* Berry Red */
+    --info: #64B5F6;
+    /* Sky Blue */
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.5);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(32, 22, 22, 0.85);
+}

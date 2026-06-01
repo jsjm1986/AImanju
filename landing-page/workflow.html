@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>使用流程 - AI剧本工厂</title>
+  <meta name="description" content="AI剧本工厂8步使用流程，从项目创建到成品输出全流程自动化。">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">AI</span>
+        <span>AI剧本工厂</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="features.html">功能</a>
+        <a href="workflow.html">流程</a>
+        <a href="technology.html">技术</a>
+        <a href="cases.html">案例</a>
+        <a href="changelog.html">日志</a>
+        <a href="#" class="nav-cta" target="_blank">立即体验 &rarr;</a>
+      </nav>
+      <div class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <span class="section-label">使用流程</span>
+      <h1>8步完成剧本创作</h1>
+      <p>从项目创建到成品输出，全流程自动化，简单高效。</p>
+    </div>
+  </section>
+
+  <!-- Full Timeline -->
+  <section class="section">
+    <div class="container">
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot">1</div>
+          <div class="timeline-content">
+            <h4>创建项目</h4>
+            <p>设定项目名称、选择题材类型（24种预设题材），配置故事模式（完整剧/可续集/承接季）、集数、每集字数等基本参数。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner">24种题材预设各自配备专属注意力头组合和节奏参数。3种故事模式决定大纲生成策略、结局处理方式和伏笔管理规则。项目创建时自动初始化 <code>WorldStateManager</code> 和 <code>CharacterLifecycleManager</code>。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">2</div>
+          <div class="timeline-content">
+            <h4>编写/生成大纲</h4>
+            <p>输入故事梗概，AI通过五层渐进式生成流程自动扩展：故事内核 → 角色功能 → 角色卡片 → 情节大纲 → 分集摘要，也可手动编写或调整。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner">五层渐进式生成确保故事结构完整：第1层提炼故事内核与主题，第2层规划角色功能定位，第3层生成详细角色卡片，第4层编排情节大纲与冲突节点，第5层细化为分集摘要。每层输出作为下一层的输入上下文。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-content">
+            <h4>生成角色档案</h4>
+            <p>AI根据大纲自动生成角色档案，角色金字塔5级模型自动分级（核心/常驻/弧线/临时/龙套），构建关系图谱与量化追踪。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner"><code>CharacterLifecycleManager</code> 自动为角色分配金字塔层级，分级上下文预算（核心800/常驻500/弧线300/临时150/龙套50字符）。7级关系量化追踪，6种事件类型驱动关系动态变化。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">4</div>
+          <div class="timeline-content">
+            <h4>选择输出格式</h4>
+            <p>从15种预设格式中选择：标准动态漫、条漫、小说体、影视剧本、广播剧、游戏脚本、短视频、日式漫画、舞台剧、互动剧、真人短剧、AI数字人、美漫、国漫、纪录片。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner">每种格式定义独立的输出模板和结构规范。格式选择影响 <code>BudgetAllocator</code> 的预留空间分配和 <code>RhythmControl</code> 的节奏参数。格式间可一键切换，无需重新生成。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">5</div>
+          <div class="timeline-content">
+            <h4>启动批量生成</h4>
+            <p>一键启动批量生成引擎，API Key 3轮轮转避免限流，5次指数退避重试，max_tokens自动降级策略确保100+集稳定完成。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner"><code>BatchGenerator</code> 调度引擎自动管理生成队列。API Key轮转（3个Key循环使用），遇到429/500错误时指数退避重试（最多5次）。当token超限时自动降级 <code>max_tokens</code> 参数。断点续传机制支持中断后无缝恢复。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">6</div>
+          <div class="timeline-content">
+            <h4>实时监控进度</h4>
+            <p>12种SSE消息类型实时推送生成进度，可随时查看每集状态、字数统计、质量评分和世界状态快照。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner">SSE（Server-Sent Events）支持12种消息类型：生成开始/进度/完成/失败/重试/跳过/暂停/恢复/取消/统计/质量/状态。前端通过 <code>EventSource</code> 实时接收并渲染进度面板。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">7</div>
+          <div class="timeline-content">
+            <h4>审核与改写</h4>
+            <p>对生成结果进行审核，跨集联动修复（6个API端点、事务级回滚），AI置信度评分驱动级联改写，自动适配上下文。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner"><code>CrossEpisodeRepairService</code> 提供6个API端点协同联动。修改某集后自动分析影响范围，AI置信度评分决定是否级联修复。<code>BatchCoherentRewriteService</code> 实现连贯上下文滚动传递，事务级回滚保障数据安全。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot">8</div>
+          <div class="timeline-content">
+            <h4>导出成品</h4>
+            <p>15种格式一键切换导出最终剧本，支持批量导出和自定义排版，多格式无需重新生成即可转换。</p>
+            <div class="collapsible">
+              <button class="collapsible-trigger">查看技术细节 <span class="arrow">&#9660;</span></button>
+              <div class="collapsible-content">
+                <div class="collapsible-inner">格式转换服务基于模板引擎实现，已生成的剧本内容可在15种格式间自由切换。批量导出支持按项目、按集数范围筛选，自定义排版参数控制输出样式。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pipeline Visualization -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">生成管线</span>
+        <h2 class="section-title">单集生成内部流水线</h2>
+        <p class="section-desc">每一集剧本的生成都经过6个核心阶段，确保质量与一致性。</p>
+      </div>
+      <div class="pipeline-flow fade-in">
+        <div class="pipeline-node">
+          上下文组装
+          <small>WorldStateManager</small>
+        </div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">
+          预算分配
+          <small>12,000字符/7模块</small>
+        </div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">
+          多头分析
+          <small>23种注意力头</small>
+        </div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">
+          AI生成
+          <small>多模型支持</small>
+        </div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">
+          约束验证
+          <small>AI约束决策</small>
+        </div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">
+          状态快照
+          <small>世界状态链</small>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Comparison: Batch vs Single -->
+  <section class="section comparison">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">模式对比</span>
+        <h2 class="section-title">批量生成 vs 单集生成</h2>
+        <p class="section-desc">根据需求选择最适合的生成模式。</p>
+      </div>
+      <div class="comparison-grid">
+        <div class="comparison-col fade-in-left" style="border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.04);">
+          <h3>&#9889; 批量生成模式</h3>
+          <ul>
+            <li><span>&#10003;</span> 一次生成100+集连续剧本</li>
+            <li><span>&#10003;</span> API Key 3轮轮转 + 指数退避</li>
+            <li><span>&#10003;</span> 智能速率控制 + max_tokens降级</li>
+            <li><span>&#10003;</span> 世界状态快照链保持一致性</li>
+            <li><span>&#10003;</span> 断点续传，后台运行无需值守</li>
+            <li><span>&#10003;</span> 适合长篇连载项目</li>
+          </ul>
+        </div>
+        <div class="comparison-vs scale-in">VS</div>
+        <div class="comparison-col fade-in-right" style="border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.04);">
+          <h3>&#128221; 单集生成模式</h3>
+          <ul>
+            <li><span>&#10003;</span> 精细化单集生成，全流程质量把控</li>
+            <li><span>&#10003;</span> 12种SSE消息类型实时推送</li>
+            <li><span>&#10003;</span> 流式输出逐字呈现创作过程</li>
+            <li><span>&#10003;</span> 自定义参数精细控制</li>
+            <li><span>&#10003;</span> 即时反馈，逐步迭代优化</li>
+            <li><span>&#10003;</span> 适合试稿和精调场景</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rewrite System -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">改写体系</span>
+        <h2 class="section-title">四级改写覆盖全场景</h2>
+        <p class="section-desc">从单集微调到批量连贯改写，4种改写类型满足不同编辑需求。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#9997;</div>
+          <h3 class="card-title">单集改写</h3>
+          <p class="card-desc">支持全文改写和选区改写两种模式。选区改写精准定位修改范围，全文改写重新生成整集内容，均自动继承上下文状态。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9889;</div>
+          <h3 class="card-title">AI智能改写</h3>
+          <p class="card-desc">一键智能优化，AI自动分析当前剧本的薄弱环节并针对性改写，无需手动指定修改方向。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128279;</div>
+          <h3 class="card-title">多集协调改写</h3>
+          <p class="card-desc">选择多集范围统一生成改写方案，AI一次性输出所有集的修改内容，再自动解析并保存到各集，确保跨集一致性。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128736;</div>
+          <h3 class="card-title">批量连贯改写</h3>
+          <p class="card-desc">先生成整体改写计划，再逐集执行。连贯上下文滚动传递，每集改写结果作为下一集的输入上下文，保持前后一致。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Constraint Validation Retry -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">约束验证</span>
+        <h2 class="section-title">生成后自动验证与重试</h2>
+        <p class="section-desc">ConstraintValidator 逐条验证约束满足情况，未达标时自动强化约束后改写重试。</p>
+      </div>
+      <div class="pipeline-flow fade-in">
+        <div class="pipeline-node">AI生成剧本</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">逐条验证约束</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">判定满足率</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">强化未满足约束</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">改写重试</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">输出终稿</div>
+      </div>
+      <div class="cards-grid stagger-children" style="margin-top:40px;">
+        <div class="card">
+          <div class="card-icon">&#128308;</div>
+          <h3 class="card-title">Critical 约束</h3>
+          <p class="card-desc">任何一条未满足即强制重试。涉及角色核心设定、关键剧情走向等不可妥协的硬性要求。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128992;</div>
+          <h3 class="card-title">Important 约束</h3>
+          <p class="card-desc">满足率低于50%时建议重试。涉及节奏控制、伏笔回收等影响质量的重要要求。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128309;</div>
+          <h3 class="card-title">Normal 约束</h3>
+          <p class="card-desc">约束数量≥3个且满足率低于30%时建议重试。涉及风格微调、细节优化等扩展头产生的建议性约束。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Cross-Episode Repair -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">跨集修复</span>
+        <h2 class="section-title">5种跨集问题智能修复</h2>
+        <p class="section-desc">6个API端点协同工作，AI分析问题影响范围，生成修复方案，事务级回滚保障数据安全。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#128269;</div>
+          <h3 class="card-title">悬念未收 unresolved</h3>
+          <p class="card-desc">伏笔埋设后超期未回收。例如第5集埋的伏笔到第25集还没回收，需要在多集中铺垫和回收。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128100;</div>
+          <h3 class="card-title">角色矛盾 character</h3>
+          <p class="card-desc">角色在不同集数的性格表现矛盾。例如第10集和第20集的角色行为不一致，需要协调多集表现。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128337;</div>
+          <h3 class="card-title">时间线错误 timeline</h3>
+          <p class="card-desc">时间描述前后不一致。例如第15集说"三天后"，但第16集变成了"一周后"，需要修正多集时间。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#127758;</div>
+          <h3 class="card-title">设定冲突 setting</h3>
+          <p class="card-desc">世界观设定前后矛盾。例如第8集说主角不会飞，第18集却飞了，需要在多集中保持设定一致。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128279;</div>
+          <h3 class="card-title">剧情不连贯 continuity</h3>
+          <p class="card-desc">相邻集数衔接不上。例如第12集结尾和第13集开头对不上，需要同时修改相邻集数。</p>
+        </div>
+      </div>
+      <h3 class="genre-group-title">6个API端点协同流程</h3>
+      <div class="pipeline-flow fade-in">
+        <div class="pipeline-node">analyze<small>AI分析问题</small></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">execute<small>多集联动修复</small></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">apply<small>确认应用</small></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">validate<small>针对性验证</small></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">update-foreshadowing<small>更新伏笔状态</small></div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">revert<small>可选回滚</small></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Rollback Mechanism -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">回滚机制</span>
+        <h2 class="section-title">3种回滚类型保障数据安全</h2>
+        <p class="section-desc">修复操作支持多种粒度的回滚，确保任何修改都可以安全撤回。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#128260;</div>
+          <h3 class="card-title">完整回滚</h3>
+          <p class="card-desc">恢复所有涉及集数到修复前的状态。适用于修复效果整体不满意，需要全部撤回的场景。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9997;</div>
+          <h3 class="card-title">部分回滚</h3>
+          <p class="card-desc">只恢复指定集数，保留效果好的修改。适用于某些集修复效果好、某些不好的场景。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9889;</div>
+          <h3 class="card-title">30秒一键撤销</h3>
+          <p class="card-desc">应用修复后30秒内显示撤销按钮，一键撤销刚才的操作。适用于刚应用就发现问题的场景。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Outline Generation Modes -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">大纲模式</span>
+        <h2 class="section-title">基础3步 vs 增强5步</h2>
+        <p class="section-desc">两种大纲生成模式适配不同需求，增强模式新增故事内核提炼和角色功能设计两个前置步骤。</p>
+      </div>
+      <div class="comparison-grid">
+        <div class="comparison-col fade-in-left" style="border-color:rgba(6,182,212,0.3);background:rgba(6,182,212,0.04);">
+          <h3>&#128218; 基础模式（3步）</h3>
+          <ul>
+            <li><span>&#10003;</span> 人物卡生成</li>
+            <li><span>&#10003;</span> 剧情大纲</li>
+            <li><span>&#10003;</span> 分集梗概</li>
+            <li><span>&#10003;</span> 向后兼容，不传新参数即启用</li>
+            <li><span>&#10003;</span> 适合轻量项目和简单场景</li>
+          </ul>
+        </div>
+        <div class="comparison-vs scale-in">VS</div>
+        <div class="comparison-col fade-in-right" style="border-color:rgba(99,102,241,0.3);background:rgba(99,102,241,0.04);">
+          <h3>&#9889; 增强模式（5步）</h3>
+          <ul>
+            <li><span>&#10003;</span> 故事内核提炼（卖点/情绪/结构/冲突）</li>
+            <li><span>&#10003;</span> 角色功能设计（主角/对手/助力者矩阵）</li>
+            <li><span>&#10003;</span> 人物卡生成（基于内核和功能）</li>
+            <li><span>&#10003;</span> 剧情大纲</li>
+            <li><span>&#10003;</span> 分集梗概（每批20集）</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pacing Style -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">叙事节奏</span>
+        <h2 class="section-title">3种叙事节奏风格</h2>
+        <p class="section-desc">Pacing Style 控制大纲生成时的整体节奏密度，适配不同平台的内容消费习惯。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#9889;</div>
+          <h3 class="card-title">fast 快节奏</h3>
+          <p class="card-desc">10秒必出爆点，每集2-3个爽点。适合竖屏短剧，观众注意力短，需要密集刺激。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9654;</div>
+          <h3 class="card-title">standard 标准</h3>
+          <p class="card-desc">正常铺垫节奏，每集1-2个爽点。适合横屏短剧，有适当的铺垫和发展空间。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#127793;</div>
+          <h3 class="card-title">slow 慢节奏</h3>
+          <p class="card-desc">细腻展开叙事，3-5集世界观建设。适合长篇网剧，注重氛围营造和角色塑造。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dynamic Episode Rhythm -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">节奏计算</span>
+        <h2 class="section-title">动态集数节奏计算</h2>
+        <p class="section-desc">系统根据总集数自动计算四大阶段边界，确保故事结构完整、节奏合理。</p>
+      </div>
+      <div class="metrics-grid stagger-children">
+        <div class="metric-card">
+          <div class="metric-value">10%</div>
+          <div class="metric-label">开局阶段</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">70%</div>
+          <div class="metric-label">发展阶段</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">90%</div>
+          <div class="metric-label">高潮阶段</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">100%</div>
+          <div class="metric-label">结局阶段</div>
+        </div>
+      </div>
+      <div class="cards-grid stagger-children" style="margin-top:40px;">
+        <div class="card">
+          <div class="card-icon">&#128214;</div>
+          <h3 class="card-title">60集剧示例</h3>
+          <p class="card-desc">开局第1-6集（角色登场、世界观建立）→ 发展第7-42集（冲突升级、关系深化）→ 高潮第43-54集（终极对决、伏笔揭晓）→ 结局第55-60集（收束剧情、情感升华）。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128218;</div>
+          <h3 class="card-title">100集剧示例</h3>
+          <p class="card-desc">开局第1-10集 → 发展第11-70集 → 高潮第71-90集 → 结局第91-100集。集数越多，每个阶段的铺垫空间越充裕，节奏更从容。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <h2 class="cta-title fade-in">准备好开始创作了吗？</h2>
+      <p class="cta-desc fade-in">8步流程，从零到成品，全程自动化。</p>
+      <a href="#" class="btn btn-primary btn-lg fade-in" target="_blank">立即开始 &rarr;</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">
+            <span class="logo-icon">AI</span>
+            <span>AI剧本工厂</span>
+          </div>
+          <p>基于AI的动态漫剧本批量生成系统，让创意不再受限于产能。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="features.html">功能介绍</a></li>
+            <li><a href="workflow.html">使用流程</a></li>
+            <li><a href="technology.html">技术架构</a></li>
+            <li><a href="cases.html">场景案例</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">部署文档</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">API参考</a></li>
+            <li><a href="changelog.html">更新日志</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>联系</h4>
+          <ul>
+            <li><a href="#" target="_blank">系统入口</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">技术支持</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">反馈建议</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2025 AI剧本工厂. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

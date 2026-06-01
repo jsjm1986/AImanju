@@ -1,0 +1,169 @@
+/* ========================================
+   颜色令牌 - 设计系统基础
+   支持多皮肤切换
+   ======================================== */
+
+/* 皮肤：Default (靛紫) */
+:root,
+[data-skin="default"] {
+    --skin-primary-h: 239;
+    --skin-primary-s: 84%;
+    --skin-primary-l: 67%;
+    --skin-secondary-h: 270;
+    --skin-secondary-s: 91%;
+    --skin-secondary-l: 65%;
+}
+
+/* 皮肤：Ocean (海蓝) */
+[data-skin="ocean"] {
+    --skin-primary-h: 199;
+    --skin-primary-s: 89%;
+    --skin-primary-l: 48%;
+    --skin-secondary-h: 187;
+    --skin-secondary-s: 94%;
+    --skin-secondary-l: 43%;
+}
+
+/* 皮肤：Sunset (橙红) */
+[data-skin="sunset"] {
+    --skin-primary-h: 25;
+    --skin-primary-s: 95%;
+    --skin-primary-l: 53%;
+    --skin-secondary-h: 0;
+    --skin-secondary-s: 84%;
+    --skin-secondary-l: 60%;
+}
+
+/* 皮肤：Forest (翠绿) */
+[data-skin="forest"] {
+    --skin-primary-h: 142;
+    --skin-primary-s: 71%;
+    --skin-primary-l: 45%;
+    --skin-secondary-h: 160;
+    --skin-secondary-s: 84%;
+    --skin-secondary-l: 39%;
+}
+
+/* 皮肤：Cherry (樱粉) */
+[data-skin="cherry"] {
+    --skin-primary-h: 330;
+    --skin-primary-s: 81%;
+    --skin-primary-l: 60%;
+    --skin-secondary-h: 340;
+    --skin-secondary-s: 82%;
+    --skin-secondary-l: 52%;
+}
+
+/* ========================================
+   基于皮肤生成的颜色变量
+   使用 inherit 确保动态更新
+   ======================================== */
+:root,
+[data-skin="default"],
+[data-skin="ocean"],
+[data-skin="sunset"],
+[data-skin="forest"],
+[data-skin="cherry"] {
+    /* 主色 - 基于 HSL 动态生成 */
+    --primary: hsl(var(--skin-primary-h), var(--skin-primary-s), var(--skin-primary-l));
+    --primary-hover: hsl(var(--skin-primary-h), var(--skin-primary-s), calc(var(--skin-primary-l) - 8%));
+    --primary-light: hsla(var(--skin-primary-h), var(--skin-primary-s), var(--skin-primary-l), 0.15);
+    --primary-lighter: hsla(var(--skin-primary-h), var(--skin-primary-s), var(--skin-primary-l), 0.08);
+
+    /* 辅色 */
+    --secondary: hsl(var(--skin-secondary-h), var(--skin-secondary-s), var(--skin-secondary-l));
+    --secondary-hover: hsl(var(--skin-secondary-h), var(--skin-secondary-s), calc(var(--skin-secondary-l) - 8%));
+    --secondary-light: hsla(var(--skin-secondary-h), var(--skin-secondary-s), var(--skin-secondary-l), 0.15);
+
+    /* 渐变 */
+    --gradient-primary: linear-gradient(135deg, var(--primary), var(--secondary));
+    --gradient-primary-soft: linear-gradient(135deg, var(--primary-light), var(--secondary-light));
+}
+
+/* 状态颜色 - 固定不变 */
+:root {
+    --success: hsl(160, 84%, 39%);
+    --success-light: hsla(160, 84%, 39%, 0.15);
+    --warning: hsl(38, 92%, 50%);
+    --warning-light: hsla(38, 92%, 50%, 0.15);
+    --error: hsl(0, 84%, 60%);
+    --error-light: hsla(0, 84%, 60%, 0.15);
+    --info: hsl(217, 91%, 60%);
+    --info-light: hsla(217, 91%, 60%, 0.15);
+}
+
+/* ========================================
+   暗色模式背景/文字
+   ======================================== */
+:root,
+[data-theme="dark"] {
+    /* 背景层级 */
+    --bg-base: hsl(222, 47%, 8%);
+    --bg-surface: hsl(222, 41%, 12%);
+    --bg-elevated: hsl(222, 35%, 18%);
+    --bg-overlay: hsla(222, 47%, 8%, 0.85);
+
+    /* 卡片背景 */
+    --bg-card: hsla(222, 41%, 14%, 0.9);
+    --bg-card-hover: hsla(222, 41%, 18%, 0.95);
+
+    /* 输入框 */
+    --bg-input: hsla(222, 47%, 10%, 0.8);
+    --bg-input-focus: hsla(222, 47%, 12%, 0.9);
+
+    /* 毛玻璃 */
+    --glass-bg: hsla(222, 41%, 16%, 0.75);
+    --glass-border: hsla(0, 0%, 100%, 0.1);
+
+    /* 文字 */
+    --text-primary: hsl(210, 40%, 96%);
+    --text-secondary: hsl(215, 20%, 65%);
+    --text-muted: hsl(215, 16%, 47%);
+    --text-on-primary: hsl(0, 0%, 100%);
+
+    /* 边框 */
+    --border-default: hsla(215, 20%, 65%, 0.2);
+    --border-subtle: hsla(0, 0%, 100%, 0.08);
+    --border-focus: var(--primary);
+
+    /* 阴影 */
+    --shadow-color: 222 47% 4%;
+    --shadow-sm: 0 2px 8px hsl(var(--shadow-color) / 0.3);
+    --shadow-md: 0 8px 24px hsl(var(--shadow-color) / 0.4);
+    --shadow-lg: 0 24px 48px hsl(var(--shadow-color) / 0.5);
+    --shadow-glow: 0 0 40px hsla(var(--skin-primary-h), var(--skin-primary-s), var(--skin-primary-l), 0.25);
+}
+
+/* ========================================
+   亮色模式背景/文字
+   ======================================== */
+[data-theme="light"] {
+    --bg-base: hsl(210, 40%, 98%);
+    --bg-surface: hsl(0, 0%, 100%);
+    --bg-elevated: hsl(210, 40%, 99%);
+    --bg-overlay: hsla(0, 0%, 100%, 0.9);
+
+    --bg-card: hsla(0, 0%, 100%, 0.95);
+    --bg-card-hover: hsl(0, 0%, 100%);
+
+    --bg-input: hsl(0, 0%, 100%);
+    --bg-input-focus: hsl(0, 0%, 100%);
+
+    --glass-bg: hsla(0, 0%, 100%, 0.8);
+    --glass-border: hsla(0, 0%, 0%, 0.08);
+
+    --text-primary: hsl(222, 47%, 11%);
+    --text-secondary: hsl(215, 16%, 47%);
+    --text-muted: hsl(215, 14%, 64%);
+    --text-on-primary: hsl(0, 0%, 100%);
+
+    --border-default: hsla(0, 0%, 0%, 0.1);
+    --border-subtle: hsla(0, 0%, 0%, 0.05);
+    --border-focus: var(--primary);
+
+    --shadow-color: 220 10% 50%;
+    --shadow-sm: 0 2px 8px hsl(var(--shadow-color) / 0.08);
+    --shadow-md: 0 8px 24px hsl(var(--shadow-color) / 0.12);
+    --shadow-lg: 0 24px 48px hsl(var(--shadow-color) / 0.16);
+    --shadow-glow: 0 0 40px hsla(var(--skin-primary-h), var(--skin-primary-s), var(--skin-primary-l), 0.15);
+}

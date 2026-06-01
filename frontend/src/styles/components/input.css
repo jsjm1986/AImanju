@@ -1,0 +1,202 @@
+/**
+ * Input Component
+ * 输入框组件样式
+ */
+
+/* ========== 基础输入框 ========== */
+
+.input {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  transition: border-color var(--transition-fast);
+}
+
+.input:hover:not(:disabled) {
+  border-color: var(--border-hover);
+}
+
+.input:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:disabled {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ========== 尺寸变体 ========== */
+
+.input-sm {
+  height: 32px;
+  font-size: var(--text-sm);
+}
+
+.input-lg {
+  height: 48px;
+  font-size: var(--text-md);
+}
+
+/* ========== 文本域 ========== */
+
+.textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  font-family: inherit;
+  line-height: var(--leading-relaxed);
+  resize: vertical;
+  transition: border-color var(--transition-fast);
+}
+
+.textarea:hover:not(:disabled) {
+  border-color: var(--border-hover);
+}
+
+.textarea:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
+.textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.textarea:disabled {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ========== 下拉选择框 ========== */
+
+.select {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-8) 0 var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-base);
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23A1A1AA' d='M2 4l4 4 4-4z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color var(--transition-fast);
+}
+
+.select:hover:not(:disabled) {
+  border-color: var(--border-hover);
+}
+
+.select:focus {
+  border-color: var(--border-focus);
+  outline: none;
+}
+
+.select:disabled {
+  background: var(--bg-hover);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* ========== 表单组 ========== */
+
+.form-group {
+  margin-bottom: var(--space-4);
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.form-label.required::after {
+  content: ' *';
+  color: var(--error);
+}
+
+.form-hint {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.form-error {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--error);
+}
+
+/* ========== 表单行 ========== */
+
+.form-row {
+  display: flex;
+  gap: var(--space-4);
+}
+
+.form-row > .form-group {
+  flex: 1;
+}
+
+/* ========== 表单操作 ========== */
+
+.form-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+}
+
+.form-actions-right {
+  justify-content: flex-end;
+}
+
+.form-actions-between {
+  justify-content: space-between;
+}
+
+/* ========== 复选框和单选框 ========== */
+
+.checkbox,
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.checkbox input,
+.radio input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--primary);
+}

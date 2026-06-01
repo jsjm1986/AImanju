@@ -1,0 +1,68 @@
+/**
+ * Light Theme Variables
+ * 浅色主题变量覆盖
+ * 
+ * 设计原则：
+ * 1. 保持与深色主题相同的变量名
+ * 2. 仅覆盖需要变化的颜色值
+ * 3. 语义色保持一致，调整透明度
+ */
+
+:root[data-theme="light"] {
+  /* ========== 背景层级 (由浅到深) ========== */
+  --bg-base: #FAFAFA;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #F4F4F5;
+  --bg-hover: #E4E4E7;
+  --bg-active: #D4D4D8;
+
+  /* ========== 文字层级 (由深到浅) ========== */
+  --text-primary: #18181B;
+  --text-secondary: #52525B;
+  --text-tertiary: #71717A;
+  --text-muted: #A1A1AA;
+
+  /* 按钮/彩色背景上的文字（浅色模式也保持白色以确保对比度） */
+  --text-on-primary: #FFFFFF;
+  --text-on-success: #FFFFFF;
+  --text-on-warning: #FFFFFF;
+  --text-on-error: #FFFFFF;
+  --text-on-info: #FFFFFF;
+
+  /* ========== 边框 ========== */
+  --border-default: #E4E4E7;
+  --border-hover: #D4D4D8;
+  --border-focus: #6366F1;
+
+  /* ========== 语义色 muted (降低透明度以适应浅色背景) ========== */
+  --primary-muted: rgba(99, 102, 241, 0.08);
+  --primary-border: rgba(99, 102, 241, 0.2);
+  --success-muted: rgba(34, 197, 94, 0.08);
+  --success-border: rgba(34, 197, 94, 0.2);
+  --warning-muted: rgba(245, 158, 11, 0.08);
+  --warning-border: rgba(245, 158, 11, 0.2);
+  --error-muted: rgba(239, 68, 68, 0.08);
+  --error-border: rgba(239, 68, 68, 0.2);
+  --info-muted: rgba(59, 130, 246, 0.08);
+  --info-border: rgba(59, 130, 246, 0.2);
+
+  /* 扩展语义色 */
+  --cyan-muted: rgba(34, 211, 238, 0.08);
+  --cyan-border: rgba(34, 211, 238, 0.2);
+  --orange-muted: rgba(251, 146, 60, 0.08);
+  --orange-border: rgba(251, 146, 60, 0.2);
+  --pink-muted: rgba(232, 121, 249, 0.08);
+  --pink-border: rgba(232, 121, 249, 0.2);
+  --purple-muted: rgba(167, 139, 250, 0.08);
+  --purple-border: rgba(167, 139, 250, 0.2);
+
+  /* ========== 阴影 (浅色模式阴影更淡) ========== */
+  --shadow-color: rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 1px 2px var(--shadow-color);
+  --shadow-md: 0 4px 8px var(--shadow-color);
+  --shadow-lg: 0 8px 16px var(--shadow-color);
+  --shadow-xl: 0 16px 32px var(--shadow-color);
+
+  /* ========== 遮罩 ========== */
+  --overlay-bg: rgba(0, 0, 0, 0.4);
+}

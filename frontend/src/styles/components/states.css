@@ -1,0 +1,414 @@
+/* ===== 统一组件状态样式 ===== */
+
+/* ===== 工具栏按钮 ===== */
+.toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  height: 36px;
+  padding: 0 var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.98);
+}
+
+.toolbar-btn.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--text-on-primary);
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.toolbar-btn:disabled:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border-default);
+  color: var(--text-secondary);
+}
+
+/* 图标按钮 */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.icon-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.icon-btn:active {
+  transform: scale(0.95);
+}
+
+.icon-btn.active {
+  background: var(--primary-muted);
+  color: var(--primary);
+}
+
+/* ===== 列表项状态 ===== */
+.list-item {
+  display: flex;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  background: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.list-item:hover {
+  background: var(--bg-hover);
+}
+
+.list-item.selected {
+  background: var(--primary-muted);
+}
+
+.list-item.active {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+
+.list-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+/* ===== 卡片状态 ===== */
+.card-interactive {
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.card-interactive:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.card-interactive.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+.card-interactive:active {
+  transform: translateY(0);
+}
+
+/* ===== 表单验证状态 ===== */
+.form-input {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-3);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.form-input:hover {
+  border-color: var(--border-hover);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--primary-muted);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--bg-surface);
+}
+
+/* 验证状态 */
+.form-input.is-valid {
+  border-color: var(--success);
+}
+
+.form-input.is-valid:focus {
+  box-shadow: 0 0 0 3px var(--success-muted);
+}
+
+.form-input.is-invalid {
+  border-color: var(--error);
+}
+
+.form-input.is-invalid:focus {
+  box-shadow: 0 0 0 3px var(--error-muted);
+}
+
+/* 验证消息 */
+.form-message {
+  margin-top: var(--space-1);
+  font-size: 12px;
+}
+
+.form-message.success {
+  color: var(--success);
+}
+
+.form-message.error {
+  color: var(--error);
+}
+
+.form-message.warning {
+  color: var(--warning);
+}
+
+/* ===== 标签/徽章状态 ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: var(--font-medium);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+.badge.badge-primary {
+  background: var(--primary-muted);
+  color: var(--primary);
+}
+
+.badge.badge-success {
+  background: var(--success-muted);
+  color: var(--success);
+}
+
+.badge.badge-warning {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+
+.badge.badge-error {
+  background: var(--error-muted);
+  color: var(--error);
+}
+
+.badge.badge-info {
+  background: var(--info-muted);
+  color: var(--info);
+}
+
+/* 圆形徽章 */
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-muted);
+}
+
+.badge-dot.active {
+  background: var(--success);
+}
+
+.badge-dot.warning {
+  background: var(--warning);
+}
+
+.badge-dot.error {
+  background: var(--error);
+}
+
+/* ===== 开关状态 ===== */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+
+.toggle.active {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.toggle.active::after {
+  left: 22px;
+  background: white;
+}
+
+/* ===== 复选框状态 ===== */
+.checkbox-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.checkbox-custom input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.checkbox-custom span {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* ===== 单选按钮状态 ===== */
+.radio-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.radio-custom input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+}
+
+.radio-custom span {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+/* ===== 选项卡状态 ===== */
+.tab-item {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-item:hover {
+  color: var(--text-primary);
+}
+
+.tab-item.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* 胶囊选项卡 */
+.tab-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.tab-pill:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.tab-pill.active {
+  background: var(--primary);
+  color: var(--text-on-primary);
+}
+
+/* ===== 加载状态 ===== */
+.loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--overlay-bg);
+  z-index: 10;
+}
+
+/* ===== 禁用状态 ===== */
+.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* ===== 焦点可见状态 ===== */
+.focus-visible:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ===== 拖拽状态 ===== */
+.is-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.drag-over {
+  border-color: var(--primary);
+  background: var(--primary-muted);
+}

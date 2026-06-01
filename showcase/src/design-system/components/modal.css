@@ -1,0 +1,181 @@
+/* ========================================
+   模态框/抽屉样式
+   PC: 居中弹窗
+   Mobile: 底部抽屉
+   ======================================== */
+
+/* 遮罩层 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(8px);
+    z-index: var(--z-modal-backdrop);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-4);
+    animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+/* PC端弹窗 */
+.modal {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    max-height: 85vh;
+    background: var(--bg-card);
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    animation: scaleIn var(--duration-normal) var(--ease-spring);
+}
+
+.modal-lg {
+    max-width: 700px;
+}
+
+.modal-xl {
+    max-width: 900px;
+}
+
+.modal-full {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+}
+
+/* 头部 */
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-5) var(--space-6);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.modal-close {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-elevated);
+    border: none;
+    border-radius: var(--radius-full);
+    color: var(--text-secondary);
+    font-size: 20px;
+    cursor: pointer;
+    transition: all var(--duration-fast);
+}
+
+.modal-close:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* 内容 */
+.modal-body {
+    padding: var(--space-6);
+    overflow-y: auto;
+    max-height: calc(85vh - 140px);
+}
+
+/* 底部 */
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-elevated);
+}
+
+/* ========================================
+   移动端抽屉
+   ======================================== */
+@media (max-width: 640px) {
+    .modal-overlay {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .modal {
+        max-width: 100%;
+        max-height: 90vh;
+        border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+        animation: slideInUp var(--duration-normal) var(--ease-spring);
+    }
+
+    .modal-header {
+        position: relative;
+        padding-top: var(--space-8);
+    }
+
+    /* 抽屉手柄 */
+    .modal-header::before {
+        content: '';
+        position: absolute;
+        top: var(--space-3);
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 4px;
+        background: var(--border-default);
+        border-radius: var(--radius-full);
+    }
+
+    .modal-body {
+        max-height: calc(90vh - 160px);
+        padding-bottom: calc(var(--space-6) + var(--safe-area-bottom));
+    }
+
+    .modal-footer {
+        flex-direction: column;
+        padding-bottom: calc(var(--space-4) + var(--safe-area-bottom));
+    }
+
+    .modal-footer .btn {
+        width: 100%;
+    }
+}
+
+/* 关键帧动画 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}

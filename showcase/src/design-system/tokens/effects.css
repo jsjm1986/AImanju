@@ -1,0 +1,255 @@
+/* ========================================
+   效果系统 - 阴影、动画、过渡
+   ======================================== */
+
+:root {
+    /* 过渡时长 */
+    --duration-instant: 50ms;
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 400ms;
+    --duration-slower: 600ms;
+
+    /* 缓动函数 */
+    --ease-linear: linear;
+    --ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* Z-index 层级 */
+    --z-dropdown: 100;
+    --z-sticky: 200;
+    --z-fixed: 300;
+    --z-modal-backdrop: 400;
+    --z-modal: 500;
+    --z-popover: 600;
+    --z-tooltip: 700;
+    --z-toast: 800;
+}
+
+/* ========================================
+   关键帧动画
+   ======================================== */
+
+/* 淡入 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* 淡入上移 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 淡入下移 */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 缩放弹入 */
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 底部滑入 (移动端抽屉) */
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* 脉冲 */
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
+
+/* 骨架屏闪烁 */
+@keyframes shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* 涟漪效果 */
+@keyframes ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* 旋转 */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========================================
+   动画工具类
+   ======================================== */
+.animate-fadeIn {
+    animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+.animate-fadeInUp {
+    animation: fadeInUp var(--duration-normal) var(--ease-spring);
+}
+
+.animate-fadeInDown {
+    animation: fadeInDown var(--duration-normal) var(--ease-spring);
+}
+
+.animate-scaleIn {
+    animation: scaleIn var(--duration-fast) var(--ease-spring);
+}
+
+.animate-slideInUp {
+    animation: slideInUp var(--duration-normal) var(--ease-spring);
+}
+
+.animate-pulse {
+    animation: pulse 2s var(--ease-in-out) infinite;
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* ========================================
+   过渡预设
+   ======================================== */
+.transition-none {
+    transition: none;
+}
+
+.transition-all {
+    transition: all var(--duration-normal) var(--ease-out);
+}
+
+.transition-colors {
+    transition: color var(--duration-fast),
+        background-color var(--duration-fast),
+        border-color var(--duration-fast);
+}
+
+.transition-transform {
+    transition: transform var(--duration-normal) var(--ease-spring);
+}
+
+.transition-opacity {
+    transition: opacity var(--duration-normal);
+}
+
+/* ========================================
+   悬停效果预设
+   ======================================== */
+
+/* 上移悬停 */
+.hover-lift {
+    transition: transform var(--duration-fast) var(--ease-spring),
+        box-shadow var(--duration-fast);
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+/* 缩放悬停 */
+.hover-scale {
+    transition: transform var(--duration-fast) var(--ease-spring);
+}
+
+.hover-scale:hover {
+    transform: scale(1.02);
+}
+
+/* 发光悬停 */
+.hover-glow {
+    transition: box-shadow var(--duration-fast);
+}
+
+.hover-glow:hover {
+    box-shadow: var(--shadow-glow);
+}
+
+/* ========================================
+   骨架屏
+   ======================================== */
+.skeleton {
+    background: linear-gradient(90deg,
+            var(--bg-elevated) 25%,
+            var(--bg-surface) 50%,
+            var(--bg-elevated) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-md);
+}
+
+.skeleton-text {
+    height: 1em;
+    border-radius: var(--radius-sm);
+}
+
+.skeleton-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-full);
+}
+
+.skeleton-card {
+    height: 200px;
+}

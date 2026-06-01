@@ -1,0 +1,37 @@
+/**
+ * 海洋主题
+ * Ocean Theme - 专注模式
+ */
+
+:root[data-theme="ocean"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #0C4A6E;
+    --bg-surface: #0E5A85;
+    --bg-elevated: #126A9C;
+    --bg-hover: #1680B8;
+    --bg-active: #1A96D4;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #F0FDFF;
+    --text-secondary: #A5E8F7;
+    --text-tertiary: #67C7DE;
+    --text-muted: #4AA3C0;
+
+    /* ========== 边框 ========== */
+    --border-default: #1680B8;
+    --border-hover: #1A96D4;
+    --border-focus: #22D3EE;
+
+    /* ========== 主色 - Cyan ========== */
+    --primary: #22D3EE;
+    --primary-hover: #67E8F9;
+    --primary-active: #06B6D4;
+    --primary-muted: rgba(34, 211, 238, 0.2);
+    --primary-border: rgba(34, 211, 238, 0.4);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.4);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(12, 74, 110, 0.8);
+}

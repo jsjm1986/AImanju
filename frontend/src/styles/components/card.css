@@ -1,0 +1,130 @@
+/**
+ * Card Component
+ * 卡片组件样式
+ */
+
+/* ========== 基础卡片 ========== */
+
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast);
+}
+
+.card-hover:hover {
+  border-color: var(--border-hover);
+}
+
+.card-clickable {
+  cursor: pointer;
+}
+
+/* ========== 卡片区域 ========== */
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.card-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.card-body {
+  padding: var(--space-4);
+}
+
+.card-footer {
+  padding: var(--space-4);
+  border-top: 1px solid var(--border-default);
+}
+
+/* ========== 紧凑卡片 ========== */
+
+.card-compact .card-header,
+.card-compact .card-body,
+.card-compact .card-footer {
+  padding: var(--space-3);
+}
+
+/* ========== 卡片网格 ========== */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-4);
+}
+
+.card-grid-lg {
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.card-grid-sm {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+/* ========== 标签/徽章 ========== */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 var(--space-2);
+  background: var(--bg-hover);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+}
+
+.tag-primary {
+  background: var(--primary-muted);
+  color: var(--primary);
+}
+
+.tag-success {
+  background: var(--success-muted);
+  color: var(--success);
+}
+
+.tag-warning {
+  background: var(--warning-muted);
+  color: var(--warning);
+}
+
+.tag-error {
+  background: var(--error-muted);
+  color: var(--error);
+}
+
+/* ========== 状态指示 ========== */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--text-muted);
+}
+
+.status-dot-success {
+  background: var(--success);
+}
+
+.status-dot-warning {
+  background: var(--warning);
+}
+
+.status-dot-error {
+  background: var(--error);
+}
+
+.status-dot-primary {
+  background: var(--primary);
+}

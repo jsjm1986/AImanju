@@ -1,0 +1,48 @@
+/**
+ * 薰衣草主题
+ * Lavender Theme - 淡雅梦幻 (浅色紫调)
+ */
+
+:root[data-theme="lavender"] {
+    /* ========== 背景层级 (Pale Purple) ========== */
+    --bg-base: #F7F5FF;
+    /* Very pale lavender */
+    --bg-surface: #FFFFFF;
+    --bg-elevated: #F3EFFF;
+    --bg-hover: #EBE5FF;
+    --bg-active: #DCD0FF;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #473B5C;
+    /* Deep Purple Grey */
+    --text-secondary: #6A5B85;
+    --text-tertiary: #8E7DAE;
+    --text-muted: #B4A9C9;
+
+    /* ========== 边框 ========== */
+    --border-default: #EBE5FF;
+    --border-hover: #DCD0FF;
+    --border-focus: #9F7AEA;
+
+    /* ========== 主色 - Lavender/Purple ========== */
+    --primary: #9F7AEA;
+    /* Medium Purple */
+    --primary-hover: #B794F4;
+    /* Lighter Purple */
+    --primary-active: #805AD5;
+
+    --primary-muted: rgba(159, 122, 234, 0.1);
+    --primary-border: rgba(159, 122, 234, 0.25);
+
+    /* ========== 语义色 (Soft) ========== */
+    --success: #68D391;
+    --warning: #F6AD55;
+    --error: #FC8181;
+    --info: #63B3ED;
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(159, 122, 234, 0.15);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(71, 59, 92, 0.5);
+}

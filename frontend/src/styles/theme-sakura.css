@@ -1,0 +1,37 @@
+/**
+ * 樱花主题
+ * Sakura Theme - 温柔文艺
+ */
+
+:root[data-theme="sakura"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #FFF5F7;
+    --bg-surface: #FFFFFF;
+    --bg-elevated: #FFF0F3;
+    --bg-hover: #FFE4E9;
+    --bg-active: #FFD6DE;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #4A1942;
+    --text-secondary: #7D3C6B;
+    --text-tertiary: #9E6B8E;
+    --text-muted: #C29DB4;
+
+    /* ========== 边框 ========== */
+    --border-default: #FFD6DE;
+    --border-hover: #FFC1CC;
+    --border-focus: #EC4899;
+
+    /* ========== 主色 - Pink ========== */
+    --primary: #EC4899;
+    --primary-hover: #F472B6;
+    --primary-active: #DB2777;
+    --primary-muted: rgba(236, 72, 153, 0.1);
+    --primary-border: rgba(236, 72, 153, 0.25);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(236, 72, 153, 0.1);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(74, 25, 66, 0.4);
+}

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>功能详情 - AI剧本工厂</title>
+  <meta name="description" content="AI剧本工厂26大核心功能详细介绍，覆盖创作、管理、质量、配置全流程。">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">AI</span>
+        <span>AI剧本工厂</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="features.html">功能</a>
+        <a href="workflow.html">流程</a>
+        <a href="technology.html">技术</a>
+        <a href="cases.html">案例</a>
+        <a href="changelog.html">日志</a>
+        <a href="#" class="nav-cta" target="_blank">立即体验 &rarr;</a>
+      </nav>
+      <div class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <span class="section-label">功能详情</span>
+      <h1>26大核心功能</h1>
+      <p>覆盖剧本创作全流程，从灵感到成稿一站式解决。</p>
+    </div>
+  </section>
+
+  <!-- Core Innovation Highlight -->
+  <section class="section innovation-section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">核心创新</span>
+        <h2 class="section-title">三大技术突破</h2>
+        <p class="section-desc">不是简单的AI文本生成，而是一套完整的剧本工程系统。</p>
+      </div>
+      <div class="innovation-grid stagger-children">
+        <div class="innovation-card">
+          <div class="card-icon">&#129504;</div>
+          <h3>AI约束决策引擎</h3>
+          <p>不是硬编码规则，AI理解剧情语义后自主做出约束决策。每个约束包含主体、对象、方法论和验证标准，由同一AI调用共同生成，确保约束与剧情深度耦合。</p>
+          <div class="tech-detail">结构化约束：subject / object / methodology[] / validationCriteria[]，约束与验证标准由同一AI调用共同生成</div>
+        </div>
+        <div class="innovation-card">
+          <div class="card-icon">&#128064;</div>
+          <h3>多头注意力分析</h3>
+          <p>借鉴Transformer架构，23种注意力头类型（4种基础必选 + 19种扩展）通过 Promise.all 并行执行，按剧集类型动态调整权重，全方位保障剧本质量。</p>
+          <div class="tech-detail">基础头：角色一致性 / 剧情连续性 / 伏笔追踪 / 世界观一致性，扩展头按题材动态启用</div>
+        </div>
+        <div class="innovation-card">
+          <div class="card-icon">&#127793;</div>
+          <h3>伏笔生命周期管理</h3>
+          <p>完整的伏笔状态机：planted（埋设）→ dormant（休眠）→ awakened（唤醒）→ resolved（回收）/ abandoned（放弃）/ merged（合并）。5种伏笔分类，4种数据类型（suspense/character/item/plot），超期自动预警（高优先级:10集、普通:20集、低:30集）。</p>
+          <div class="tech-detail">6种状态流转：planted → dormant → awakened → resolved / abandoned / merged，休眠伏笔可被后续剧情唤醒重新激活</div>
+        </div>
+      </div>
+
+      <!-- Foreshadowing Categories -->
+      <div class="section-header fade-in" style="margin-top:60px;">
+        <span class="section-label">伏笔分类</span>
+        <h2 class="section-title">5种伏笔智能分类</h2>
+        <p class="section-desc">AI自动识别伏笔类型，不同类型采用不同处理策略，避免"所有伏笔都必须回收"的机械处理。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#127793;</div>
+          <h3 class="card-title">真正伏笔 true_foreshadowing</h3>
+          <p class="card-desc">真正的"坑"，必须在规定集数内回收。高优先级10集内、普通20集内、低优先级30集内必须填坑，超期5/10/15集自动预警。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#127752;</div>
+          <h3 class="card-title">氛围描写 atmosphere</h3>
+          <p class="card-desc">只是渲染气氛的描写，不需要回收。例如"远处传来诡异的笛声"——营造氛围即可，不必解释笛声来源。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128218;</div>
+          <h3 class="card-title">背景铺垫 setup</h3>
+          <p class="card-desc">世界观或背景设定的铺垫，可选回收。例如"这座城市有千年历史"——可以展开也可以不展开。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128293;</div>
+          <h3 class="card-title">悬念钩子 hook</h3>
+          <p class="card-desc">吸引观众继续追看的钩子，承接即可。例如集末"门外传来脚步声"——下集开头接上就行。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128260;</div>
+          <h3 class="card-title">重复伏笔 redundant</h3>
+          <p class="card-desc">与已有伏笔重复的内容，自动合并处理。避免同一个线索被重复埋设，保持伏笔清单的整洁。</p>
+        </div>
+      </div>
+
+      <!-- Structured Constraint Fields -->
+      <div class="section-header fade-in" style="margin-top:60px;">
+        <span class="section-label">约束结构</span>
+        <h2 class="section-title">结构化约束字段设计</h2>
+        <p class="section-desc">每个约束不只是"需要打脸"这种抽象描述，AI会同时生成"怎么做"和"怎么验证"，确保生成与验证标准一致。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#128100;</div>
+          <h3 class="card-title">subject 执行者</h3>
+          <p class="card-desc">指明谁来执行约束。例如"主角"——明确约束的执行主体，避免模糊指代。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#127919;</div>
+          <h3 class="card-title">object 对象</h3>
+          <p class="card-desc">指明对谁执行。例如"反派张三"——明确约束的作用对象，让AI知道具体针对谁。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128221;</div>
+          <h3 class="card-title">methodology[] 实现方法</h3>
+          <p class="card-desc">给生成AI的具体建议列表。例如["让对手先嘲讽", "主角反击", "对手震惊"]——提供写作思路。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#9989;</div>
+          <h3 class="card-title">validationCriteria[] 验证标准</h3>
+          <p class="card-desc">给验证AI的检查项列表。例如["必须有嘲讽对话", "必须有反击描写"]——提供评分标准，与methodology由同一AI同时生成。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Feature Tabs -->
+  <section class="section">
+    <div class="container">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="creation">创作类</button>
+        <button class="tab-btn" data-tab="management">管理类</button>
+        <button class="tab-btn" data-tab="quality">质量类</button>
+        <button class="tab-btn" data-tab="config">配置类</button>
+      </div>
+
+      <div class="tab-panels">
+
+        <!-- 创作类 -->
+        <div class="tab-panel active" data-panel="creation">
+          <div class="cards-grid stagger-children">
+            <div class="card">
+              <div class="card-icon">&#128218;</div>
+              <h3 class="card-title">批量剧本生成</h3>
+              <p class="card-desc">一次性生成100+集连续剧本，内置智能速率控制和多重容错机制，确保大批量任务稳定完成。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> API Key轮转（3个Key循环使用）</li>
+                <li><span class="check">&#10003;</span> 5次指数退避重试机制</li>
+                <li><span class="check">&#10003;</span> max_tokens自动降级策略</li>
+                <li><span class="check">&#10003;</span> 断点续传，中断后无缝恢复</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128221;</div>
+              <h3 class="card-title">单集剧本生成</h3>
+              <p class="card-desc">精细化单集生成，12种SSE消息类型实时推送生成进度，流式输出逐字呈现创作过程。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 12种SSE消息类型实时推送</li>
+                <li><span class="check">&#10003;</span> 流式输出逐字呈现</li>
+                <li><span class="check">&#10003;</span> 自定义生成参数精细控制</li>
+                <li><span class="check">&#10003;</span> 即时预览与逐步迭代</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128279;</div>
+              <h3 class="card-title">跨集联动修复</h3>
+              <p class="card-desc">6个API端点协同工作，修改某集内容时自动分析影响范围，AI置信度评分驱动级联修复。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 6个API端点协同联动</li>
+                <li><span class="check">&#10003;</span> 事务级回滚保障数据安全</li>
+                <li><span class="check">&#10003;</span> AI置信度评分驱动决策</li>
+                <li><span class="check">&#10003;</span> 影响范围分析与级联执行</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128736;</div>
+              <h3 class="card-title">批量连贯改写</h3>
+              <p class="card-desc">连贯上下文滚动传递，级联执行保持前后一致。局部修改后自动适配上下文，批量改写不丢失连贯性。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 连贯上下文滚动传递</li>
+                <li><span class="check">&#10003;</span> 级联执行保持前后一致</li>
+                <li><span class="check">&#10003;</span> 字数统计精确控制</li>
+                <li><span class="check">&#10003;</span> 批量改写自动适配</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128214;</div>
+              <h3 class="card-title">大纲自动生成</h3>
+              <p class="card-desc">五层渐进式生成流程：故事内核 → 角色功能 → 角色卡片 → 情节大纲 → 分集摘要，层层递进构建完整故事框架。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 五层渐进式生成流程</li>
+                <li><span class="check">&#10003;</span> 从内核到分集逐层展开</li>
+                <li><span class="check">&#10003;</span> 支持手动调整任意层级</li>
+                <li><span class="check">&#10003;</span> 智能剧情规划与节奏控制</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 管理类 -->
+        <div class="tab-panel" data-panel="management">
+          <div class="cards-grid stagger-children">
+            <div class="card">
+              <div class="card-icon">&#128101;</div>
+              <h3 class="card-title">智能角色管理</h3>
+              <p class="card-desc">角色金字塔5级模型（核心/常驻/弧线/临时/龙套），自动升降级规则，分级上下文预算精准分配。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 5级角色金字塔模型</li>
+                <li><span class="check">&#10003;</span> 分级预算（800/500/300/150/50字符）</li>
+                <li><span class="check">&#10003;</span> 7级关系量化追踪</li>
+                <li><span class="check">&#10003;</span> 6种事件类型驱动关系变化</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128194;</div>
+              <h3 class="card-title">项目管理</h3>
+              <p class="card-desc">多项目并行管理，支持多模型热切换（Claude/Gemini/GLM/DeepSeek/豆包），灵活适配不同需求。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 多模型切换支持</li>
+                <li><span class="check">&#10003;</span> 项目克隆与归档</li>
+                <li><span class="check">&#10003;</span> 批量操作支持</li>
+                <li><span class="check">&#10003;</span> 多项目并行管理</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#127912;</div>
+              <h3 class="card-title">多格式输出</h3>
+              <p class="card-desc">15种预设格式模板，覆盖动态漫、条漫、小说、影视剧本、广播剧、游戏脚本、短视频等全场景输出需求。支持自定义输出提示词，精准控制交付形态。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 15种格式一键切换</li>
+                <li><span class="check">&#10003;</span> 标准漫/条漫/日漫/美漫/国漫</li>
+                <li><span class="check">&#10003;</span> 影视/舞台剧/广播剧/纪录片</li>
+                <li><span class="check">&#10003;</span> 游戏脚本/互动剧/AI数字人</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#127917;</div>
+              <h3 class="card-title">角色魅力分析</h3>
+              <p class="card-desc">CharacterCharmAnalyzer 自动评估角色吸引力，分析角色的独特魅力点，确保每个角色都有鲜明的记忆点和读者吸引力。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 角色魅力多维度评估</li>
+                <li><span class="check">&#10003;</span> 魅力特征自动提取</li>
+                <li><span class="check">&#10003;</span> 角色吸引力评分</li>
+                <li><span class="check">&#10003;</span> 魅力信息注入生成上下文</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128200;</div>
+              <h3 class="card-title">角色弧线追踪</h3>
+              <p class="card-desc">CharacterArcTracker 追踪每个角色的成长变化轨迹，记录角色从出场到当前的完整成长弧线，确保角色发展合理且有层次。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 角色成长弧线可视化</li>
+                <li><span class="check">&#10003;</span> 关键转折点标记</li>
+                <li><span class="check">&#10003;</span> 成长轨迹一致性检查</li>
+                <li><span class="check">&#10003;</span> 弧线信息融入生成提示词</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128172;</div>
+              <h3 class="card-title">角色语言风格</h3>
+              <p class="card-desc">CharacterVoiceProfiler 管理每个角色的独特说话方式，确保角色台词风格一致——霸道总裁不会说出小白兔的台词。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 角色语言风格画像</li>
+                <li><span class="check">&#10003;</span> 台词风格一致性保障</li>
+                <li><span class="check">&#10003;</span> 口头禅与语气词管理</li>
+                <li><span class="check">&#10003;</span> 风格信息注入写作提示词</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128279;</div>
+              <h3 class="card-title">角色关系追踪</h3>
+              <p class="card-desc">RelationshipTracker 管理角色之间的关系网络，7级关系量化追踪，6种事件类型驱动关系动态变化，确保角色互动逻辑一致。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 7级关系：陌生→相识→熟悉→亲近→亲密→敌对→仇敌</li>
+                <li><span class="check">&#10003;</span> 初次见面(+0.1) / 建立羁绊(+0.2) / 关系加深(+0.25)</li>
+                <li><span class="check">&#10003;</span> 发生冲突(-0.2) / 背叛(-0.5) / 和解(+0.3)</li>
+                <li><span class="check">&#10003;</span> 情感值量化驱动关系等级自动升降</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128200;</div>
+              <h3 class="card-title">角色自动升降级</h3>
+              <p class="card-desc">CharacterLifecycleManager 根据角色出场频率自动调整金字塔层级，重要角色自动升级获得更多关注，长期缺席角色自动降级释放资源。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 临时→弧线：连续出场3集 或 总出场5集</li>
+                <li><span class="check">&#10003;</span> 弧线→常驻：连续出场10集 或 总出场20集</li>
+                <li><span class="check">&#10003;</span> 常驻→弧线：30集不出场自动降级</li>
+                <li><span class="check">&#10003;</span> 弧线→临时：弧线结束 或 15集不出场</li>
+                <li><span class="check">&#10003;</span> 临时→龙套：5集不出场自动降级</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#127758;</div>
+              <h3 class="card-title">世界观自动采集</h3>
+              <p class="card-desc">系统自动追踪世界观三大核心要素：势力格局、地点发现、关键道具。实现"采集→更新→使用"完整信息闭环，确保世界观记忆连贯。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 势力格局自动追踪（状态覆盖）</li>
+                <li><span class="check">&#10003;</span> 地点发现增量记录</li>
+                <li><span class="check">&#10003;</span> 关键道具持有权追踪</li>
+                <li><span class="check">&#10003;</span> 世界状态自动注入生成上下文</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 质量类 -->
+        <div class="tab-panel" data-panel="quality">
+          <div class="cards-grid stagger-children">
+            <div class="card">
+              <div class="card-icon">&#128202;</div>
+              <h3 class="card-title">质量评分系统</h3>
+              <p class="card-desc">借鉴Transformer架构的多头注意力分析，23种注意力头（4种基础必选 + 19种扩展）并行执行，按剧集类型动态调整权重。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 23种注意力头并行分析</li>
+                <li><span class="check">&#10003;</span> 4种基础头 + 19种扩展头</li>
+                <li><span class="check">&#10003;</span> 按题材动态调整权重</li>
+                <li><span class="check">&#10003;</span> 改进建议自动生成</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128270;</div>
+              <h3 class="card-title">一致性验证</h3>
+              <p class="card-desc">滑动窗口验证机制（10集窗口、5集步长、50%重叠），覆盖9种问题类型、3级严重度评估，全面保障剧情一致性。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 滑动窗口验证（10集/5步长）</li>
+                <li><span class="check">&#10003;</span> 9种问题类型检测</li>
+                <li><span class="check">&#10003;</span> 3级严重度评估</li>
+                <li><span class="check">&#10003;</span> 50%重叠确保无遗漏</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128200;</div>
+              <h3 class="card-title">数据统计分析</h3>
+              <p class="card-desc">世界状态快照链追踪每集完整状态，时间衰减权重机制（3集内100%→20集+20%），多维度数据可视化。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 世界状态快照链追踪</li>
+                <li><span class="check">&#10003;</span> 时间衰减权重机制</li>
+                <li><span class="check">&#10003;</span> 生成进度实时追踪</li>
+                <li><span class="check">&#10003;</span> 质量趋势可视化</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128260;</div>
+              <h3 class="card-title">约束验证重试</h3>
+              <p class="card-desc">ConstraintValidator 自动验证生成内容是否满足约束任务清单。3级严重性分层判断：Critical未满足强制重试、Important满足率低于50%建议重试、Normal约束≥3个且满足率低于30%建议重试。最多2次改写模式重试。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> Critical（基础头）：未满足强制重试</li>
+                <li><span class="check">&#10003;</span> Important（多头共识≥2）：满足率&lt;50%建议重试</li>
+                <li><span class="check">&#10003;</span> Normal（扩展头）：≥3个且满足率&lt;30%建议重试</li>
+                <li><span class="check">&#10003;</span> AI逐条验证并给出证据和置信度</li>
+                <li><span class="check">&#10003;</span> 未满足约束自动强化后改写重试，最多2次</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128736;</div>
+              <h3 class="card-title">四级改写体系</h3>
+              <p class="card-desc">从单集改写到批量连贯改写，4种改写类型覆盖所有编辑场景。支持全文改写、选区改写、多集协调改写和批量连贯改写。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 单集改写：全文或选区精准修改</li>
+                <li><span class="check">&#10003;</span> AI智能改写：一键诊断优化</li>
+                <li><span class="check">&#10003;</span> 多集协调改写：统一生成再解析保存</li>
+                <li><span class="check">&#10003;</span> 批量连贯改写：先出计划再逐集执行</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- 配置类 -->
+        <div class="tab-panel" data-panel="config">
+          <div class="cards-grid stagger-children">
+            <div class="card">
+              <div class="card-icon">&#9881;</div>
+              <h3 class="card-title">题材配置</h3>
+              <p class="card-desc">24种预设题材类型，每种题材配备专属注意力头组合和节奏预设，精准适配不同创作风格。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 24种预设题材（玄幻/悬疑/言情等）</li>
+                <li><span class="check">&#10003;</span> 每种题材专属注意力头组合</li>
+                <li><span class="check">&#10003;</span> 自定义风格与节奏参数</li>
+                <li><span class="check">&#10003;</span> 题材模板一键应用</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128295;</div>
+              <h3 class="card-title">故事模式</h3>
+              <p class="card-desc">3种故事模式适配不同项目需求，每种模式在大纲生成、结局处理、伏笔管理上有本质差异。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 完整剧：闭合结局，伏笔全部回收</li>
+                <li><span class="check">&#10003;</span> 可续集：开放结局，支线可延展</li>
+                <li><span class="check">&#10003;</span> 承接季：继承前季角色状态与世界观</li>
+                <li><span class="check">&#10003;</span> 7种节奏预设可叠加使用</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128268;</div>
+              <h3 class="card-title">API配置</h3>
+              <p class="card-desc">多模型热切换支持（Claude/Gemini/GLM/DeepSeek/豆包），API Key轮转机制，速率限制自适应调节。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 5种AI模型热切换</li>
+                <li><span class="check">&#10003;</span> API Key 3轮轮转</li>
+                <li><span class="check">&#10003;</span> 速率限制自适应</li>
+                <li><span class="check">&#10003;</span> 5次指数退避重试</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#9997;</div>
+              <h3 class="card-title">写作风格配置</h3>
+              <p class="card-desc">6种写作风格预设，控制剧本的语言风格和表达方式。与输出格式独立配置——风格决定"怎么写"，格式决定"给谁看"。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 文艺风格：优美词汇，注重意境</li>
+                <li><span class="check">&#10003;</span> 口语化：日常用语，自然流畅</li>
+                <li><span class="check">&#10003;</span> 幽默/严肃/戏剧化/极简风格</li>
+                <li><span class="check">&#10003;</span> 风格与格式独立配置互不干扰</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#128161;</div>
+              <h3 class="card-title">梗概动态优化</h3>
+              <p class="card-desc">EpisodePlanEnhancer 根据当前世界状态动态调整本集梗概——角色受伤了就不能打架，伏笔该揭晓了就自动融入，让梗概更贴合实际剧情发展。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 根据角色状态约束调整梗概</li>
+                <li><span class="check">&#10003;</span> 超期伏笔自动融入本集计划</li>
+                <li><span class="check">&#10003;</span> 上集悬念自动承接</li>
+                <li><span class="check">&#10003;</span> 节奏约束动态注入</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#127932;</div>
+              <h3 class="card-title">节奏预设参数</h3>
+              <p class="card-desc">7种节奏预设模板，每种包含5个核心参数（打脸频率、反转频率、Boss间隔、反派智商、压力曲线），精准控制叙事节奏。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> 极致爽文：1集打脸 / 20集反转 / 10集Boss</li>
+                <li><span class="check">&#10003;</span> 热血对决：3集打脸 / 15集反转 / 20集Boss</li>
+                <li><span class="check">&#10003;</span> 烧脑悬疑：10集打脸 / 8集反转 / 30集Boss</li>
+                <li><span class="check">&#10003;</span> 甜宠言情：20集打脸 / 25集反转 / 40集Boss</li>
+              </ul>
+            </div>
+            <div class="card">
+              <div class="card-icon">&#9201;</div>
+              <h3 class="card-title">叙事节奏风格</h3>
+              <p class="card-desc">3种叙事节奏风格（Pacing Style），控制大纲生成时的整体节奏密度，与节奏预设独立配置。</p>
+              <ul class="feature-list" style="margin-top:14px;">
+                <li><span class="check">&#10003;</span> fast 快节奏：10秒必出爆点，每集2-3个爽点</li>
+                <li><span class="check">&#10003;</span> standard 标准：正常铺垫，每集1-2个爽点</li>
+                <li><span class="check">&#10003;</span> slow 慢节奏：细腻展开，3-5集世界观建设</li>
+                <li><span class="check">&#10003;</span> 适配竖屏短剧/横屏短剧/长篇网剧</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end tab-panels -->
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <h2 class="cta-title fade-in">想要体验这些强大功能？</h2>
+      <p class="cta-desc fade-in">立即部署，开启AI剧本创作之旅。</p>
+      <a href="#" class="btn btn-primary btn-lg fade-in" target="_blank">立即开始 &rarr;</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">
+            <span class="logo-icon">AI</span>
+            <span>AI剧本工厂</span>
+          </div>
+          <p>基于AI的动态漫剧本批量生成系统，让创意不再受限于产能。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="features.html">功能介绍</a></li>
+            <li><a href="workflow.html">使用流程</a></li>
+            <li><a href="technology.html">技术架构</a></li>
+            <li><a href="cases.html">场景案例</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">部署文档</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">API参考</a></li>
+            <li><a href="changelog.html">更新日志</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>联系</h4>
+          <ul>
+            <li><a href="#" target="_blank">系统入口</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">技术支持</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">反馈建议</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2025 AI剧本工厂. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

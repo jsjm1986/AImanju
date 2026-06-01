@@ -1,0 +1,59 @@
+/**
+ * 北欧主题
+ * Nord Theme - 高级灰冷淡风
+ * 基于 Nord Design System: https://www.nordtheme.com/
+ */
+
+:root[data-theme="nord"] {
+    /* ========== 背景层级 (Nord Polar Night) ========== */
+    --bg-base: #2E3440;
+    /* nord0 */
+    --bg-surface: #3B4252;
+    /* nord1 */
+    --bg-elevated: #434C5E;
+    /* nord2 */
+    --bg-hover: #4C566A;
+    /* nord3 */
+    --bg-active: #4C566A;
+
+    /* ========== 文字层级 (Nord Snow Storm) ========== */
+    --text-primary: #ECEFF4;
+    /* nord6 */
+    --text-secondary: #E5E9F0;
+    /* nord5 */
+    --text-tertiary: #D8DEE9;
+    /* nord4 */
+    --text-muted: #81A1C1;
+    /* nord9 (Muted blue for muted text) */
+
+    /* ========== 边框 ========== */
+    --border-default: #434C5E;
+    --border-hover: #4C566A;
+    --border-focus: #88C0D0;
+
+    /* ========== 主色 - Nord Frost ========== */
+    --primary: #88C0D0;
+    /* nord8 (Ice Blue) */
+    --primary-hover: #81A1C1;
+    /* nord9 */
+    --primary-active: #5E81AC;
+    /* nord10 */
+    --primary-muted: rgba(136, 192, 208, 0.15);
+    --primary-border: rgba(136, 192, 208, 0.3);
+
+    /* ========== 语义色 (Nord Aurora) ========== */
+    --success: #A3BE8C;
+    /* nord14 */
+    --warning: #EBCB8B;
+    /* nord13 */
+    --error: #BF616A;
+    /* nord11 */
+    --info: #B48EAD;
+    /* nord15 (Purple for info to stand out) */
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.3);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(46, 52, 64, 0.8);
+}

@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>技术架构 - AI剧本工厂</title>
+  <meta name="description" content="AI剧本工厂技术架构详解，Vue 3 + TypeScript + Express + MongoDB + 多模型AI 全栈方案，32个核心组件。">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">AI</span>
+        <span>AI剧本工厂</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="features.html">功能</a>
+        <a href="workflow.html">流程</a>
+        <a href="technology.html">技术</a>
+        <a href="cases.html">案例</a>
+        <a href="changelog.html">日志</a>
+        <a href="#" class="nav-cta" target="_blank">立即体验 &rarr;</a>
+      </nav>
+      <div class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <span class="section-label">技术架构</span>
+      <h1>现代化全栈架构</h1>
+      <p>基于 Vue 3 + TypeScript + Express + MongoDB + 多模型AI 构建的高性能剧本生成引擎，32个核心组件协同工作。</p>
+    </div>
+  </section>
+
+  <!-- Architecture Diagram -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">系统架构</span>
+        <h2 class="section-title">分层架构设计</h2>
+        <p class="section-desc">清晰的四层架构，各层职责分明，易于扩展和维护。</p>
+      </div>
+
+      <div class="arch-diagram fade-in">
+        <div class="arch-layer">
+          <div class="arch-layer-label">前端展示层</div>
+          <div class="arch-layer-items">
+            <span class="arch-item">Vue 3</span>
+            <span class="arch-item">TypeScript</span>
+            <span class="arch-item">Pinia 状态管理</span>
+            <span class="arch-item">SSE 实时通信</span>
+            <span class="arch-item">响应式布局</span>
+          </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">API 路由层</div>
+          <div class="arch-layer-items">
+            <span class="arch-item">Express + TypeScript</span>
+            <span class="arch-item">RESTful API</span>
+            <span class="arch-item">SSE 推送端点</span>
+            <span class="arch-item">中间件链</span>
+            <span class="arch-item">跨集修复 API</span>
+            <span class="arch-item">批量任务 API</span>
+          </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">业务服务层（32个核心组件）</div>
+          <div class="arch-layer-items">
+            <span class="arch-item">ScriptGenerationOrchestrator</span>
+            <span class="arch-item">AttentionModules (23头)</span>
+            <span class="arch-item">BudgetAllocator</span>
+            <span class="arch-item">RhythmControl</span>
+            <span class="arch-item">WorldStateManager</span>
+            <span class="arch-item">CharacterLifecycleManager</span>
+            <span class="arch-item">ForeshadowingManager</span>
+            <span class="arch-item">UnifiedConstraintManager</span>
+            <span class="arch-item">ScriptValidator</span>
+            <span class="arch-item">BatchGenerator</span>
+          </div>
+        </div>
+
+        <div class="arch-arrow">&#8595;</div>
+
+        <div class="arch-layer">
+          <div class="arch-layer-label">数据存储层</div>
+          <div class="arch-layer-items">
+            <span class="arch-item">MongoDB</span>
+            <span class="arch-item">多模型AI接口</span>
+            <span class="arch-item">文件系统存储</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">技术栈</span>
+        <h2 class="section-title">核心技术选型</h2>
+        <p class="section-desc">经过精心选型的技术组合，兼顾性能与开发效率。</p>
+      </div>
+      <div class="tech-grid stagger-children">
+        <div class="tech-card">
+          <div class="tech-card-icon">&#128736;</div>
+          <h4>Vue 3 + TypeScript</h4>
+          <p>现代前端框架，Composition API + Pinia状态管理</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-icon">&#128268;</div>
+          <h4>Express + TypeScript</h4>
+          <p>类型安全的后端框架，RESTful API + 中间件链</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-icon">&#128451;</div>
+          <h4>MongoDB</h4>
+          <p>文档数据库，灵活Schema适配复杂剧本数据结构</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-icon">&#129302;</div>
+          <h4>Multi-Model AI</h4>
+          <p>Claude / Gemini / GLM / DeepSeek / 豆包 多模型支持</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-icon">&#128225;</div>
+          <h4>SSE 实时通信</h4>
+          <p>12种消息类型实时推送生成进度与状态</p>
+        </div>
+        <div class="tech-card">
+          <div class="tech-card-icon">&#128260;</div>
+          <h4>API Key 轮转</h4>
+          <p>3 Key循环轮转 + 5次指数退避重试机制</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Data Flow -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">数据流</span>
+        <h2 class="section-title">剧本生成流程</h2>
+        <p class="section-desc">从用户请求到剧本输出的完整数据流转过程。</p>
+      </div>
+      <div class="data-flow fade-in">
+        <div class="flow-node">用户请求</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node">Express 路由</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node">上下文组装</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node">预算分配</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node active">多头分析</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node active">AI生成</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node">约束验证</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node">状态快照</div>
+        <span class="flow-arrow">&rarr;</span>
+        <div class="flow-node">SSE 推送</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- World State Tracking Types -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">状态追踪</span>
+        <h2 class="section-title">6种世界状态追踪维度</h2>
+        <p class="section-desc">每集生成后自动分析剧本内容，提取6种维度的状态变化并更新到世界状态快照中。</p>
+      </div>
+      <div class="resilience-grid stagger-children">
+        <div class="resilience-card">
+          <div class="resilience-icon">&#9876;</div>
+          <h4>装备变化</h4>
+          <p>追踪角色获得和失去的装备，累计计算当前持有装备列表。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#9889;</div>
+          <h4>能力变化</h4>
+          <p>记录角色新展示的能力，累计维护当前能力清单。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128167;</div>
+          <h4>身体状态</h4>
+          <p>追踪受伤、痊愈等身体状况变化，影响后续剧情约束。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#129504;</div>
+          <h4>精神状态</h4>
+          <p>记录角色心理变化，确保情感表现与经历一致。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128074;</div>
+          <h4>战力状态</h4>
+          <p>追踪战斗力变化，防止实力忽高忽低的穿帮问题。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128308;</div>
+          <h4>永久性标记</h4>
+          <p>记录伤疤、残疾、觉醒等不可逆变化，永久影响角色描写。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Time Decay Weights -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">时间衰减</span>
+        <h2 class="section-title">世界状态快照链时间衰减</h2>
+        <p class="section-desc">类似游戏存档机制，每集生成后创建完整世界状态快照。越近的集数权重越高，越远的集数权重越低，模拟人类"近期记忆更清晰"的特点。</p>
+      </div>
+      <div class="metrics-grid stagger-children">
+        <div class="metric-card">
+          <div class="metric-value">100%</div>
+          <div class="metric-label">3集以内</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">70%</div>
+          <div class="metric-label">4-10集</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">40%</div>
+          <div class="metric-label">11-20集</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">20%</div>
+          <div class="metric-label">20集以上</div>
+        </div>
+      </div>
+      <div class="cards-grid stagger-children" style="margin-top:40px;">
+        <div class="card">
+          <div class="card-icon">&#128202;</div>
+          <h3 class="card-title">快照内容</h3>
+          <p class="card-desc">每个快照包含：角色状态Map、伏笔列表、剧情状态、世界设定、约束追踪，完整记录该集结束时的世界全貌。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128279;</div>
+          <h3 class="card-title">链式继承</h3>
+          <p class="card-desc">生成第N集时，复制第N-1集的WorldState作为基础，应用本集分析结果后保存为新快照，形成完整的状态链。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#129504;</div>
+          <h3 class="card-title">智能衰减</h3>
+          <p class="card-desc">近期事件保持完整细节（100%权重），远期事件只保留关键信息（20%权重），平衡上下文长度与信息完整性。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Sequel Season Context Injection -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">承接季注入</span>
+        <h2 class="section-title">承接季上下文自动注入</h2>
+        <p class="section-desc">当故事模式为"承接季"时，系统自动查询前作项目，提取角色卡、结局状态和未回收伏笔，注入到各层 Prompt 中实现无缝续接。</p>
+      </div>
+      <div class="pipeline-flow fade-in">
+        <div class="pipeline-node">查询 previousSeasonId</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">提取前作角色卡</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">提取结局状态</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">提取未回收伏笔</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">注入各层 Prompt</div>
+      </div>
+      <div class="cards-grid stagger-children" style="margin-top:40px;">
+        <div class="card">
+          <div class="card-icon">&#128101;</div>
+          <h3 class="card-title">characterCards 前作角色卡</h3>
+          <p class="card-desc">自动加载前季所有角色的完整档案，包括金字塔层级、关系图谱和最终状态，确保续季角色行为与前作一致。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128203;</div>
+          <h3 class="card-title">finalState 前作结局状态</h3>
+          <p class="card-desc">提取前季最后一集的世界状态快照，包括势力格局、地点发现、关键道具归属等，作为续季的世界观起点。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#127793;</div>
+          <h3 class="card-title">unresolvedPlots 未回收伏笔</h3>
+          <p class="card-desc">收集前季标记为 dormant 或 planted 状态的伏笔列表，续季大纲生成时自动融入，确保前作留下的"坑"在续季中得到回收。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Budget Allocation -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">预算分配</span>
+        <h2 class="section-title">上下文预算动态分配</h2>
+        <p class="section-desc">总预算12,000字符，7个模块按比例动态分配，确保每个维度的信息量恰到好处。</p>
+      </div>
+      <div class="metrics-grid stagger-children">
+        <div class="metric-card">
+          <div class="metric-value">28%</div>
+          <div class="metric-label">角色设定</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">18%</div>
+          <div class="metric-label">前情提要</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">15%</div>
+          <div class="metric-label">角色魅力</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">12%</div>
+          <div class="metric-label">状态变化</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">10%</div>
+          <div class="metric-label">角色存续性</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">10%</div>
+          <div class="metric-label">格式指南</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">7%</div>
+          <div class="metric-label">未回收伏笔</div>
+        </div>
+      </div>
+
+      <!-- Character Tier Budget -->
+      <div class="section-header fade-in" style="margin-top:60px;">
+        <span class="section-label">角色预算</span>
+        <h2 class="section-title">角色分级上下文预算</h2>
+        <p class="section-desc">角色金字塔5级模型，每级分配不同的上下文字符预算和注意力权重，确保重要角色获得更多"篇幅"。</p>
+      </div>
+      <div class="metrics-grid stagger-children">
+        <div class="metric-card">
+          <div class="metric-value">800</div>
+          <div class="metric-label">核心 core (权重1.0)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">500</div>
+          <div class="metric-label">常驻 recurring (权重0.7)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">300</div>
+          <div class="metric-label">弧线 arc (权重0.5)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">150</div>
+          <div class="metric-label">临时 temporary (权重0.3)</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">50</div>
+          <div class="metric-label">龙套 extra (权重0)</div>
+        </div>
+      </div>
+      <!-- Dynamic Budget Adjustment -->
+      <div class="section-header fade-in" style="margin-top:60px;">
+        <span class="section-label">动态调整</span>
+        <h2 class="section-title">预算动态调整规则</h2>
+        <p class="section-desc">根据剧情实际情况自动调整各模块预算，确保关键信息获得足够的"注意力"。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#127793;</div>
+          <h3 class="card-title">超期伏笔回收</h3>
+          <p class="card-desc">伏笔预算 +200字符/个。有"债"要还时，多分配注意力给伏笔信息，确保AI不会遗忘待回收的线索。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128218;</div>
+          <h3 class="card-title">新篇章开始</h3>
+          <p class="card-desc">角色预算 +600字符。新篇章可能引入新角色或角色关系变化，需要更多篇幅描述角色信息。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128293;</div>
+          <h3 class="card-title">高潮集</h3>
+          <p class="card-desc">前情摘要预算 +500字符。高潮集需要更多前情铺垫，确保AI充分理解之前的剧情发展。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128100;</div>
+          <h3 class="card-title">主角长期缺席</h3>
+          <p class="card-desc">角色存续性预算 +300字符/人。防止重要角色被AI遗忘，强化角色存在感提醒。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 25 Core Components -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">核心组件</span>
+        <h2 class="section-title">32个核心组件分层协作</h2>
+        <p class="section-desc">四个子层各司其职，从生成到验证形成完整闭环。</p>
+      </div>
+      <div class="component-layers stagger-children">
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#9889;</div>
+            <h4>生成核心层</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">ScriptGenerationOrchestrator<small>生成编排器</small></div>
+            <div class="component-item">AttentionModules<small>23种注意力头</small></div>
+            <div class="component-item">AttentionRecommender<small>AI注意力头推荐</small></div>
+            <div class="component-item">BudgetAllocator<small>12,000字符预算分配</small></div>
+            <div class="component-item">RhythmControl<small>7种节奏预设</small></div>
+            <div class="component-item">SceneRhythmPlanner<small>场景级节奏规划</small></div>
+            <div class="component-item">EpisodePlanEnhancer<small>梗概动态优化</small></div>
+            <div class="component-item">ContextAssembler<small>上下文组装</small></div>
+            <div class="component-item">PromptBuilder<small>提示词构建</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128202;</div>
+            <h4>状态管理层</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">WorldStateManager<small>世界状态快照链</small></div>
+            <div class="component-item">CharacterLifecycleManager<small>角色金字塔5级</small></div>
+            <div class="component-item">ForeshadowingManager<small>伏笔生命周期</small></div>
+            <div class="component-item">UnifiedConstraintManager<small>AI约束决策</small></div>
+            <div class="component-item">RelationshipTracker<small>7级关系追踪</small></div>
+            <div class="component-item">CharacterArcTracker<small>角色成长弧线</small></div>
+            <div class="component-item">CharacterCharmAnalyzer<small>角色魅力分析</small></div>
+            <div class="component-item">CharacterVoiceProfiler<small>角色语言风格</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128270;</div>
+            <h4>质量保障层</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">ScriptValidator<small>滑动窗口验证</small></div>
+            <div class="component-item">ConstraintValidator<small>约束验证与重试</small></div>
+            <div class="component-item">ConsistencyChecker<small>一致性检查</small></div>
+            <div class="component-item">QualityScorer<small>多维度评分</small></div>
+            <div class="component-item">PlotHoleDetector<small>剧情漏洞检测</small></div>
+            <div class="component-item">PlotThreadValidator<small>伏笔验证统计</small></div>
+            <div class="component-item">FormatValidator<small>格式规范验证</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128736;</div>
+            <h4>批量调度层</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">BatchGenerator<small>批量生成调度</small></div>
+            <div class="component-item">BatchCoherentRewriteService<small>连贯改写</small></div>
+            <div class="component-item">CrossEpisodeRepairService<small>跨集修复</small></div>
+            <div class="component-item">TaskManagerController<small>任务监控中心</small></div>
+            <div class="component-item">ApiKeyRotator<small>3 Key轮转</small></div>
+            <div class="component-item">RetryManager<small>指数退避重试</small></div>
+            <div class="component-item">OutlineGenerator<small>五层大纲生成</small></div>
+            <div class="component-item">OutputFormatService<small>15种输出格式</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Attention Head IDs -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">注意力头</span>
+        <h2 class="section-title">23种注意力头完整分类</h2>
+        <p class="section-desc">4种基础头始终启用，15种题材头按题材动态启用，4种风格头通用可选。每个头有独立的分析 Prompt 和 Token 预算（2,000/头），Promise.all 并行执行。</p>
+      </div>
+      <div class="component-layers stagger-children">
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#9889;</div>
+            <h4>基础头（4种，始终启用）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">base-relationships<small>角色关系是否合理</small></div>
+            <div class="component-item">base-conflicts<small>剧情冲突是否有张力</small></div>
+            <div class="component-item">base-foreshadowing<small>伏笔是否处理好</small></div>
+            <div class="component-item">base-consistency<small>有没有穿帮</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128269;</div>
+            <h4>悬疑头（3种，悬疑/推理题材启用）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">mystery-clues<small>线索是否合理、有无遗漏</small></div>
+            <div class="component-item">mystery-logic<small>推理逻辑是否站得住脚</small></div>
+            <div class="component-item">mystery-revelation<small>谜底揭晓时机是否恰当</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128123;</div>
+            <h4>恐怖头（3种，恐怖/惊悚题材启用）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">horror-atmosphere<small>恐怖氛围营造是否到位</small></div>
+            <div class="component-item">horror-rhythm<small>惊吓时机是否恰当</small></div>
+            <div class="component-item">horror-unknown<small>未知元素管理是否到位</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#9823;</div>
+            <h4>智斗头（3种，宫斗/商战题材启用）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">mind-information<small>信息差管理、谁知道什么</small></div>
+            <div class="component-item">mind-strategy<small>策略博弈是否精彩</small></div>
+            <div class="component-item">mind-twist<small>反转铺垫是否充分</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#9889;</div>
+            <h4>爽文头（3种，玄幻/爽文题材启用）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">cool-faceslap<small>打脸节奏是否够爽</small></div>
+            <div class="component-item">cool-points<small>爽点分布是否合理</small></div>
+            <div class="component-item">cool-villain<small>反派智商是否在线</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#127918;</div>
+            <h4>游戏头（3种，游戏异界/系统流题材启用）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">game-leveling<small>等级系统和升级节奏</small></div>
+            <div class="component-item">game-equipment<small>装备获取和战力提升</small></div>
+            <div class="component-item">game-skills<small>技能展示和战斗表现</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#127912;</div>
+            <h4>风格头（4种，通用可选）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">style-emotions<small>情感共鸣和观众情绪体验</small></div>
+            <div class="component-item">style-pacing<small>整体节奏和悬念分布</small></div>
+            <div class="component-item">style-humor<small>喜剧元素和吐槽密度</small></div>
+            <div class="component-item">style-theme<small>主题贯穿和象征元素</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Prompt Composition -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">提示词架构</span>
+        <h2 class="section-title">18模块提示词组成</h2>
+        <p class="section-desc">系统提示词13个模块 + 用户提示词5个模块，精心编排的提示词结构确保AI获得完整的创作指导。</p>
+      </div>
+      <div class="component-layers stagger-children">
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128196;</div>
+            <h4>系统提示词（13个模块）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">角色设定<small>角色档案与外貌</small></div>
+            <div class="component-item">前情提要<small>前集摘要与关键事件</small></div>
+            <div class="component-item">大纲<small>整体故事走向</small></div>
+            <div class="component-item">本集梗概<small>本集计划</small></div>
+            <div class="component-item">状态变化<small>角色状态追踪</small></div>
+            <div class="component-item">未回收伏笔<small>待处理线索</small></div>
+            <div class="component-item">角色存续性<small>出场/缺席警告</small></div>
+            <div class="component-item">写作风格<small>6种风格指令</small></div>
+            <div class="component-item">场景节奏<small>节奏规划指令</small></div>
+            <div class="component-item">角色魅力<small>魅力特征注入</small></div>
+            <div class="component-item">角色弧线<small>成长轨迹注入</small></div>
+            <div class="component-item">角色关系<small>关系图谱注入</small></div>
+            <div class="component-item">角色语言风格<small>台词风格注入</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128172;</div>
+            <h4>用户提示词（5个模块）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">项目信息<small>名称/类型/集数</small></div>
+            <div class="component-item">世界状态上下文<small>当前世界快照</small></div>
+            <div class="component-item">生成约束<small>可验证约束清单</small></div>
+            <div class="component-item">参考建议<small>指导性约束</small></div>
+            <div class="component-item">改写参考<small>重试时的参考内容</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Validation Problem Types -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">质量验证</span>
+        <h2 class="section-title">9种验证问题类型 &times; 3级严重度</h2>
+        <p class="section-desc">ScriptValidator 通过滑动窗口（10集窗口、5集步长、50%重叠）逐段扫描剧本，检测9种问题类型并按严重度分级。</p>
+      </div>
+      <div class="component-layers stagger-children">
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128308;</div>
+            <h4>Critical 严重问题（每个扣1.5分）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">logic<small>逻辑漏洞：剧情逻辑不通</small></div>
+            <div class="component-item">character<small>角色矛盾：行为前后矛盾</small></div>
+            <div class="component-item">timeline<small>时间线错误：时间顺序混乱</small></div>
+            <div class="component-item">unresolved<small>悬念未收：挖的坑没填</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128992;</div>
+            <h4>Warning 一般问题（每个扣0.5分）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">setting<small>设定冲突：世界设定前后不一致</small></div>
+            <div class="component-item">continuity<small>剧情不连贯：剧情衔接不顺</small></div>
+            <div class="component-item">relationship<small>关系问题：角色关系处理不当</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128309;</div>
+            <h4>Suggestion 建议改进（每个扣0.1分）</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">pacing<small>节奏问题：节奏太快或太慢</small></div>
+            <div class="component-item">dialogue<small>对话问题：对话不够自然</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SSE Event Types -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">实时通信</span>
+        <h2 class="section-title">12种SSE事件类型</h2>
+        <p class="section-desc">Server-Sent Events 实时推送生成全过程，每个阶段都有对应的事件类型，用户可实时感知系统状态。</p>
+      </div>
+      <div class="component-layers stagger-children">
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128225;</div>
+            <h4>生成过程事件</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">sendChunk<small>实时显示正在写的内容</small></div>
+            <div class="component-item">sendProgress<small>显示进度条（当前/总数）</small></div>
+            <div class="component-item">sendLog<small>显示系统当前操作</small></div>
+            <div class="component-item">sendContext<small>显示上下文构建结果</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#128270;</div>
+            <h4>分析与验证事件</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">sendAnalysis<small>状态分析结果（角色/伏笔/剧情/世界观）</small></div>
+            <div class="component-item">sendMultiHeadAnalysis<small>各注意力头分析结果</small></div>
+            <div class="component-item">sendAIConstraintDecision<small>AI约束决策结果</small></div>
+            <div class="component-item">sendConstraintValidation<small>约束验证完成情况</small></div>
+            <div class="component-item">sendRetryNotification<small>通知正在改写重试</small></div>
+          </div>
+        </div>
+        <div class="component-layer">
+          <div class="component-layer-header">
+            <div class="component-layer-icon">&#9989;</div>
+            <h4>状态事件</h4>
+          </div>
+          <div class="component-items">
+            <div class="component-item">sendCharacterLifecycle<small>角色层级变动与生命周期</small></div>
+            <div class="component-item">sendError<small>显示错误信息</small></div>
+            <div class="component-item">sendDone<small>通知生成完成</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Engineering Resilience -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">工程韧性</span>
+        <h2 class="section-title">多重容错保障机制</h2>
+        <p class="section-desc">从API调用到数据存储，每个环节都有容错和恢复机制。</p>
+      </div>
+      <div class="resilience-grid stagger-children">
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128260;</div>
+          <h4>API Key 轮转</h4>
+          <p>3个API Key循环使用，单Key限流时自动切换，最大化吞吐量。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128257;</div>
+          <h4>指数退避重试</h4>
+          <p>遇到429/500错误时自动重试，最多5次，间隔指数递增避免雪崩。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128200;</div>
+          <h4>max_tokens 降级</h4>
+          <p>当token超限时自动降级max_tokens参数，确保生成不中断。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128190;</div>
+          <h4>断点续传</h4>
+          <p>批量任务状态实时持久化，中断后从断点无缝恢复，不重复生成。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128274;</div>
+          <h4>事务级回滚</h4>
+          <p>跨集修复操作支持事务级回滚，修复失败时自动恢复原始数据。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Fallback Strategies -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">降级策略</span>
+        <h2 class="section-title">三级回退保障</h2>
+        <p class="section-desc">当核心模块异常时，系统自动降级到备用方案，确保生成流程不中断。</p>
+      </div>
+      <div class="resilience-grid stagger-children">
+        <div class="resilience-card">
+          <div class="resilience-icon">&#129504;</div>
+          <h4>AI约束降级</h4>
+          <p>AI约束决策失败时，自动回退到规则引擎生成基础约束，保证每集都有约束指导。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128064;</div>
+          <h4>多头分析降级</h4>
+          <p>注意力头分析失败时，跳过失败头并使用基础上下文继续生成，不阻塞主流程。</p>
+        </div>
+        <div class="resilience-card">
+          <div class="resilience-icon">&#128161;</div>
+          <h4>梗概优化降级</h4>
+          <p>EpisodePlanEnhancer 优化失败时，直接使用原始梗概进行生成，确保流程不中断。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Batch Task State Machine -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">任务调度</span>
+        <h2 class="section-title">批量任务状态机</h2>
+        <p class="section-desc">BatchTaskExecutor 管理批量生成任务的完整生命周期，支持暂停/恢复/停止，服务重启后自动恢复未完成任务。</p>
+      </div>
+      <div class="pipeline-flow fade-in">
+        <div class="pipeline-node">pending</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">running</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node">paused</div>
+        <span class="pipeline-arrow">&rarr;</span>
+        <div class="pipeline-node highlight">completed</div>
+      </div>
+      <div class="metrics-grid stagger-children" style="margin-top:40px;">
+        <div class="metric-card">
+          <div class="metric-value">20min</div>
+          <div class="metric-label">单集超时保护</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">3</div>
+          <div class="metric-label">自动重试次数</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">10s</div>
+          <div class="metric-label">集间冷却时间</div>
+        </div>
+      </div>
+      <div class="cards-grid stagger-children" style="margin-top:40px;">
+        <div class="card">
+          <div class="card-icon">&#9654;</div>
+          <h3 class="card-title">6种任务状态</h3>
+          <p class="card-desc">pending（等待）→ running（执行中）→ paused（已暂停）→ completed（已完成）/ failed（失败）/ stopped（已停止）。失败任务可人工处理后恢复。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128260;</div>
+          <h3 class="card-title">自动恢复机制</h3>
+          <p class="card-desc">服务重启时自动检测未完成任务并恢复执行。任务状态实时持久化到数据库，确保断电、崩溃等异常情况下不丢失进度。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128225;</div>
+          <h3 class="card-title">实时状态广播</h3>
+          <p class="card-desc">TaskManagerController 维护 SSE 连接池，实时广播任务状态变化和生成日志，前端通过 /api/tasks/stream 接收。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AIClient Retry Config -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">重试机制</span>
+        <h2 class="section-title">AIClient 指数退避重试</h2>
+        <p class="section-desc">智能重试策略区分普通错误和速率限制，指数递增延迟避免雪崩效应。</p>
+      </div>
+      <div class="metrics-grid stagger-children">
+        <div class="metric-card">
+          <div class="metric-value">5</div>
+          <div class="metric-label">最大重试次数</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">2s</div>
+          <div class="metric-label">基础延迟</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value">30s</div>
+          <div class="metric-label">最大延迟</div>
+        </div>
+      </div>
+      <div class="cards-grid stagger-children" style="margin-top:40px;">
+        <div class="card">
+          <div class="card-icon">&#128257;</div>
+          <h3 class="card-title">普通错误退避</h3>
+          <p class="card-desc">2秒 → 4秒 → 8秒，每次翻倍递增。适用于临时性网络错误和服务端异常。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128337;</div>
+          <h3 class="card-title">速率限制退避</h3>
+          <p class="card-desc">30秒 → 60秒 → 120秒，AI服务繁忙时等待更久。适用于 429 Too Many Requests 错误。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Component Retry Strategies -->
+  <section class="section">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">重试对照</span>
+        <h2 class="section-title">各组件重试策略对照</h2>
+        <p class="section-desc">不同组件采用不同的重试策略和回退方案，确保每个环节都有容错保障。</p>
+      </div>
+      <div class="cards-grid stagger-children">
+        <div class="card">
+          <div class="card-icon">&#129302;</div>
+          <h3 class="card-title">AIClient 网络重试</h3>
+          <p class="card-desc">最多5次，指数退避（2s→4s→8s→16s→30s）。处理 ECONNRESET、ETIMEDOUT、429、529 等网络和服务端错误。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128221;</div>
+          <h3 class="card-title">剧本生成重试</h3>
+          <p class="card-desc">最多2次，立即重试，使用改写模式。约束验证未通过时，强化未满足约束后改写重试。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#128196;</div>
+          <h3 class="card-title">JSON解析重试</h3>
+          <p class="card-desc">最多3次，立即重试，智能修复后重试。AI返回的JSON格式异常时，自动尝试修复并重新解析。</p>
+        </div>
+        <div class="card">
+          <div class="card-icon">&#129504;</div>
+          <h3 class="card-title">AI约束决策重试</h3>
+          <p class="card-desc">最多3次，线性退避（1s&times;尝试次数）。全部失败后回退到规则引擎生成基础约束。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Token Configuration -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">Token 配置</span>
+        <h2 class="section-title">各模块 Token 上限</h2>
+        <p class="section-desc">精细化的 Token 预算分配，平衡生成质量与 API 成本。</p>
+      </div>
+      <div class="metrics-grid stagger-children">
+        <div class="metric-card">
+          <div class="metric-value" data-count="32000" data-suffix="">0</div>
+          <div class="metric-label">大纲生成</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="32000" data-suffix="">0</div>
+          <div class="metric-label">单集生成</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="24000" data-suffix="">0</div>
+          <div class="metric-label">状态分析</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="32000" data-suffix="">0</div>
+          <div class="metric-label">一致性验证</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="8000" data-suffix="">0</div>
+          <div class="metric-label">约束决策</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="2000" data-suffix="">0</div>
+          <div class="metric-label">单头分析</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Performance Metrics -->
+  <section class="section" style="background:var(--bg-secondary);">
+    <div class="container">
+      <div class="section-header fade-in">
+        <span class="section-label">性能指标</span>
+        <h2 class="section-title">系统性能表现</h2>
+      </div>
+      <div class="metrics-grid stagger-children">
+        <div class="metric-card">
+          <div class="metric-value" data-count="7" data-suffix="层">0</div>
+          <div class="metric-label">质量保障流水线</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="100" data-suffix="+">0</div>
+          <div class="metric-label">最大连续集数</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="23" data-suffix="种">0</div>
+          <div class="metric-label">注意力分析维度</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="32" data-suffix="个">0</div>
+          <div class="metric-label">核心组件</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="5" data-suffix="次">0</div>
+          <div class="metric-label">自动重试上限</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" data-count="12" data-suffix="种">0</div>
+          <div class="metric-label">SSE消息类型</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <h2 class="cta-title fade-in">对技术架构感兴趣？</h2>
+      <p class="cta-desc fade-in">查看源码或立即部署体验。</p>
+      <a href="#" class="btn btn-primary btn-lg fade-in" target="_blank">立即开始 &rarr;</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">
+            <span class="logo-icon">AI</span>
+            <span>AI剧本工厂</span>
+          </div>
+          <p>基于AI的动态漫剧本批量生成系统，让创意不再受限于产能。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="features.html">功能介绍</a></li>
+            <li><a href="workflow.html">使用流程</a></li>
+            <li><a href="technology.html">技术架构</a></li>
+            <li><a href="cases.html">场景案例</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">部署文档</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">API参考</a></li>
+            <li><a href="changelog.html">更新日志</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>联系</h4>
+          <ul>
+            <li><a href="#" target="_blank">系统入口</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">技术支持</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">反馈建议</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2025 AI剧本工厂. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

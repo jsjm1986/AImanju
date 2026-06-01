@@ -1,0 +1,57 @@
+/**
+ * 赛博朋克主题
+ * Cyberpunk Theme - 高对比度霓虹
+ */
+
+:root[data-theme="cyberpunk"] {
+    /* ========== 背景层级 (极致黑) ========== */
+    --bg-base: #000000;
+    --bg-surface: #0A0A0A;
+    --bg-elevated: #111111;
+    --bg-hover: #222222;
+    --bg-active: #333333;
+
+    /* ========== 文字层级 (高亮) ========== */
+    --text-primary: #FFFFFF;
+    --text-secondary: #E0E0E0;
+    --text-tertiary: #A0A0A0;
+    --text-muted: #666666;
+
+    /* ========== 边框 (锐利) ========== */
+    --border-default: #333333;
+    --border-hover: #FCEE0A;
+    /* 荧光黄hover */
+    --border-focus: #00F0FF;
+    /* 霓虹蓝 */
+
+    /* ========== 主色 - Neon Yellow ========== */
+    --primary: #FCEE0A;
+    --primary-hover: #FFF566;
+    --primary-active: #D4C600;
+    --text-on-primary: #000000;
+    /* 黄色背景用黑字 */
+
+    --primary-muted: rgba(252, 238, 10, 0.15);
+    --primary-border: rgba(252, 238, 10, 0.5);
+
+    /* ========== 语义色 (霓虹化) ========== */
+    --success: #39FF14;
+    /* 霓虹绿 */
+    --warning: #FF00FF;
+    /* 霓虹粉 (作为警告/强调) */
+    --error: #FF0033;
+    /* 霓虹红 */
+    --info: #00F0FF;
+    /* 霓虹蓝 */
+
+    --text-on-success: #000000;
+    --text-on-warning: #000000;
+    --text-on-error: #FFFFFF;
+    --text-on-info: #000000;
+
+    /* ========== 阴影 (发光效果) ========== */
+    --shadow-color: rgba(252, 238, 10, 0.2);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(0, 0, 0, 0.9);
+}

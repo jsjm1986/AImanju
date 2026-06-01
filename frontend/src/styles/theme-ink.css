@@ -1,0 +1,37 @@
+/**
+ * 墨水主题
+ * Ink Theme - 写作模式
+ */
+
+:root[data-theme="ink"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #18181B;
+    --bg-surface: #1F1F23;
+    --bg-elevated: #27272A;
+    --bg-hover: #2F2F35;
+    --bg-active: #3F3F46;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #F5F3FF;
+    --text-secondary: #C4B5FD;
+    --text-tertiary: #A78BFA;
+    --text-muted: #7C6BC4;
+
+    /* ========== 边框 ========== */
+    --border-default: #2F2F35;
+    --border-hover: #3F3F46;
+    --border-focus: #A78BFA;
+
+    /* ========== 主色 - Purple ========== */
+    --primary: #A78BFA;
+    --primary-hover: #C4B5FD;
+    --primary-active: #8B5CF6;
+    --primary-muted: rgba(167, 139, 250, 0.15);
+    --primary-border: rgba(167, 139, 250, 0.3);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.5);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(24, 24, 27, 0.8);
+}

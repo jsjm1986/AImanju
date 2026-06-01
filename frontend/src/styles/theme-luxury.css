@@ -1,0 +1,56 @@
+/**
+ * 黑金主题
+ * Luxury Theme - 高端商务质感
+ */
+
+:root[data-theme="luxury"] {
+    /* ========== 背景层级 (Matte Black) ========== */
+    --bg-base: #000000;
+    --bg-surface: #121212;
+    --bg-elevated: #1E1E1E;
+    --bg-hover: #2D2D2D;
+    --bg-active: #3D3D3D;
+
+    /* ========== 文字层级 (White & Gold) ========== */
+    --text-primary: #FFFFFF;
+    --text-secondary: #E0E0E0;
+    --text-tertiary: #A0A0A0;
+    --text-muted: #666666;
+
+    /* ========== 边框 (Gold Accents) ========== */
+    --border-default: #2D2D2D;
+    --border-hover: #D4AF37;
+    /* 金色Hover */
+    --border-focus: #D4AF37;
+
+    /* ========== 主色 - Luxury Gold ========== */
+    --primary: #D4AF37;
+    /* 香槟金 */
+    --primary-hover: #F4C430;
+    /* 亮金 */
+    --primary-active: #AA8C2C;
+    /* 暗金 */
+
+    /* 金色背景上的文字用黑色 */
+    --text-on-primary: #000000;
+
+    --primary-muted: rgba(212, 175, 55, 0.15);
+    --primary-border: rgba(212, 175, 55, 0.4);
+
+    /* ========== 语义色 (保持高端感) ========== */
+    --success: #10B981;
+    --warning: #F59E0B;
+    --error: #EF4444;
+    --info: #3B82F6;
+
+    --text-on-success: #FFFFFF;
+    --text-on-warning: #FFFFFF;
+    --text-on-error: #FFFFFF;
+    --text-on-info: #FFFFFF;
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.8);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(0, 0, 0, 0.85);
+}

@@ -1,0 +1,72 @@
+# ==================== Dependencies ====================
+node_modules/
+.pnp
+.pnp.js
+
+# ==================== Build outputs ====================
+dist/
+build/
+*.tsbuildinfo
+
+# ==================== Environment files ====================
+# 不提交真实环境变量，只提交示例
+.env
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# 但保留 .env.example
+!.env.example
+
+# ==================== IDE & Editor ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==================== OS ====================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==================== Logs ====================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ==================== Test coverage ====================
+coverage/
+.nyc_output/
+
+# ==================== Temporary / cache ====================
+*.tmp
+*.temp
+.cache/
+.vite/
+tmp/
+temp/
+
+# AI 工具临时目录
+tmpclaude-*
+.kiro/
+.claude/
+
+# ==================== Uploads / runtime data ====================
+uploads/
+backend/uploads/
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+secret_key
+
+# ==================== Project-specific ====================
+# 部署补丁包不进版本库
+deployment-fix-package/
+deploy_package.tar
+deploy_package.zip

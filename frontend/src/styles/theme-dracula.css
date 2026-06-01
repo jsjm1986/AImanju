@@ -1,0 +1,59 @@
+/**
+ * 吸血鬼主题
+ * Dracula Theme - 经典极客配色
+ * https://draculatheme.com/
+ */
+
+:root[data-theme="dracula"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #282A36;
+    --bg-surface: #343746;
+    /* Lighter than base */
+    --bg-elevated: #44475A;
+    --bg-hover: #525569;
+    --bg-active: #6272A4;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #F8F8F2;
+    --text-secondary: #BD93F9;
+    /* Purple Text */
+    --text-tertiary: #6272A4;
+    /* Comment Color */
+    --text-muted: #6272A4;
+
+    /* ========== 边框 ========== */
+    --border-default: #44475A;
+    --border-hover: #6272A4;
+    --border-focus: #FF79C6;
+    /* Pink Border */
+
+    /* ========== 主色 - Purple/Pink ========== */
+    --primary: #BD93F9;
+    /* Purple */
+    --primary-hover: #FF79C6;
+    /* Pink */
+    --primary-active: #8BE9FD;
+    /* Cyan */
+
+    --primary-muted: rgba(189, 147, 249, 0.15);
+    --primary-border: rgba(189, 147, 249, 0.4);
+
+    /* ========== 语义色 (Dracula Palette) ========== */
+    --success: #50FA7B;
+    /* Green */
+    --warning: #F1FA8C;
+    /* Yellow */
+    --error: #FF5555;
+    /* Red */
+    --info: #8BE9FD;
+    /* Cyan */
+
+    --text-on-success: #000000;
+    --text-on-warning: #000000;
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.4);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(40, 42, 54, 0.9);
+}

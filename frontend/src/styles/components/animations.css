@@ -1,0 +1,252 @@
+/* ===== 通用动画效果 ===== */
+
+/* 折叠/展开动画 */
+.collapse-enter-active,
+.collapse-leave-active {
+  transition: all var(--duration-normal) var(--ease-out-expo);
+  overflow: hidden;
+}
+
+.collapse-enter-from,
+.collapse-leave-to {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* 淡入淡出动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--duration-fast);
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* 滑入动画 - 从右侧 */
+.slide-right-enter-active,
+.slide-right-leave-active {
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+}
+
+.slide-right-enter-from,
+.slide-right-leave-to {
+  transform: translateX(100%);
+}
+
+/* 滑入动画 - 从左侧 */
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+}
+
+.slide-left-enter-from,
+.slide-left-leave-to {
+  transform: translateX(-100%);
+}
+
+/* 滑入动画 - 从上方 */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* 滑入动画 - 从下方 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* 缩放动画 */
+.scale-enter-active,
+.scale-leave-active {
+  transition: all var(--duration-fast) var(--ease-out-expo);
+}
+
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+/* Modal 动画 */
+.modal-enter-active,
+.modal-leave-active {
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-from .modal-content,
+.modal-leave-to .modal-content {
+  transform: scale(0.95) translateY(-10px);
+}
+
+/* 抽屉遮罩动画 */
+.overlay-enter-active,
+.overlay-leave-active {
+  transition: opacity var(--duration-normal);
+}
+
+.overlay-enter-from,
+.overlay-leave-to {
+  opacity: 0;
+}
+
+/* 列表项动画 */
+.list-enter-active,
+.list-leave-active {
+  transition: all var(--duration-normal) var(--ease-out-expo);
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.list-move {
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+}
+
+/* 脉冲动画 - 用于加载状态 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* 旋转动画 - 用于加载图标 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 弹跳动画 */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-bounce {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+/* 闪烁动画 - 用于提示 */
+@keyframes blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* 进度条动画 */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+.progress-indeterminate {
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+/* 骨架屏动画 */
+@keyframes skeleton-loading {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 0px,
+    var(--bg-hover) 40px,
+    var(--bg-elevated) 80px
+  );
+  background-size: 200px 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+/* 悬浮效果 */
+.hover-lift {
+  transition: transform var(--duration-fast), box-shadow var(--duration-fast);
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 按压效果 */
+.press-effect {
+  transition: transform var(--duration-fast);
+}
+
+.press-effect:active {
+  transform: scale(0.98);
+}
+
+/* 高亮闪烁 - 用于新增项目 */
+@keyframes highlight-flash {
+  0% {
+    background-color: var(--primary-border);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.highlight-new {
+  animation: highlight-flash 1s ease-out;
+}

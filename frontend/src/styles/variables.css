@@ -1,0 +1,181 @@
+/**
+ * Design System Variables
+ * 动态漫剧本生成系统 V2
+ * 
+ * 设计哲学: Less is More
+ * 参考: Linear, Vercel, Notion
+ */
+
+:root {
+  /* ========== 颜色系统 ========== */
+
+  /* 背景层级 (由深到浅) */
+  --bg-base: #09090B;
+  --bg-surface: #0F0F12;
+  --bg-elevated: #18181B;
+  --bg-hover: #27272A;
+  --bg-active: #3F3F46;
+
+  /* 文字层级 (由亮到暗) */
+  --text-primary: #FAFAFA;
+  --text-secondary: #A1A1AA;
+  --text-tertiary: #71717A;
+  --text-muted: #52525B;
+
+  /* 按钮/彩色背景上的文字（始终保持高对比度） */
+  --text-on-primary: #FFFFFF;
+  --text-on-success: #FFFFFF;
+  --text-on-warning: #FFFFFF;
+  --text-on-error: #FFFFFF;
+  --text-on-info: #FFFFFF;
+
+  /* 边框 */
+  --border-default: #27272A;
+  --border-hover: #3F3F46;
+  --border-focus: #6366F1;
+
+  /* 主色 - Indigo */
+  --primary: #6366F1;
+  --primary-hover: #818CF8;
+  --primary-active: #4F46E5;
+  --primary-muted: rgba(99, 102, 241, 0.15);
+  --primary-border: rgba(99, 102, 241, 0.3);
+
+  /* 语义色 */
+  --success: #22C55E;
+  --success-muted: rgba(34, 197, 94, 0.15);
+  --success-border: rgba(34, 197, 94, 0.3);
+  --warning: #F59E0B;
+  --warning-muted: rgba(245, 158, 11, 0.15);
+  --warning-border: rgba(245, 158, 11, 0.3);
+  --error: #EF4444;
+  --error-muted: rgba(239, 68, 68, 0.15);
+  --error-border: rgba(239, 68, 68, 0.3);
+  --info: #3B82F6;
+  --info-muted: rgba(59, 130, 246, 0.15);
+  --info-border: rgba(59, 130, 246, 0.3);
+
+  /* 扩展语义色 */
+  --cyan: #22D3EE;
+  --cyan-muted: rgba(34, 211, 238, 0.15);
+  --cyan-border: rgba(34, 211, 238, 0.3);
+  --orange: #FB923C;
+  --orange-muted: rgba(251, 146, 60, 0.15);
+  --orange-border: rgba(251, 146, 60, 0.3);
+  --pink: #E879F9;
+  --pink-muted: rgba(232, 121, 249, 0.15);
+  --pink-border: rgba(232, 121, 249, 0.3);
+  --purple: #A78BFA;
+  --purple-muted: rgba(167, 139, 250, 0.15);
+  --purple-border: rgba(167, 139, 250, 0.3);
+
+  /* 阴影变量（支持主题切换） */
+  --shadow-color: rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px var(--shadow-color);
+  --shadow-md: 0 4px 12px var(--shadow-color);
+  --shadow-lg: 0 8px 24px var(--shadow-color);
+  --shadow-xl: 0 20px 40px var(--shadow-color);
+
+  /* 遮罩层 */
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+
+  /* ========== 字体系统 ========== */
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+
+  /* 字号 */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 15px;
+  --text-lg: 16px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 24px;
+  --text-4xl: 28px;
+
+  /* 字重 */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* 行高 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* ========== 间距系统 (8px 网格) ========== */
+
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ========== 圆角 (仅 3 档) ========== */
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  /* ========== 过渡 ========== */
+
+  --transition-fast: 150ms ease;
+  --transition-base: 200ms ease;
+  --transition-slow: 300ms ease;
+
+  /* ========== 层级 (z-index) ========== */
+
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-modal: 1000;
+  --z-toast: 2000;
+
+  /* ========== 布局尺寸 ========== */
+
+  --header-height: 56px;
+  --sidebar-width: 180px;
+  --panel-width: 360px;
+  --content-max-width: 800px;
+
+  /* ========== 面板宽度 (新增) ========== */
+
+  --panel-xs: 60px;
+  /* 折叠状态 */
+  --panel-sm: 200px;
+  /* 紧凑侧边栏 */
+  --panel-md: 320px;
+  /* 标准面板 */
+  --panel-lg: 400px;
+  /* 宽面板 */
+  --panel-xl: 480px;
+  /* 抽屉面板 */
+
+  /* ========== 工具栏高度 (新增) ========== */
+
+  --toolbar-sm: 40px;
+  --toolbar-md: 48px;
+  --toolbar-lg: 56px;
+
+  /* ========== 内容区域 (新增) ========== */
+
+  --content-padding: 24px;
+  --content-max-width-lg: 900px;
+
+  /* ========== 动画曲线 (新增) ========== */
+
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-expo: cubic-bezier(0.87, 0, 0.13, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+}

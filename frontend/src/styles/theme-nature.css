@@ -1,0 +1,38 @@
+/**
+ * 自然主题
+ * Nature Theme - 护眼模式
+ */
+
+:root[data-theme="nature"] {
+    /* ========== 背景层级 ========== */
+    /* ========== 背景层级 (低饱和墨绿) ========== */
+    --bg-base: #1A2F23;
+    --bg-surface: #243B2E;
+    --bg-elevated: #2E4739;
+    --bg-hover: #395445;
+    --bg-active: #456152;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #F0FDF4;
+    --text-secondary: #BBF7D0;
+    --text-tertiary: #86EFAC;
+    --text-muted: #4ADE80;
+
+    /* ========== 边框 ========== */
+    --border-default: #218F48;
+    --border-hover: #27A452;
+    --border-focus: #22C55E;
+
+    /* ========== 主色 - Green ========== */
+    --primary: #22C55E;
+    --primary-hover: #4ADE80;
+    --primary-active: #16A34A;
+    --primary-muted: rgba(34, 197, 94, 0.2);
+    --primary-border: rgba(34, 197, 94, 0.4);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.4);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(20, 83, 45, 0.8);
+}

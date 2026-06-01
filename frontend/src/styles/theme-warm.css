@@ -1,0 +1,37 @@
+/**
+ * 暖色主题
+ * Warm Theme - 护眼暖调
+ */
+
+:root[data-theme="warm"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #1C1917;
+    --bg-surface: #231F1C;
+    --bg-elevated: #2C2623;
+    --bg-hover: #3D3530;
+    --bg-active: #4E443D;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #FFFBEB;
+    --text-secondary: #FDE68A;
+    --text-tertiary: #FCD34D;
+    --text-muted: #D4A843;
+
+    /* ========== 边框 ========== */
+    --border-default: #3D3530;
+    --border-hover: #4E443D;
+    --border-focus: #F59E0B;
+
+    /* ========== 主色 - Amber ========== */
+    --primary: #F59E0B;
+    --primary-hover: #FBBF24;
+    --primary-active: #D97706;
+    --primary-muted: rgba(245, 158, 11, 0.2);
+    --primary-border: rgba(245, 158, 11, 0.4);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.4);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(28, 25, 23, 0.8);
+}

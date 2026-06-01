@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>更新日志 - AI剧本工厂</title>
+  <meta name="description" content="AI剧本工厂更新日志，记录系统每一次功能迭代与技术演进。">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">AI</span>
+        <span>AI剧本工厂</span>
+      </a>
+      <nav class="nav-links">
+        <a href="index.html">首页</a>
+        <a href="features.html">功能</a>
+        <a href="workflow.html">流程</a>
+        <a href="technology.html">技术</a>
+        <a href="cases.html">案例</a>
+        <a href="changelog.html">日志</a>
+        <a href="#" class="nav-cta" target="_blank">立即体验 &rarr;</a>
+      </nav>
+      <div class="hamburger">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Page Hero -->
+  <section class="page-hero">
+    <div class="container">
+      <span class="section-label">Changelog</span>
+      <h1>更新日志</h1>
+      <p>记录系统每一次功能迭代与技术演进，从 v1.0 到最新版本的完整演进轨迹。</p>
+    </div>
+  </section>
+
+  <!-- Changelog Content -->
+  <section class="section">
+    <div class="container">
+
+      <!-- 2026-02-09 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-02-09</span>
+          <span class="changelog-tag tag-enhance">重构</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">输出格式提示词架构重构</h3>
+          <p class="changelog-version">系统工程 v3.0 &middot; 业务逻辑 v2.7</p>
+          <ul class="changelog-list">
+            <li>废弃原有的统一格式表格生成（<code>buildFormatTable</code>），改为 <strong>15种预设各自定义专属 promptTemplate</strong></li>
+            <li>每种格式的 AI 提示词完全不同：小说输出散文体章节、影视剧本遵循好莱坞规范、广播剧强调声音叙事、日漫使用翻页悬念技法</li>
+            <li>确保生成内容真正符合目标格式的行业标准，而非套用统一模板</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-31 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-31</span>
+          <span class="changelog-tag tag-feature">新功能</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">输出格式配置系统</h3>
+          <p class="changelog-version">系统工程 v2.9</p>
+          <ul class="changelog-list">
+            <li>新增 <strong>15种输出格式预设</strong>：标准漫剧、影视剧本、竖屏条漫、广播剧、游戏剧情、短视频、日式漫画、舞台剧、互动剧、真人短剧、AI数字人、美漫、国漫、纪录片</li>
+            <li>创建项目时即可选择目标输出格式</li>
+            <li>设置标签移至导航首位，操作更便捷</li>
+            <li>支持自定义输出提示词，满足个性化格式需求</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-30 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-30</span>
+          <span class="changelog-tag tag-feature">新功能</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">世界观自动采集与更新机制</h3>
+          <p class="changelog-version">业务逻辑 v2.6</p>
+          <ul class="changelog-list">
+            <li>新增世界观元素自动采集：<strong>势力 (Factions)</strong>、<strong>地点 (Locations)</strong>、<strong>道具 (Items)</strong></li>
+            <li>信息闭环机制：采集 &rarr; 更新 &rarr; 使用，世界观越写越丰满</li>
+            <li>生成剧本时自动追踪并更新世界观数据</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-27 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-27</span>
+          <span class="changelog-tag tag-enhance">增强</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">多头约束验证机制增强</h3>
+          <p class="changelog-version">系统工程 v2.8 &middot; 业务逻辑 v2.5 &middot; 流程图 v2.5</p>
+          <ul class="changelog-list">
+            <li>约束条件正式参与验证流程，确保每条约束都被检查</li>
+            <li>新增 <strong>Normal 重试规则</strong>：验证不通过时智能决策重试策略</li>
+            <li>上一集上下文自动传递，保障集与集之间的连贯性</li>
+            <li>新增多头约束验证流程图及重试决策规则可视化</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-23 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-23</span>
+          <span class="changelog-tag tag-feature">新功能</span>
+          <span class="changelog-tag tag-enhance">增强</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">大纲生成增强 &amp; 全链路可视化</h3>
+          <p class="changelog-version">系统工程 v2.4–v2.7 &middot; 业务逻辑 v2.2–v2.4 &middot; 流程图 v2.2–v2.4 &middot; 跨集修复 v1.2–v1.3</p>
+          <ul class="changelog-list">
+            <li><strong>大纲生成增强</strong>：5层递进生成（主题 &rarr; 结构 &rarr; 角色 &rarr; 伏笔 &rarr; 节奏），支持故事模式、节奏风格、承接季项目选择器</li>
+            <li><strong>全链路业务流程补充</strong>：大纲、生成、改写、验证、修复、发布、任务管理的完整业务链路与接口对照</li>
+            <li><strong>全量图形化替换</strong>：所有 ASCII 逻辑图替换为 Mermaid 可视化图表，统一视觉呈现</li>
+            <li>补充跨集修复关键结构与事务流程可视化</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-20 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-20</span>
+          <span class="changelog-tag tag-feature">新功能</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">任务管理频道</h3>
+          <p class="changelog-version">系统工程 v2.3</p>
+          <ul class="changelog-list">
+            <li>新增任务管理频道，支持查看所有批量任务的实时状态</li>
+            <li>模型信息显示，清晰了解每个任务使用的 AI 模型</li>
+            <li>项目隔离进度面板，多项目并行互不干扰</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-18 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-18</span>
+          <span class="changelog-tag tag-fix">修复</span>
+          <span class="changelog-tag tag-enhance">增强</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">结构化约束系统</h3>
+          <p class="changelog-version">系统工程 v2.2 &middot; 业务逻辑 v2.1 &middot; 流程图 v2.1 &middot; 跨集修复 v1.1</p>
+          <ul class="changelog-list">
+            <li>新增结构化约束字段：<code>subject</code> / <code>object</code> / <code>methodology</code> / <code>validationCriteria</code></li>
+            <li>解决验证满足率 0% 的关键问题，约束验证准确率大幅提升</li>
+            <li>新增 AI 驱动结构化约束系统架构，包含决策引擎、数据流、SSE 增强</li>
+            <li>完善跨集修复流程图中结构化约束与修复方案的关联说明</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-17 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-17</span>
+          <span class="changelog-tag tag-feature">新功能</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">AI 驱动约束决策系统</h3>
+          <p class="changelog-version">系统工程 v2.1</p>
+          <ul class="changelog-list">
+            <li>AI 自主分析剧情语义，自动决策节奏、伏笔、悬念等约束条件</li>
+            <li>替代人工预设规则，实现真正的智能约束管理</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-16 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-16</span>
+          <span class="changelog-tag tag-feature">新功能</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">跨集联动修复系统</h3>
+          <p class="changelog-version">跨集修复 v1.0</p>
+          <ul class="changelog-list">
+            <li>全新跨集联动修复功能，支持同时协调修改多集剧本</li>
+            <li>智能识别问题影响的所有集数，分析各集角色（源头/铺垫/回收）</li>
+            <li>伏笔关联管理：修复后自动处理相关伏笔记录</li>
+            <li>事务性回滚：支持一键回滚所有修改，或选择性回滚部分集数</li>
+            <li>针对性验证：只验证原问题是否解决，不扩大验证范围</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2026-01-11/12 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2026-01-11</span>
+          <span class="changelog-tag tag-enhance">重构</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">系统 v2.0 全面重构</h3>
+          <p class="changelog-version">系统工程 v2.0 &middot; 业务逻辑 v2.0 &middot; 流程图 v2.0</p>
+          <ul class="changelog-list">
+            <li>完整重构系统文档，添加通俗解释，降低理解门槛</li>
+            <li>详细描述 Episode / Character / Foreshadowing 数据模型及生成时序</li>
+            <li>总体架构图重绘，增加 WorldState 管理及 SSE 流程说明</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2025-12 -->
+      <div class="changelog-entry fade-in">
+        <div class="changelog-date-bar">
+          <span class="changelog-date">2025-12</span>
+          <span class="changelog-tag tag-launch">发布</span>
+        </div>
+        <div class="changelog-card">
+          <h3 class="changelog-title">v1.0 系统初始发布</h3>
+          <p class="changelog-version">系统工程 v1.0 &middot; 业务逻辑 v1.0 &middot; 流程图 v1.0</p>
+          <ul class="changelog-list">
+            <li>剧本生成系统核心引擎上线</li>
+            <li>世界状态管理：追踪角色状态、伏笔、剧情进度</li>
+            <li>多头注意力分析：根据题材类型启用不同分析维度</li>
+            <li>约束验证重试：自动验证生成内容，不满足则智能重试</li>
+            <li>状态自动更新：每集生成后自动更新世界状态</li>
+            <li>支持 24 种题材类型，覆盖玄幻、悬疑、言情等主流类型</li>
+          </ul>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="section cta-section">
+    <div class="container" style="text-align: center;">
+      <h2 class="section-title fade-in">持续迭代，持续进化</h2>
+      <p class="section-desc fade-in">系统保持高频更新，每一次迭代都让剧本生成更精准、更可控。</p>
+      <div class="fade-in" style="margin-top: 32px;">
+        <a href="#" class="btn btn-primary btn-lg" target="_blank">立即体验最新版本 &rarr;</a>
+        <a href="https://github.com/jsjm1986/AImanju" class="btn btn-secondary btn-lg" target="_blank">查看技术文档</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">
+            <span class="logo-icon">AI</span>
+            <span>AI剧本工厂</span>
+          </div>
+          <p>基于AI的动态漫剧本批量生成系统，让创意不再受限于产能。</p>
+        </div>
+        <div class="footer-col">
+          <h4>产品</h4>
+          <ul>
+            <li><a href="features.html">功能介绍</a></li>
+            <li><a href="workflow.html">使用流程</a></li>
+            <li><a href="technology.html">技术架构</a></li>
+            <li><a href="cases.html">场景案例</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>资源</h4>
+          <ul>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">部署文档</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">API参考</a></li>
+            <li><a href="changelog.html">更新日志</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>联系</h4>
+          <ul>
+            <li><a href="#" target="_blank">系统入口</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">技术支持</a></li>
+            <li><a href="https://github.com/jsjm1986/AImanju" target="_blank">反馈建议</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        &copy; 2025 AI剧本工厂. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

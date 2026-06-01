@@ -1,0 +1,37 @@
+/**
+ * 科技蓝主题
+ * Tech Blue Theme - 深邃科技感
+ */
+
+:root[data-theme="tech-blue"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #0A1929;
+    --bg-surface: #0D2137;
+    --bg-elevated: #132F4C;
+    --bg-hover: #1E3A5F;
+    --bg-active: #265D97;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #F0F7FF;
+    --text-secondary: #B2BAC2;
+    --text-tertiary: #6F7E8C;
+    --text-muted: #5B6B7C;
+
+    /* ========== 边框 ========== */
+    --border-default: #1E3A5F;
+    --border-hover: #265D97;
+    --border-focus: #29B6F6;
+
+    /* ========== 主色 - Cyan/Sky ========== */
+    --primary: #29B6F6;
+    --primary-hover: #4FC3F7;
+    --primary-active: #0288D1;
+    --primary-muted: rgba(41, 182, 246, 0.15);
+    --primary-border: rgba(41, 182, 246, 0.3);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.6);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(0, 0, 0, 0.7);
+}

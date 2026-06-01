@@ -1,0 +1,37 @@
+/**
+ * 墨紫主题
+ * Purple Ink Theme - 创作灵感
+ */
+
+:root[data-theme="purple-ink"] {
+    /* ========== 背景层级 ========== */
+    --bg-base: #0F0A1A;
+    --bg-surface: #170F26;
+    --bg-elevated: #1F1632;
+    --bg-hover: #2A1F42;
+    --bg-active: #382A54;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #F5F3FF;
+    --text-secondary: #C4B5FD;
+    --text-tertiary: #8B7EC8;
+    --text-muted: #6B5B9A;
+
+    /* ========== 边框 ========== */
+    --border-default: #2A1F42;
+    --border-hover: #382A54;
+    --border-focus: #A78BFA;
+
+    /* ========== 主色 - Violet ========== */
+    --primary: #A78BFA;
+    --primary-hover: #C4B5FD;
+    --primary-active: #8B5CF6;
+    --primary-muted: rgba(167, 139, 250, 0.15);
+    --primary-border: rgba(167, 139, 250, 0.3);
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(0, 0, 0, 0.6);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(0, 0, 0, 0.7);
+}

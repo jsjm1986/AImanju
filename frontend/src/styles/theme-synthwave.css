@@ -1,0 +1,63 @@
+/**
+ * 合成波主题
+ * Synthwave Theme - 复古未来 (80s Retro)
+ */
+
+:root[data-theme="synthwave"] {
+    /* ========== 背景层级 (Deep Purple) ========== */
+    --bg-base: #241b2f;
+    /* Deep space purple */
+    --bg-surface: #2b213a;
+    /* Slightly lighter */
+    --bg-elevated: #362946;
+    --bg-hover: #49365e;
+    --bg-active: #5c4475;
+
+    /* ========== 文字层级 ========== */
+    --text-primary: #fffbff;
+    --text-secondary: #b690e3;
+    /* Lilac */
+    --text-tertiary: #957fb8;
+    --text-muted: #5f5478;
+
+    /* ========== 边框 (Glowing) ========== */
+    --border-default: #49365e;
+    --border-hover: #ff71ce;
+    /* Neon Pink */
+    --border-focus: #01cdfe;
+    /* Neon Blue */
+
+    /* ========== 主色 - Neon Gradient Vibes ========== */
+    --primary: #ff71ce;
+    /* Hot Pink */
+    --primary-hover: #01cdfe;
+    /* Electric Blue */
+    --primary-active: #05ffa1;
+    /* Neon Green */
+
+    --text-on-primary: #241b2f;
+
+    --primary-muted: rgba(255, 113, 206, 0.2);
+    --primary-border: rgba(255, 113, 206, 0.5);
+
+    /* ========== 语义色 (Neon) ========== */
+    --success: #05ffa1;
+    /* Neon Green */
+    --warning: #fffb96;
+    /* Neon Yellow */
+    --error: #ff71ce;
+    /* Neon Pink */
+    --info: #01cdfe;
+    /* Neon Blue */
+
+    --text-on-success: #241b2f;
+    --text-on-warning: #241b2f;
+    --text-on-error: #241b2f;
+    --text-on-info: #241b2f;
+
+    /* ========== 阴影 ========== */
+    --shadow-color: rgba(43, 33, 58, 0.6);
+
+    /* ========== 遮罩 ========== */
+    --overlay-bg: rgba(36, 27, 47, 0.9);
+}
