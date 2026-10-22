@@ -3,6 +3,8 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import * as fs from 'fs';
+import * as path from 'path';
 import { createLogger, safeStringify } from '../../utils/errorLogger';
 
 const logger = createLogger('AIClient');
@@ -18,6 +20,8 @@ export interface ModelConfig {
   apiKey: string;
   baseUrl: string;
   model: string;
+  /** 附加请求体字段（合并进 /chat/completions 请求，如关闭推理模式） */
+  extraBody?: Record<string, unknown>;
 }
 
 export interface AIStreamCallbacks {
@@ -77,6 +81,9 @@ function getModelConfigs(): Record<string, ModelConfig> {
       apiKey: process.env.DEEPSEEK_API_KEY || '',
       baseUrl: process.env.DEEPSEEK_API_BASE_URL || 'https://api.deepseek.com',
       model: process.env.DEEPSEEK_MODEL || 'deepseek-chat',
+      // deepseek-flash/v4 为推理模型：reasoning 会耗尽 max_tokens 导致空响应。
+      // 默认关闭思考；设 DEEPSEEK_THINKING=enabled 可恢复。
+      ...(process.env.DEEPSEEK_THINKING === 'enabled' ? {} : { extraBody: { thinking: { type: 'disabled' } } }),
     },
     // 通过自定义 OpenAI 兼容网关访问的模型（GPT 系列、Gemini 系列等）
     // 配置 CUSTOM_GATEWAY_API_KEY 与 CUSTOM_GATEWAY_BASE_URL 即可启用
@@ -198,9 +205,49 @@ function getModelConfigs(): Record<string, ModelConfig> {
 
 let currentModelName = '';
 
+// ==================== 模型选择持久化 ====================
+// 用户在 UI 选择的模型持久化到本地 JSON 文件，重启后保留。
+// 优先级：持久化文件 > DEFAULT_AI_PROVIDER 环境变量 > 内置默认。
+const MODEL_SETTINGS_FILE = path.join(process.cwd(), '.ai-model.json');
+
+function loadPersistedModel(): string | null {
+  try {
+    if (!fs.existsSync(MODEL_SETTINGS_FILE)) return null;
+    const data = JSON.parse(fs.readFileSync(MODEL_SETTINGS_FILE, 'utf-8'));
+    const name = typeof data?.model === 'string' ? data.model : null;
+    return name && getModelConfigs()[name] ? name : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistModel(modelName: string): void {
+  try {
+    fs.writeFileSync(MODEL_SETTINGS_FILE, JSON.stringify({ model: modelName }, null, 2), 'utf-8');
+  } catch (error) {
+    console.warn(`[AI] 模型选择持久化失败（不影响使用）: ${(error as Error).message}`);
+  }
+}
+
 function initDefaultModel(): void {
   if (currentModelName) return;
-  currentModelName = process.env.DEFAULT_AI_PROVIDER === 'glm' ? 'glm-night' : 'ds-qwen35-plus';
+  currentModelName = loadPersistedModel()
+    || (process.env.DEFAULT_AI_PROVIDER === 'glm' ? 'glm-night' : 'ds-qwen35-plus');
+}
+
+/** 品牌标签（前端徽章显示用，由模型 key 推导，保证列表接口单源） */
+function brandOfModel(name: string): string {
+  if (name === 'glm-night' || name.startsWith('ds-glm')) return '智谱';
+  if (name === 'ark-code') return '豆包';
+  if (name === 'deepseek-chat') return 'DeepSeek';
+  if (name.startsWith('ds-qwen')) return '通义';
+  if (name.startsWith('ds-kimi')) return 'Kimi';
+  if (name.startsWith('ds-minimax')) return 'MiniMax';
+  if (name.startsWith('ds-')) return '百炼';
+  if (name.startsWith('gpt')) return 'OpenAI';
+  if (name.startsWith('gemini')) return 'Google';
+  if (name.startsWith('claude')) return 'Claude';
+  return 'AI';
 }
 
 // ==================== 常量 ====================
@@ -462,9 +509,9 @@ export class AIClient {
     return getModelConfigs()[currentModelName];
   }
 
-  getAvailableModels(): Array<{ name: string; displayName: string; provider: AIProvider }> {
+  getAvailableModels(): Array<{ name: string; displayName: string; provider: AIProvider; brand: string }> {
     return Object.values(getModelConfigs()).map(c => ({
-      name: c.name, displayName: c.displayName, provider: c.provider,
+      name: c.name, displayName: c.displayName, provider: c.provider, brand: brandOfModel(c.name),
     }));
   }
 
@@ -479,6 +526,7 @@ export class AIClient {
       return false;
     }
     currentModelName = modelName;
+    persistModel(modelName);
     const config = configs[modelName];
     console.log(`[AI] 切换到模型: ${config.displayName} (${config.model})`);
     return true;
@@ -535,6 +583,7 @@ export class AIClient {
           body: JSON.stringify({
             model: config.model, max_tokens: 100,
             messages: [{ role: 'user', content: '请直接回复"OK"两个字母。' }],
+            ...(config.extraBody || {}),
           }),
         },
         TIMEOUT_TEST, '连接超时'
@@ -700,6 +749,7 @@ export class AIClient {
             max_tokens: effectiveMaxTokens,
             stream: true,
             messages: buildOpenAIMessages(systemPrompt, userPrompt),
+            ...(config.extraBody || {}),
           }),
         },
         TIMEOUT_STREAM, 'timeout: AI流式请求超时（30分钟）'
@@ -838,6 +888,7 @@ export class AIClient {
             model: config.model,
             max_tokens: effectiveMaxTokens,
             messages: buildOpenAIMessages(systemPrompt, userPrompt),
+            ...(config.extraBody || {}),
           }),
         },
         TIMEOUT_NORMAL, 'timeout: AI请求超时（3分钟）'

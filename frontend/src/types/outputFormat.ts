@@ -5,12 +5,14 @@
 export type OutputFormatPreset =
     | 'standard' | 'novel' | 'screenplay' | 'webtoon' | 'audio_drama'
     | 'game_script' | 'stage_play' | 'manga_jp' | 'short_video' | 'interactive'
-    | 'live_action' | 'ai_avatar' | 'american_comic' | 'chinese_comic' | 'documentary';
+    | 'live_action' | 'ai_avatar' | 'american_comic' | 'chinese_comic' | 'documentary'
+    | 'overseas_drama';
 
 export interface IOutputFormatConfig {
     mode: 'preset' | 'advanced' | 'custom';
     preset?: OutputFormatPreset;
     customPrompt?: string;  // 用户自定义输出要求
+    enableNarrativeMethodology?: boolean;  // 叙事方法论注入开关（海外短剧默认开）
     advanced?: {
         wordLimit?: { min: number; target: number; max: number };
         sceneLimit?: { min: number; max: number };

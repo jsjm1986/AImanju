@@ -43,48 +43,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { aiModelApi } from '@/services/api';
+import { aiModelApi, type AIModel } from '@/services/api';
 
-// 硬编码的模型列表
-interface ModelInfo {
-  name: string;
-  displayName: string;
-  provider: 'claude' | 'openai';
-  brand: string;
-}
+// 模型列表以后端 /ai/models 为唯一来源，用户选择持久化在服务端
+type ModelInfo = AIModel;
 
-const AVAILABLE_MODELS: ModelInfo[] = [
-  { name: 'glm-night', displayName: '智谱GLM-5', provider: 'openai', brand: '智谱' },
-  { name: 'ark-code', displayName: 'Ark Code (豆包)', provider: 'openai', brand: '豆包' },
-  { name: 'deepseek-chat', displayName: 'DeepSeek', provider: 'openai', brand: 'DeepSeek' },
-  { name: 'gpt-5', displayName: 'GPT-5', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.1', displayName: 'GPT-5.1', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.2', displayName: 'GPT-5.2', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.4', displayName: 'GPT-5.4', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5-codex', displayName: 'GPT-5 Codex', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5-codex-mini', displayName: 'GPT-5 Codex Mini', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.1-codex', displayName: 'GPT-5.1 Codex', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.1-codex-mini', displayName: 'GPT-5.1 Codex Mini', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.1-codex-max', displayName: 'GPT-5.1 Codex Max', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.2-codex', displayName: 'GPT-5.2 Codex', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.3-codex', displayName: 'GPT-5.3 Codex', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gpt-5.3-codex-spark', displayName: 'GPT-5.3 Codex Spark', provider: 'openai', brand: 'OpenAI' },
-  { name: 'gemini-2.5-pro', displayName: 'Gemini 2.5 Pro', provider: 'openai', brand: 'Google' },
-  { name: 'gemini-2.5-flash', displayName: 'Gemini 2.5 Flash', provider: 'openai', brand: 'Google' },
-  { name: 'gemini-2.5-flash-lite', displayName: 'Gemini 2.5 Flash Lite', provider: 'openai', brand: 'Google' },
-  { name: 'gemini-3-pro-preview', displayName: 'Gemini 3 Pro Preview', provider: 'openai', brand: 'Google' },
-  { name: 'gemini-3-flash-preview', displayName: 'Gemini 3 Flash Preview', provider: 'openai', brand: 'Google' },
-  { name: 'gemini-3.1-pro-preview', displayName: 'Gemini 3.1 Pro Preview', provider: 'openai', brand: 'Google' },
-  { name: 'ds-qwen35-plus', displayName: 'Qwen3.5 Plus', provider: 'openai', brand: '通义' },
-  { name: 'ds-kimi-k25', displayName: 'Kimi K2.5', provider: 'openai', brand: 'Kimi' },
-  { name: 'ds-glm5', displayName: 'GLM-5 (百炼)', provider: 'openai', brand: '智谱' },
-  { name: 'ds-minimax-m25', displayName: 'MiniMax M2.5', provider: 'openai', brand: 'MiniMax' },
-  { name: 'ds-qwen3-max', displayName: 'Qwen3 Max', provider: 'openai', brand: '通义' },
-];
-
-const models = ref<ModelInfo[]>(AVAILABLE_MODELS);
-const currentModel = ref<ModelInfo>(AVAILABLE_MODELS[0]!); // 默认值，会被 onMounted 覆盖
+const models = ref<ModelInfo[]>([]);
+const currentModel = ref<ModelInfo | null>(null);
 const showDropdown = ref(false);
+const loadingModels = ref(false);
 const testingModel = ref<string | null>(null);
 const testResults = ref<Record<string, boolean>>({});
 const testMessage = ref('');
@@ -117,8 +84,6 @@ async function handleModelClick(model: ModelInfo) {
       const { data: switchData } = await aiModelApi.switchModel(model.name);
       if (switchData.success) {
         currentModel.value = model;
-        // 保存到本地存储
-        localStorage.setItem('selected_ai_model', model.name);
         testMessage.value = `已切换到 ${model.displayName}`;
         
         // 延迟关闭
@@ -142,23 +107,17 @@ async function handleModelClick(model: ModelInfo) {
 
 }
 
-// 初始化时恢复选择
+// 初始化：从后端拉取模型列表和当前选择（后端已持久化，无需 localStorage）
 onMounted(async () => {
-  const savedModelName = localStorage.getItem('selected_ai_model');
-  if (savedModelName) {
-    const savedModel = models.value.find(m => m.name === savedModelName);
-    if (savedModel && savedModel.name !== currentModel.value.name) {
-      // 恢复 UI 显示
-      currentModel.value = savedModel;
-      
-      // 同步后端状态（静默同步，失败不报错，因为后端可能已经重启）
-      try {
-        await aiModelApi.switchModel(savedModel.name);
-        console.log(`[ModelSelector] Restored model selection: ${savedModel.name}`);
-      } catch (e) {
-        console.warn('[ModelSelector] Failed to sync saved model selection', e);
-      }
-    }
+  loadingModels.value = true;
+  try {
+    const { data } = await aiModelApi.getModels();
+    models.value = data.models;
+    currentModel.value = data.models.find(m => m.name === data.currentModel) || data.models[0] || null;
+  } catch (e) {
+    console.warn('[ModelSelector] Failed to load models', e);
+  } finally {
+    loadingModels.value = false;
   }
 });
 </script>
@@ -259,6 +218,24 @@ onMounted(async () => {
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
+  background: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+}
+
+.provider-badge.OpenAI {
+  background: rgba(16, 163, 127, 0.15);
+  color: #10a37f;
+}
+
+.provider-badge.Google {
+  background: rgba(66, 133, 244, 0.15);
+  color: #4285f4;
+}
+
+.provider-badge.百炼,
+.provider-badge.Claude {
+  background: rgba(217, 119, 87, 0.15);
+  color: #d97757;
 }
 
 .provider-badge.智谱 {

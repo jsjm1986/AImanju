@@ -231,6 +231,7 @@ const COMPACT_PROMPT = `你是剧本约束分析专家。分析上下文，输�
 【重要】
 - methodology 是给生成AI的实现建议，必须具体可执行
 - validationCriteria 是验证AI的检查标准，必须明确可判断
+- validationCriteria 描述应达成的剧情节拍/语义效果，不得要求逐字复现台词；仅当某句原话本身就是关键伏笔（口令/信物刻字/死亡留言）时才可要求保留原文
 - 两者必须一致，不能自相矛盾
 - 如果节奏项needed=false，可省略subject/object/methodology/validationCriteria
 - reason字段限20字内，content字段限50字内`;

@@ -172,6 +172,19 @@ export class WorldStateManager {
     currentEpisode: number,
     analysis: IAnalysisResult
   ): Partial<IWorldState> {
+    // Mongoose Map 键不允许含 "." 或以 "$" 开头——英文名（如 D.Vescari）会写库失败，统一归一化
+    const mk = (s?: string) => (typeof s === 'string' ? s.replace(/\./g, '·').replace(/^\$+/, '') : s);
+    analysis.characterUpdates?.forEach(u => {
+      u.characterName = mk(u.characterName) as string;
+      u.relationshipChanges?.forEach(r => { r.target = mk(r.target) as string; });
+    });
+    analysis.newCharacters?.forEach(c => { c.name = mk(c.name) as string; });
+    analysis.characterTierChanges?.forEach(c => { c.name = mk(c.name) as string; });
+    analysis.characterExits?.forEach(c => { c.name = mk(c.name) as string; });
+    analysis.worldUpdates?.factionChanges?.forEach(c => { c.faction = mk(c.faction) as string; });
+    analysis.worldUpdates?.newLocations?.forEach(l => { l.name = mk(l.name) as string; });
+    analysis.worldUpdates?.itemChanges?.forEach(c => { c.item = mk(c.item) as string; });
+
     const characters = new Map<string, ICharacterState>();
     previousState?.characters?.forEach((char, name) => {
       characters.set(name, { ...char });
@@ -507,6 +520,10 @@ JSON格式要求：
       console.log('[WorldStateManager] analyzeAttention AI 响应预览:', response.substring(0, 300));
 
       const result = robustParseJson<IAttentionResult>(response, DEFAULT_ATTENTION_RESULT);
+      // AI 可能返回缺字段的部分 JSON（如省略 foreshadowings），与默认值合并防空指针
+      result.attentionAnalysis = { ...DEFAULT_ATTENTION_RESULT.attentionAnalysis, ...(result.attentionAnalysis || {}) };
+      result.hiddenConnections ||= [];
+      result.suggestedElements ||= [];
 
       if (result.attentionAnalysis.characters.length === 0) {
         console.warn('[WorldStateManager] analyzeAttention 返回空角色列表！');

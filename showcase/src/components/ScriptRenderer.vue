@@ -40,6 +40,36 @@ const formattedContent = computed(() => {
     '<div class="scene-header">$1</div>'
   );
   
+  // 海外场景标题（无冒号紧凑式）：1-1猎人公会·射击场（深夜内）【核心情绪：屈辱】 或 1-1 酒吧 内 夜
+  html = html.replace(
+    /^(\d+-\d+\S[^\n]*)$/gm,
+    '<div class="scene-header">$1</div>'
+  );
+  
+  // 海外出场人物行：出场人物：A、B、C
+  html = html.replace(
+    /^(出场人物[：:].+)$/gm,
+    '<div class="cast-line">$1</div>'
+  );
+  
+  // 闪回/闪出标记：【闪回】xxx、【闪出】
+  html = html.replace(
+    /^(【闪(?:回|出)】.*)$/gm,
+    '<div class="flashback">$1</div>'
+  );
+  
+  // 黑屏文字：黑屏：xxx
+  html = html.replace(
+    /^(黑屏[：:].+)$/gm,
+    '<div class="black-screen">$1</div>'
+  );
+  
+  // 角色 OS/VO（带语气括号）：LyraOS（声音沙哑）：
+  html = html.replace(
+    /^([A-Za-z\u4e00-\u9fa5·]+?)(OS|VO|os|vo)(（[^）]*）)[:：]/gm,
+    '<span class="character">$1</span><span class="os">$2</span><span class="action">$3</span>：'
+  );
+  
   // 描述：△ 开头的内容
   html = html.replace(
     /^(△.+)$/gm,
@@ -159,6 +189,37 @@ function escapeHtml(text: string) {
   color: var(--accent);
   font-size: 0.85em;
   font-weight: 500;
+}
+
+/* 出场人物行 */
+:deep(.cast-line) {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-3);
+}
+
+/* 闪回/闪出标记 */
+:deep(.flashback) {
+  display: block;
+  color: var(--info);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding-left: var(--space-3);
+  border-left: 2px dashed var(--info);
+  margin: var(--space-2) 0;
+}
+
+/* 黑屏文字 */
+:deep(.black-screen) {
+  display: block;
+  color: var(--text-primary);
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  font-style: italic;
+  margin: var(--space-2) 0;
 }
 
 /* 高亮标注 */

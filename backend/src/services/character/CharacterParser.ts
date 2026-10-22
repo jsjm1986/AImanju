@@ -85,6 +85,15 @@ export function parseCharacterCards(text: string): ParsedCharacter[] {
     // 合并外貌字段（兼容旧格式）
     const appearanceMatch = block.match(/外貌[：:]\s*([\s\S]*?)(?=性格[：:]|能力[：:]|装备[：:]|$)/);
 
+    // 海外人物卡扩展字段：英文名（别名）、形态（狼人/ABO等变身形态）
+    const englishNameMatch = block.match(/英文名[：:]\s*([^\n]+)/);
+    const formMatch = block.match(/形态[：:]\s*([^\n]+)/);
+    // 海外人物卡小传层字段：背景/渴望/反差/软肋
+    const backgroundMatch = block.match(/背景[：:]\s*([^\n]+)/);
+    const desireMatch = block.match(/渴望[：:]\s*([^\n]+)/);
+    const contrastMatch = block.match(/反差[：:]\s*([^\n]+)/);
+    const weaknessMatch = block.match(/软肋[：:]\s*([^\n]+)/);
+
     // 初始装备和能力
     const abilitiesMatch = block.match(/能力[：:]\s*([^\n]+)/);
     const equipmentMatch = block.match(/装备[：:]\s*([^\n]+)/);
@@ -118,7 +127,13 @@ export function parseCharacterCards(text: string): ParsedCharacter[] {
       gender: genderMatch ? genderMatch[1].trim() : '',
       age: ageMatch ? ageMatch[1].trim() : '',
       identity: identityMatch ? identityMatch[1].trim() : '',
-      personality: personalityMatch ? personalityMatch[1].trim() : '',
+      personality: [
+        personalityMatch ? personalityMatch[1].trim() : '',
+        backgroundMatch ? `背景：${backgroundMatch[1].trim()}` : '',
+        desireMatch ? `渴望：${desireMatch[1].trim()}` : '',
+        contrastMatch ? `反差：${contrastMatch[1].trim()}` : '',
+        weaknessMatch ? `软肋：${weaknessMatch[1].trim()}` : '',
+      ].filter(Boolean).join('；'),
       // 详细外貌字段
       hairStyle: hairStyleMatch ? hairStyleMatch[1].trim() : undefined,
       hairColor: hairColorMatch ? hairColorMatch[1].trim() : undefined,
@@ -126,8 +141,12 @@ export function parseCharacterCards(text: string): ParsedCharacter[] {
       bodyType: bodyTypeMatch ? bodyTypeMatch[1].trim() : undefined,
       clothing: clothingMatch ? clothingMatch[1].trim() : undefined,
       accessories: accessoriesMatch ? accessoriesMatch[1].trim() : undefined,
-      // 合并外貌
-      appearance: appearanceMatch ? appearanceMatch[1].trim().replace(/\s+/g, ' ') : undefined,
+      // 合并外貌（海外卡的英文名/形态并入外貌，保证入库不丢失）
+      appearance: [
+        appearanceMatch ? appearanceMatch[1].trim().replace(/\s+/g, ' ') : '',
+        englishNameMatch ? `英文名：${englishNameMatch[1].trim()}` : '',
+        formMatch && !/^无[。.]?$/.test(formMatch[1].trim()) ? `形态：${formMatch[1].trim()}` : '',
+      ].filter(Boolean).join('；') || undefined,
       equipment,
       abilities,
     };

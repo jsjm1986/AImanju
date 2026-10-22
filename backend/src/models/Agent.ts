@@ -97,9 +97,6 @@ export function generateInviteCode(): string {
     return crypto.randomBytes(4).toString('hex').toUpperCase();
 }
 
-AgentSchema.index({ email: 1 });
-AgentSchema.index({ username: 1 });
-AgentSchema.index({ inviteCode: 1 }, { unique: true });
 AgentSchema.index({ status: 1 });
 
 export const Agent = mongoose.model<IAgent>('Agent', AgentSchema);

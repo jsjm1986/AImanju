@@ -8,6 +8,25 @@ import { creatorAuth, optionalCreatorAuth, checkProjectQuota, checkEpisodeQuota 
 import { Creator } from '../models/Creator';
 import { Project } from '../models/Project';
 import { Episode } from '../models/Episode';
+import { Character } from '../models/Character';
+import { CharacterEnhancement } from '../models/CharacterEnhancement';
+import { CharacterRelationship } from '../models/CharacterRelationship';
+import { CharacterState } from '../models/CharacterState';
+import { WorldState } from '../models/WorldState';
+import { Outline } from '../models/Outline';
+import { EpisodeSummary } from '../models/EpisodeSummary';
+import { Foreshadowing } from '../models/Foreshadowing';
+import { ValidationReport } from '../models/ValidationReport';
+import { RewriteHistory } from '../models/RewriteHistory';
+import { RewriteRequest } from '../models/RewriteRequest';
+import { BatchRewriteHistory } from '../models/BatchRewriteHistory';
+import { BatchTask } from '../models/BatchTask';
+import { GenerationLog } from '../models/GenerationLog';
+import { FixSession } from '../models/FixSession';
+import { EpisodePurchase } from '../models/EpisodePurchase';
+import { Favorite } from '../models/Favorite';
+import { ProjectPublish } from '../models/ProjectPublish';
+import { PublishRequest } from '../models/PublishRequest';
 
 const router = Router();
 
@@ -116,7 +135,7 @@ router.get('/:id', creatorAuth, asyncHandler(async (req, res) => {
 }));
 
 router.post('/', creatorAuth, checkProjectQuota, asyncHandler(async (req, res) => {
-  const { name, genre, type, totalEpisodes, tags, writingStyle } = req.body;
+  const { name, genre, type, totalEpisodes, tags, writingStyle, outputFormat } = req.body;
   const creatorId = req.creatorId;
 
   const project = await projectRepository.create({
@@ -128,6 +147,7 @@ router.post('/', creatorAuth, checkProjectQuota, asyncHandler(async (req, res) =
     tags: tags || [],
     creatorId: new mongoose.Types.ObjectId(creatorId),
     writingStyle: writingStyle || { preset: 'colloquial' },
+    ...(outputFormat ? { outputFormat } : {}),
   });
 
   await Creator.findByIdAndUpdate(creatorId, { $inc: { projectsUsed: 1 } });
@@ -149,6 +169,30 @@ router.delete('/:id', creatorAuth, asyncHandler(async (req, res) => {
 
   const generatedEpisodeCount = await Episode.countDocuments({ projectId: req.params.id });
   await projectRepository.delete(req.params.id);
+
+  // 级联清理项目关联数据，避免孤儿记录
+  const projectId = req.params.id;
+  const cascades: Array<[string, mongoose.Model<unknown>]> = [
+    ['episodes', Episode], ['characters', Character], ['characterEnhancements', CharacterEnhancement],
+    ['characterRelationships', CharacterRelationship], ['characterStates', CharacterState],
+    ['worldStates', WorldState], ['outlines', Outline], ['episodeSummaries', EpisodeSummary],
+    ['foreshadowings', Foreshadowing], ['validationReports', ValidationReport],
+    ['rewriteHistories', RewriteHistory], ['rewriteRequests', RewriteRequest],
+    ['batchRewriteHistories', BatchRewriteHistory], ['batchTasks', BatchTask],
+    ['generationLogs', GenerationLog], ['fixSessions', FixSession],
+    ['episodePurchases', EpisodePurchase], ['favorites', Favorite],
+    ['projectPublishes', ProjectPublish], ['publishRequests', PublishRequest],
+  ];
+  const results = await Promise.allSettled(cascades.map(([, m]) => m.deleteMany({ projectId })));
+  const removed = cascades.reduce<number>((sum, [name], i) => {
+    const r = results[i];
+    if (r.status === 'rejected') {
+      console.error(`[Delete] 级联清理 ${name} 失败:`, r.reason);
+      return sum;
+    }
+    return sum + (r.value.deletedCount || 0);
+  }, 0);
+  console.log(`[Delete] 级联清理完成 - 项目 ${existingProject.name}, 共删除 ${removed} 条关联记录`);
 
   const EPISODE_THRESHOLD = 10;
   if (existingProject.creatorId && generatedEpisodeCount < EPISODE_THRESHOLD) {

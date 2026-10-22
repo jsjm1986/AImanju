@@ -6,7 +6,7 @@ import { projectRepository } from '../../repositories/ProjectRepository';
 import { getOutlineRaw } from '../../utils/outline';
 import { AIClient, aiClient } from '../ai/AIClient';
 import { ContextManager } from '../context/ContextManager';
-import { outputFormatService } from '../format/OutputFormatService';
+import { normalizeOverseasScript, outputFormatService } from '../format/OutputFormatService';
 
 const MAX_BATCH_EPISODES = 10;
 
@@ -120,11 +120,21 @@ export class BatchCoherentRewriteService {
   private projectId: string;
   private aiClient: AIClient;
   private contextManager: ContextManager;
+  private isOverseasFormat?: boolean;
 
   constructor(projectId: string) {
     this.projectId = projectId;
     this.aiClient = aiClient;
     this.contextManager = new ContextManager(projectId);
+  }
+
+  /** 海外格式项目在内容落库前做排版归一化 */
+  private async normalizeIfOverseas(content: string): Promise<string> {
+    if (this.isOverseasFormat === undefined) {
+      const project = await projectRepository.findById(this.projectId);
+      this.isOverseasFormat = project?.outputFormat?.preset === 'overseas_drama';
+    }
+    return this.isOverseasFormat ? normalizeOverseasScript(content) : content;
   }
 
   private async buildSystemPrompt(characters: string, outline: string): Promise<string> {
@@ -568,7 +578,7 @@ ${orig}
       if (e.applied) continue;
       const ep = await episodeRepository.findByNumber(this.projectId, e.episodeNumber);
       if (ep) {
-        await episodeRepository.update(ep._id.toString(), { content: e.rewrittenContent });
+        await episodeRepository.update(ep._id.toString(), { content: await this.normalizeIfOverseas(e.rewrittenContent) });
         e.applied = true;
         count++;
       }

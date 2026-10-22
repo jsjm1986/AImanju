@@ -173,10 +173,11 @@ export interface FixExecutionOptions {
   episodeNum: number;
   originalContent: string;
   characterContext?: string;
+  formatSection?: string;
 }
 
 export function getFixExecutionPrompt(options: FixExecutionOptions): string {
-  const { plan, episodeNum, originalContent, characterContext } = options;
+  const { plan, episodeNum, originalContent, characterContext, formatSection } = options;
 
   const changesForEpisode = plan.changes.filter(c => c.episode === episodeNum);
   const changesDesc = changesForEpisode.map((c, i) =>
@@ -198,7 +199,7 @@ ${originalContent}
 
 【执行要求】
 1. 严格按照修复方案执行修改
-2. 保持剧本格式不变（场景编号、对白格式等）
+2. 保持剧本格式不变${formatSection ? `，本项目格式规范：\n${formatSection}` : '（场景编号、对白格式等）'}
 3. 确保修改后的内容自然流畅
 4. 除了指定修改外，不要改动其他内容
 5. 保持角色性格和说话风格一致
@@ -293,10 +294,11 @@ export interface CoordinatedRewriteOptions {
   outline?: string;
   characters?: string;
   previousContext?: string;
+  formatSection?: string;
 }
 
 export function getCoordinatedRewritePrompt(options: CoordinatedRewriteOptions): string {
-  const { episodes, outline, characters, previousContext } = options;
+  const { episodes, outline, characters, previousContext, formatSection } = options;
 
   const wordCountStats = episodes.map(ep => `第${ep.number}集: ${ep.content.length}字`).join('\n');
 
@@ -365,7 +367,7 @@ ${epNums.length > 3 ? `...依此类推，第${epNums.slice(3).join('、')}集也
 3. **保持剧情连贯性**，前后集衔接自然
 4. **保持角色一致性**，性格、说话风格不变
 5. **根据用户需求灵活调整**，可大胆移动、增删内容
-6. **保持格式规范**，包含场景标题、画面描述(△)、对白等
+6. **保持格式规范**，${formatSection ? `按项目输出格式执行：\n${formatSection}` : '包含场景标题、画面描述(△)、对白等'}
 
 ## 特别说明
 

@@ -70,3 +70,4 @@ secret_key
 deployment-fix-package/
 deploy_package.tar
 deploy_package.zip
+.ai-model.json

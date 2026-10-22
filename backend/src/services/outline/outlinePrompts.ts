@@ -1,3 +1,5 @@
+import { isOverseasFemaleChannel, isOverseasProject } from '../../constants/overseas';
+
 export type StoryMode = 'complete' | 'open_ended' | 'sequel';
 export type PacingStyle = 'fast' | 'standard' | 'slow';
 
@@ -98,6 +100,86 @@ const SHUANGDIAN_PRINCIPLES = `## 爽点设计原则
 3. **逆袭**：以弱胜强的名场面
 4. **金句**：可传播的台词
 5. **伏笔**：前后呼应`;
+
+// ============ 海外短剧专用模块 ============
+
+const OVERSEAS_CHARACTER_CARD_EXAMPLE = `**格式说明：** 第一行为"序号. 角色英文原名（中文译名·角色定位）"，如（以下人名与设定仅为格式示意，实际人物须按本项目题材与人设原创）：
+
+1. Daniel Hart（丹尼尔·哈特·男主角）
+英文名：Daniel Hart
+性别：男
+年龄：30岁
+身份：急诊医生→医院合伙人
+发型：深棕色短发，额前微垂
+发色：深棕色
+脸型：轮廓分明，灰色眼睛，眼下有长期值班留下的淡青
+身材：185cm，肩背挺拔，常年持病历夹的右手有薄茧
+穿着：白大褂下永远是熨平的衬衫，袖口卷到小臂
+配饰：脖子上挂着一枚旧听诊器（导师遗物）
+性格：冷静、克制、习惯把情绪压在专业判断之下、对认定的事不放手
+背景：小镇出身，医学院全额奖学金；导师因医疗事故蒙冤自杀的创伤是他转投体制的根因
+渴望：证明导师清白（内心最深的驱动力）
+反差：表面温和顺从，实际为达目的可以冷血利用规则
+软肋：对无力支付医疗费的患者无法袖手旁观
+形态：（狼人/吸血鬼题材必填，如 Alpha狼形态-银色巨狼；人类题材填"无"）
+
+2. Emma Collins（艾玛·柯林斯·女主角）
+性别：女
+...以此类推...
+
+**必须遵循的格式规则：**
+- 角色名必须使用英文原名，禁止中文音译替代（正文台词称呼也用英文名）
+- 第一行必须是：序号. 英文原名（角色定位），如 "1. Daniel Hart（男主角）"
+- 每个字段占一行，字段名后用中文冒号
+- 视觉字段（发型/发色/脸型/身材/穿着/配饰）必须具体可拍，服务于AI仿真人一致性
+- 性格用顿号分隔3-5个关键词
+- 背景/渴望/反差/软肋为小传层：出身与成长创伤、内心最深的渴望、表里性格反差、情感软肋——这些背景要能为剧情张力和台词潜文本提供支撑
+- 示例中的人名/身份/性格只是格式演示，必须按本项目题材重新设计，不得沿用示例设定`;
+
+function getOverseasPaywallPlan(totalEpisodes: number): string {
+  const wall1 = Math.min(Math.max(8, Math.round(totalEpisodes * 0.13)), 12);
+  const wall2 = Math.min(Math.max(Math.round(totalEpisodes * 0.33), wall1 + 6), Math.round(totalEpisodes * 0.6));
+  return `【付费卡点设计】（必须规划，标注在对应集标题上）
+- 一卡：第${wall1}集（卡${wall1}付${wall1 + 1}）——第${wall1}集结尾必须是全剧第一情绪峰值+最强悬念，迫使付费
+- 二卡：第${wall2}集（卡${wall2}付${wall2 + 1}）——第二情绪峰值，身份揭露或关系决裂级钩子
+- 集数必须严格使用上述计算值（一卡=第${wall1}集、二卡=第${wall2}集），不得自行改为其他集数
+- 卡点前2集开始蓄力加码，卡点集钩子必须"5秒内可理解的强画面悬念"
+- 集标题标注方式：第${wall1}集（一卡）：`;
+}
+
+const OVERSEAS_STRUCTURE = `【三幕七节点结构】（海外短剧标准结构）
+- 第一幕·引爆（约前10%集数）：Ep1零铺垫直切最高浓度冲突，E2-3必要倒叙补齐信息差，E4-7关系/利益锁定，E8-10第一高峰=付费卡点
+- 第二幕·缠斗（中段）：至少3条阻力线交替施压（事业/情感/悬念错峰），安排至暗时刻，女主不可长期被动挨打
+- 第三幕·收束（后10%）：主角主动反击（非被动获救），多重爽点叠加收尾，主线钩子回收闭环`;
+
+const OVERSEAS_DUAL_HOOK = `【双钩引擎】
+- 主线钩子：Ep1必须埋设（TA真实身份？谁杀了TA？为什么？能不能活？诅咒如何解除？），大结局揭晓
+- 单集钩子：每集梗概结尾必须写出下集钩子（具体的画面悬念，不要"敬请期待"式空话）`;
+
+const OVERSEAS_FEMALE_FORMULA = `【黄金三角人设公式 - 女频】
+- 女主：表面弱势/平凡身份 + 隐藏的高贵血统或惊人能力 + 极致反差 + 情感弧线从"错爱/被欺"走向"自我价值+被独宠"
+- 男主：绝对权力（黑手党/财阀/Alpha/王室） + 对女主绝对专一 + 隐藏脆弱点 + 禁忌或难以相守的关系设定
+- 反派：表面友善→暴露真面目→嫉妒怨恨驱动→自毁式结局；残忍行为由女配/手下执行，男主不可对女主施暴`;
+
+const OVERSEAS_MALE_FORMULA = `【黄金三角人设公式 - 男频】
+- 男主：表面平凡/被欺辱 + 隐藏的至强身份（战神/首富/暗夜王者） + 隐忍后爆发式身份揭露
+- 女主/女配：可以是助力者、误解者（后期打脸对象）或情感锚点
+- 反派：居高临下的欺压者，层级递进（小喽啰→中层→大Boss），智商不可下线到无脑送死`;
+
+const OVERSEAS_VOICE_RULE = `【声口与语体】
+- 台词风格为"美式口语汉译腔"：短句、直接、带情绪动作，避免中式客套与网络流行语
+- 每个角色有声口差异：权势者命令式短句、女主前期隐忍后期锋利、反派阴阳怪气
+- 文化外壳本地化：场景/节日/货币/称呼用欧美语境（不出现彩礼、高考、微信等中式元素）`;
+
+function getOverseasEpisodeRhythm(totalEpisodes: number): string {
+  const act1End = Math.max(3, Math.round(totalEpisodes * 0.1));
+  const act2End = Math.round(totalEpisodes * 0.85);
+  const wall1 = Math.min(Math.max(8, Math.round(totalEpisodes * 0.13)), 12);
+  return `【海外分集节奏 - 三幕结构】
+- 引爆（1-${act1End}集）：Ep1零铺垫最高浓度冲突开局，${act1End}集内完成主线钩子埋设
+- 缠斗（${act1End + 1}-${act2End}集）：多阻力线错峰升级，第${wall1}集为第一情绪峰值（一卡）
+- 收束（${act2End + 1}-${totalEpisodes}集）：主动反击、多重叠加收尾、主线钩子回收`;
+}
 
 function formatPreviousSeasonContext(ctx: PreviousSeasonContext): string {
   return `
@@ -265,7 +347,11 @@ export function getOutlineInputTemplate(): string {
 - 其他要求：`;
 }
 
-export function getOutlineCharactersPrompt(expertIdentity?: string): string {
+export function getOutlineCharactersPrompt(expertIdentity?: string, overseasChannel?: 'female' | 'male'): string {
+  const overseas = overseasChannel !== undefined;
+  const overseasExtra = overseas
+    ? `${overseasChannel === 'female' ? OVERSEAS_FEMALE_FORMULA : OVERSEAS_MALE_FORMULA}\n\n${OVERSEAS_VOICE_RULE}`
+    : PERSONALITY_KEYWORDS;
   return `${expertIdentity || DEFAULT_OUTLINE_IDENTITY}
 
 ## 核心任务
@@ -283,11 +369,11 @@ export function getOutlineCharactersPrompt(expertIdentity?: string): string {
 
 为每个主要角色生成以下格式（5-8个角色）：
 
-${CHARACTER_CARD_EXAMPLE}
+${overseas ? OVERSEAS_CHARACTER_CARD_EXAMPLE : CHARACTER_CARD_EXAMPLE}
 
 ${CHARACTER_ROLES}
 
-${PERSONALITY_KEYWORDS}
+${overseasExtra}
 
 ## 重要提示
 - 只输出人物卡内容
@@ -298,7 +384,47 @@ ${PERSONALITY_KEYWORDS}
 
 export const OUTLINE_CHARACTERS_PROMPT = getOutlineCharactersPrompt();
 
-export function getOutlineSynopsisPrompt(characterCards: string, expertIdentity?: string): string {
+export function getOutlineSynopsisPrompt(characterCards: string, expertIdentity?: string, overseas?: boolean): string {
+  if (overseas) {
+    return `${expertIdentity || '你是一位海外短剧首席策划。'}
+
+## 核心任务
+根据已设定的人物卡和用户故事概念，**只生成剧情大纲**（600-800字）。
+
+## 已确定的人物设定
+
+${characterCards}
+
+${OVERSEAS_STRUCTURE}
+
+${OVERSEAS_DUAL_HOOK}
+
+## 大纲要求
+
+生成600-800字完整剧情概述，必须包含：
+1. **Logline**：一句话全剧卖点（主角身份+被迫行动+障碍），必须隐含"已经发生"的高浓度事件制造紧迫感，而非"将要发生"的设定
+2. **引爆段**：Ep1零铺垫冲突开局、主线钩子埋设方式
+3. **缠斗段**：3-5条阻力线（事业/情感/悬念错峰），至暗时刻
+4. **收束段**：主角主动反击、多重爽点叠加、主线钩子揭晓
+5. **付费卡点**：一卡/二卡建议位置及卡点集钩子设计
+
+## 海外内容红线
+- 男主不得对女主施暴；女主对伤害必须快速清醒+实质反击
+- 禁未成年成人情境、美化家暴、种族宗教刻板
+- 狼人/ABO：标记与结合必须自愿
+
+## 输出格式
+
+直接输出600-800字的剧情大纲。
+可以自然分段，但不要加标题或序号。
+
+## 重要提示
+- 只输出剧情大纲
+- 不要重复人物卡内容
+- 不要输出分集梗概
+- 确保大纲与人物设定一致`;
+  }
+
   return `${expertIdentity || DEFAULT_OUTLINE_IDENTITY}
 
 ## 核心任务
@@ -392,7 +518,8 @@ export function getOutlineEpisodesBatchPrompt(
   endEpisode: number,
   totalEpisodes: number,
   previousBatchSummary: string = '',
-  expertIdentity?: string
+  expertIdentity?: string,
+  overseas?: boolean
 ): string {
   const batchCount = endEpisode - startEpisode + 1;
   const phaseHint = getBatchPhaseHint(startEpisode, endEpisode, totalEpisodes);
@@ -408,6 +535,15 @@ ${previousBatchSummary}
 `;
   }
 
+  const paywallSection = overseas ? `\n${getOverseasPaywallPlan(totalEpisodes)}\n` : '';
+  const overseasRules = overseas ? `
+## 海外分集硬要求
+- 每集梗概结尾写明具体钩子（画面悬念），禁止空话
+- 第1集零铺垫直切冲突并埋主线钩子
+- 付费卡点集的集标题后追加标注"（一卡）/（二卡）"，该集梗概必须是全剧最强悬念峰值
+- 情绪线与信息线每集同时推进
+- 人物用英文原名` : '';
+
   return `${expertIdentity || '你是一位专业的动态漫剧策划编剧。'}
 
 ## 核心任务
@@ -421,7 +557,7 @@ ${characterCards}
 ## 已确定的剧情大纲
 
 ${synopsis}
-${contextSection}
+${contextSection}${paywallSection}
 ## 分集梗概格式
 
 第${startEpisode}集：
@@ -433,7 +569,7 @@ ${contextSection}
 人物：本集出场人物，逗号分隔
 
 ...连续输出到第${endEpisode}集...
-
+${overseasRules}
 ## 重要提示
 - 必须输出从第${startEpisode}集到第${endEpisode}集，共${batchCount}集
 - 每集包含「梗概」和「人物」两行
@@ -444,13 +580,65 @@ ${contextSection}
 
 export function getStoryCorePrompt(params: EnhancedOutlineParams): string {
   const { concept, requirements, totalEpisodes, storyMode, pacing, previousSeasonContext } = params;
+  const overseas = isOverseasProject(params.genre, params.type);
 
   const modeInstruction = getStoryModeInstruction(storyMode);
   const pacingInstruction = getPacingInstruction(pacing);
-  const rhythm = getEpisodeRhythm(totalEpisodes);
+  const rhythm = overseas
+    ? getOverseasEpisodeRhythm(totalEpisodes)
+    : getEpisodeRhythm(totalEpisodes);
   const previousContext = previousSeasonContext
     ? formatPreviousSeasonContext(previousSeasonContext) + '\n请确保本季自然承接前作。\n'
     : '';
+
+  if (overseas) {
+    return `${params.expertIdentity || '你是一位海外短剧首席策划，'}请分析故事概念，提炼海外短剧核心要素。
+
+【故事概念】
+${concept}
+
+${requirements ? `【特殊要求】\n${requirements}` : ''}
+
+【频道】${params.genre || '海外女频'}　【题材】${params.type || ''}
+【总集数】${totalEpisodes} 集
+
+${modeInstruction}
+
+${pacingInstruction}
+${previousContext}
+${OVERSEAS_STRUCTURE}
+
+${OVERSEAS_DUAL_HOOK}
+
+请输出：
+
+## 一句话卖点（Logline）
+用"When…, a … must … before …, but …"公式写一句中文卖点（含主角身份+被迫行动+时限+障碍；隐含一个"已经发生"的高浓度事件制造紧迫感，而非"将要发生"的设定）
+
+## 对标作品
+列出1-3部同题材海外爆款短剧作为对标（如 ReelShort/ShortMax 平台剧名）
+
+## 主线钩子
+本剧的主线悬念（Ep1埋设、大结局揭晓）：TA的真实身份？谁杀了TA？诅咒如何解除？
+
+## 爆款引擎
+从六大引擎中选2-3个本剧主引擎：身份反转/打脸逆袭/情感赌注升级/信息差/复仇/宿命vs自由意志
+
+## 情绪节奏
+按故事进程描述压抑-释放的情绪走向：
+- 开篇：
+- 发展：
+- 高潮：
+- 结局：
+
+## 整体结构
+${rhythm}
+
+${getOverseasPaywallPlan(totalEpisodes)}
+
+## 核心冲突
+用一句话描述主角的核心矛盾（外在对抗+内在情感冲突双线）`;
+  }
 
   return `${params.expertIdentity || '你是一位资深编剧，'}请分析故事概念，提炼核心要素。
 
@@ -503,6 +691,10 @@ ${previousSeasonContext.characters}
 `;
   }
 
+  const overseasFormula = isOverseasProject(params.genre, params.type)
+    ? `\n${isOverseasFemaleChannel(params.genre, params.type) ? OVERSEAS_FEMALE_FORMULA : OVERSEAS_MALE_FORMULA}\n`
+    : '';
+
   return `${params.expertIdentity || '你是一位专业的角色设计师。'}请基于以下故事内核，设计角色功能矩阵。
 
 ## 故事内核
@@ -510,7 +702,7 @@ ${previousSeasonContext.characters}
 ${storyCore}
 
 【总集数】${totalEpisodes} 集
-${inheritNote}
+${inheritNote}${overseasFormula}
 请输出：
 
 ## 主角设计
@@ -548,6 +740,7 @@ export function getEnhancedCharacterCardsPrompt(
   storyCore: string,
   characterFunctions: string
 ): string {
+  const overseas = isOverseasProject(params.genre, params.type);
   return `${params.expertIdentity || '你是一位专业的动态漫剧策划编剧。'}请基于故事内核和角色功能需求，生成具体的人物卡。
 
 ## 故事内核
@@ -562,15 +755,15 @@ ${characterFunctions}
 
 为每个主要角色生成以下格式：
 
-${CHARACTER_CARD_EXAMPLE}
+${overseas ? OVERSEAS_CHARACTER_CARD_EXAMPLE : CHARACTER_CARD_EXAMPLE}
 
-**角色定位：** 男主角/女主角/反派/队友/对手/配角
+**角色定位：** 男主角/女主角/反派/队友/对手/配角${overseas ? '（海外剧可加：家族成员/手下/情敌/盟友/神秘人）' : ''}
 
 ## 设计原则
 1. 角色必须对应角色功能需求中的定位
 2. 性格特征要能支撑其功能（如反派需要有制造压力的性格）
-3. 外貌设计要有辨识度
-4. 确保角色阵容完整，适合剧情展开`;
+3. 外貌设计要有辨识度${overseas ? '，视觉字段必须具体可拍（AI仿真人需保持一致性）' : ''}
+4. 确保角色阵容完整，适合剧情展开${overseas ? '\n5. 所有角色使用英文原名，禁止中文音译；欧美文化语境下的姓名与造型' : ''}`;
 }
 
 export function getEnhancedSynopsisPrompt(
@@ -579,8 +772,52 @@ export function getEnhancedSynopsisPrompt(
   characterCards: string
 ): string {
   const { totalEpisodes, storyMode } = params;
+  const overseas = isOverseasProject(params.genre, params.type);
   const modeInstruction = getStoryModeInstruction(storyMode);
-  const rhythm = getEpisodeRhythm(totalEpisodes);
+  const rhythm = overseas
+    ? getOverseasEpisodeRhythm(totalEpisodes)
+    : getEpisodeRhythm(totalEpisodes);
+
+  if (overseas) {
+    return `${params.expertIdentity || '你是一位海外短剧首席策划，'}请基于故事内核和人物设定，生成剧情大纲。
+
+## 故事内核
+
+${storyCore}
+
+## 人物设定
+
+${characterCards}
+
+${modeInstruction}
+
+## 节奏参考
+${rhythm}
+
+${OVERSEAS_STRUCTURE}
+
+${OVERSEAS_DUAL_HOOK}
+
+${OVERSEAS_VOICE_RULE}
+
+## 输出要求
+
+生成 600-800 字的剧情大纲，必须包含：
+
+1. **Logline开篇**（一句话概括全剧卖点）
+2. **引爆段**（第一幕）：Ep1零铺垫冲突开局、主线钩子如何埋设、E2-3倒叙补信息差的方式
+3. **缠斗段**（第二幕）：3-5条阻力线设计（事业/情感/悬念错峰），至暗时刻的位置与内容
+4. **收束段**（第三幕）：主角主动反击、多重爽点叠加、主线钩子揭晓方式
+5. **付费卡点说明**：一卡/二卡位置及卡点集的钩子设计
+
+## 海外内容红线（必须遵守）
+- 男主不得对女主施暴，残忍行为由女配/手下执行
+- 女主对伤害必须"快速清醒+实质反击"，不可反复伤心无行动
+- 禁未成年成人情境、禁美化家暴/强制流产、禁种族宗教刻板
+- 狼人/ABO题材：标记、结合必须建立在自愿基础上
+
+直接输出大纲内容，可分段但不需要标题序号。`;
+  }
 
   return `${params.expertIdentity || '你是一位专业的动态漫剧策划编剧。'}请基于故事内核和人物设定，生成剧情大纲。
 
@@ -625,6 +862,7 @@ export function getEnhancedEpisodesBatchPrompt(
   previousBatchSummary: string = ''
 ): string {
   const pacingInstruction = getPacingInstruction(params.pacing);
+  const overseas = isOverseasProject(params.genre, params.type);
   const batchCount = endEpisode - startEpisode + 1;
   const phaseHint = getBatchPhaseHint(startEpisode, endEpisode, totalEpisodes);
 
@@ -638,6 +876,39 @@ ${previousBatchSummary}
 请确保第 ${startEpisode} 集与上述内容自然衔接。
 `;
   }
+
+  const formatSpec = overseas
+    ? `## 输出格式（海外短剧）
+
+第${startEpisode}集：
+梗概：100-150字本集详细剧情概括，必须写明：本集核心冲突、情绪释放点、信息揭示、结尾强钩子（具体画面悬念）
+人物：本集出场人物（英文原名），逗号分隔
+
+第${startEpisode + 1}集：
+梗概：100-150字
+人物：出场人物
+
+...连续输出到第${endEpisode}集...
+
+## 海外分集硬要求
+- 每集结尾钩子必须具体（如"银刃抵上喉结，他却笑了"），禁止"敬请期待"式空话
+- 第1集：零铺垫直切最高浓度冲突，并埋设主线钩子
+- 付费卡点集的集标题后追加标注，如"第N集（一卡）：""第N集（二卡）："——卡点集梗概必须是全剧最强悬念峰值
+- 情绪线与信息线每集同时推进：观众爽的同时必须获得新信息
+- 卡点前2集开始蓄力，冲突密度加码`
+    : `## 输出格式
+
+第${startEpisode}集：
+梗概：100-150字本集详细剧情概括，包含主要事件、冲突和结尾悬念
+人物：本集出场人物，逗号分隔
+
+第${startEpisode + 1}集：
+梗概：100-150字
+人物：出场人物
+
+...连续输出到第${endEpisode}集...`;
+
+  const paywallSection = overseas ? `\n${getOverseasPaywallPlan(totalEpisodes)}\n` : '';
 
   return `${params.expertIdentity || '你是一位专业的动态漫剧策划编剧。'}
 
@@ -658,18 +929,8 @@ ${characterCards}
 ${synopsis}
 
 ${pacingInstruction}
-${contextSection}
-## 输出格式
-
-第${startEpisode}集：
-梗概：100-150字本集详细剧情概括，包含主要事件、冲突和结尾悬念
-人物：本集出场人物，逗号分隔
-
-第${startEpisode + 1}集：
-梗概：100-150字
-人物：出场人物
-
-...连续输出到第${endEpisode}集...
+${contextSection}${paywallSection}
+${formatSpec}
 
 ## 重要提示
 - 必须输出 ${batchCount} 集，从第 ${startEpisode} 集到第 ${endEpisode} 集

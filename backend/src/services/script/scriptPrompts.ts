@@ -7,6 +7,7 @@
 import { IOutputFormatConfig } from '../../types/OutputFormat';
 import { outputFormatService } from '../format/OutputFormatService';
 import { NARRATIVE_METHODOLOGY } from './narrativeMethodology';
+import { OVERSEAS_METHODOLOGY } from './overseasMethodology';
 
 export interface ScriptContextParts {
   characterContext?: string;
@@ -142,9 +143,14 @@ export function getScriptAgentPrompt(contextParts: ScriptContextParts): string {
   console.log(`[Prompt] 使用格式预设: ${resolvedConfig.sourcePreset || 'default'}`);
   console.log(`[Prompt] 专家身份: ${expertIdentity.slice(0, 50)}...`);
 
-  // 叙事科学方法论（可选注入）
-  const narrativeSection = contextParts.outputFormatConfig?.enableNarrativeMethodology
-    ? `\n\n## 叙事科学方法论\n\n${NARRATIVE_METHODOLOGY}\n`
+  // 叙事科学方法论（海外格式默认启用、可在项目设置中关闭；其他格式按开关可选注入）
+  const isOverseasFormat = resolvedConfig.sourcePreset === 'overseas_drama';
+  const methodologyText = isOverseasFormat
+    ? OVERSEAS_METHODOLOGY
+    : NARRATIVE_METHODOLOGY;
+  const methodologyEnabled = contextParts.outputFormatConfig?.enableNarrativeMethodology ?? isOverseasFormat;
+  const narrativeSection = methodologyEnabled
+    ? `\n\n## 叙事科学方法论\n\n${methodologyText}\n`
     : '';
 
   // 写作风格是强制要求

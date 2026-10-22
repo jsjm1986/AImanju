@@ -184,6 +184,8 @@ const presets = [
   { type: 'sweet-romance', name: '甜宠言情', icon: '💕', description: '无打脸、快感情、轻冲突' },
   { type: 'system-flow', name: '系统流爽文', icon: '🎮', description: '中打脸、快升级、频繁装备' },
   { type: 'mind-game', name: '智斗谋略', icon: '🧠', description: '高反转、高智商反派' },
+  { type: 'overseas-romance', name: '海外女频', icon: '💘', description: '情感赌注升级、压抑-释放强对比' },
+  { type: 'overseas-revenge', name: '海外男频', icon: '🗡️', description: '复仇打脸、身份揭露快反转' },
   { type: 'custom', name: '自定义', icon: '⚙️', description: '手动配置所有参数' },
 ];
 
@@ -300,6 +302,30 @@ function selectPreset(type: string) {
         suspenseIntensity: 'strong',
         villainIQ: 'genius',
         bossInterval: 25,
+      };
+      break;
+    case 'overseas-romance':
+      params.value = {
+        faceSlappingFrequency: 4,
+        coolPointDensity: 3,
+        powerUpSpeed: 'fast',
+        equipmentDropRate: 'normal',
+        plotTwistFrequency: 10,
+        suspenseIntensity: 'strong',
+        villainIQ: 'smart',
+        bossInterval: 15,
+      };
+      break;
+    case 'overseas-revenge':
+      params.value = {
+        faceSlappingFrequency: 2,
+        coolPointDensity: 3,
+        powerUpSpeed: 'fast',
+        equipmentDropRate: 'frequent',
+        plotTwistFrequency: 12,
+        suspenseIntensity: 'medium',
+        villainIQ: 'smart',
+        bossInterval: 12,
       };
       break;
     case 'custom':

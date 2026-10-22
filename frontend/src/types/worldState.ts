@@ -163,7 +163,7 @@ export interface IWorldState {
 }
 
 // ===== 注意力系统 =====
-export type AttentionHeadCategory = 'base' | 'mystery' | 'horror' | 'mind' | 'game' | 'cool' | 'style';
+export type AttentionHeadCategory = 'base' | 'mystery' | 'horror' | 'mind' | 'game' | 'cool' | 'style' | 'overseas';
 
 export interface IAttentionHead {
   type: string;
@@ -182,6 +182,7 @@ export const AttentionHeadCategoryLabels: Record<AttentionHeadCategory, string> 
   game: '游戏模块',
   cool: '爽文模块',
   style: '风格头',
+  overseas: '海外模块',
 };
 
 // 注意力头类别颜色
@@ -193,6 +194,7 @@ export const AttentionHeadCategoryColors: Record<AttentionHeadCategory, string> 
   game: '#16a34a',     // green
   cool: '#ea580c',     // orange
   style: '#64748b',    // slate
+  overseas: '#0d9488', // teal
 };
 
 // ===== 题材类型 =====
@@ -205,6 +207,7 @@ export type GenreType =
   | 'xitong'    // 游戏/系统流
   | 'yanqing'   // 言情/甜宠
   | 'xiju'      // 喜剧/搞笑
+  | 'overseas'  // 海外短剧
   | 'custom';   // 自定义
 
 export const GenreTypeLabels: Record<GenreType, string> = {
@@ -216,6 +219,7 @@ export const GenreTypeLabels: Record<GenreType, string> = {
   xitong: '游戏/系统流',
   yanqing: '言情/甜宠',
   xiju: '喜剧/搞笑',
+  overseas: '海外短剧',
   custom: '自定义',
 };
 
@@ -247,6 +251,8 @@ export type RhythmPresetType =
   | 'sweet-romance'   // 甜宠言情
   | 'system-flow'     // 系统流爽文
   | 'mind-game'       // 智斗谋略
+  | 'overseas-romance' // 海外女频
+  | 'overseas-revenge' // 海外男频
   | 'custom';         // 自定义
 
 export interface IRhythmPreset {

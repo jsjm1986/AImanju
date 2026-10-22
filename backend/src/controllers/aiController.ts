@@ -14,7 +14,7 @@ import { EnhancedStateAnalyzer } from '../services/state/EnhancedStateAnalyzer';
 import { getOutlineRaw } from '../utils/outline';
 import { WordCountService } from '../utils/wordCount';
 import { aiClient } from '../services/ai/AIClient';
-import { getExpertIdentity } from '../constants/formatPresets';
+import { getPlannerIdentity } from '../constants/formatPresets';
 import type { StateChange, EpisodeSummary, CharacterInfo } from '../services/script/scriptService';
 
 const router = Router();
@@ -255,7 +255,7 @@ router.post('/generate-outline-stream', async (req: Request, res: Response) => {
       pacing: pacing || undefined,
       previousSeasonContext,
       expertIdentity: project.outputFormat?.preset
-        ? getExpertIdentity(project.outputFormat.preset)
+        ? getPlannerIdentity(project.outputFormat.preset)
         : undefined,
     };
 
@@ -294,7 +294,7 @@ router.post('/generate-outline-stream', async (req: Request, res: Response) => {
 
         const characterCount = await extractAndSaveCharacters(projectId, result.characterCards);
 
-        sse.send('done', {
+        sse.sendDone({
           raw: result.raw,
           characterCards: result.characterCards,
           synopsis: result.synopsis,

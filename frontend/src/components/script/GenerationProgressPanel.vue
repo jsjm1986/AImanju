@@ -751,6 +751,7 @@ const groupedHeads = computed(() => {
     game: { label: '系统', category: 'game', heads: [] },
     cool: { label: '爽文', category: 'cool', heads: [] },
     style: { label: '风格', category: 'style', heads: [] },
+    overseas: { label: '海外', category: 'overseas', heads: [] },
   };
 
   for (const head of multiHeadAnalysis.value.enabledHeads) {
@@ -810,7 +811,8 @@ const tierLabel = labelLookup({
 const presetLabel = labelLookup({
   'extreme-cool': '极限爽文', 'hot-blood': '热血', 'brain-burn': '烧脑',
   'horror-thriller': '恐怖惊悚', 'sweet-romance': '甜宠',
-  'system-flow': '系统流', 'mind-game': '智斗', 'custom': '自定义',
+  'system-flow': '系统流', 'mind-game': '智斗',
+  'overseas-romance': '海外女频', 'overseas-revenge': '海外男频', 'custom': '自定义',
 });
 
 const headLabel = labelLookup({
@@ -822,6 +824,8 @@ const headLabel = labelLookup({
   'game-leveling': '等级系统', 'game-equipment': '装备获取', 'game-skills': '技能展示',
   'cool-faceslap': '打脸节奏', 'cool-points': '爽点分布', 'cool-villain': '反派智商',
   'style-emotions': '情感弧线', 'style-pacing': '节奏控制', 'style-humor': '幽默调节',
+  'overseas-hook-engine': '双钩引擎', 'overseas-function-density': '功能密度',
+  'overseas-voice-redline': '声口红线',
 });
 
 const constraintTypeLabel = labelLookup({

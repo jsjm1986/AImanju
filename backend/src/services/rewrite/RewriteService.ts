@@ -11,7 +11,7 @@ import { getOutlineRaw } from '../../utils/outline';
 import { WordCountService } from '../../utils/wordCount';
 import { AIClient, AIStreamCallbacks, aiClient } from '../ai/AIClient';
 import { ContextManager } from '../context/ContextManager';
-import { outputFormatService } from '../format/OutputFormatService';
+import { normalizeOverseasScript, outputFormatService } from '../format/OutputFormatService';
 import {
   CoordinatedRewriteOptions,
   CrossEpisodeAnalysisOptions,
@@ -163,11 +163,21 @@ export class RewriteService {
   private projectId: string;
   private aiClient: AIClient;
   private contextManager: ContextManager;
+  private isOverseasFormat?: boolean;
 
   constructor(projectId: string) {
     this.projectId = projectId;
     this.aiClient = aiClient;
     this.contextManager = new ContextManager(projectId);
+  }
+
+  /** 海外格式项目在内容落库前做排版归一化（##/OS-VO空格/场标空格） */
+  private async normalizeIfOverseas(content: string): Promise<string> {
+    if (this.isOverseasFormat === undefined) {
+      const project = await projectRepository.findById(this.projectId);
+      this.isOverseasFormat = project?.outputFormat?.preset === 'overseas_drama';
+    }
+    return this.isOverseasFormat ? normalizeOverseasScript(content) : content;
   }
 
   /**
@@ -382,7 +392,7 @@ export class RewriteService {
     if (!history) throw new Error('改写历史不存在');
 
     await episodeRepository.update(history.episodeId.toString(), {
-      content: history.rewrittenContent,
+      content: await this.normalizeIfOverseas(history.rewrittenContent),
     });
 
     history.applied = true;
@@ -883,6 +893,7 @@ ${instruction}
       episodeNum: episodeNumber,
       originalContent: episode.content,
       characterContext: fullContext.characters,
+      formatSection: await this.getProjectFormatSection(),
     };
 
     const prompt = getFixExecutionPrompt(options);
@@ -993,6 +1004,7 @@ ${instruction}
       outline: getOutlineRaw(project.outline),
       characters: fullContext.characters,
       previousContext,
+      formatSection: await this.getProjectFormatSection(),
     };
 
     const systemPrompt = getCoordinatedRewritePrompt(options);
@@ -1026,9 +1038,10 @@ ${instruction}
     episodes: Array<{ number: number; content: string }>
   ): Promise<void> {
     for (const ep of episodes) {
+      const normalized = await this.normalizeIfOverseas(ep.content);
       await episodeRepository.upsert(this.projectId, ep.number, {
-        content: ep.content,
-        wordCount: ep.content.replace(/\s/g, '').length,
+        content: normalized,
+        wordCount: normalized.replace(/\s/g, '').length,
       });
     }
   }
@@ -1399,7 +1412,7 @@ ${instruction}
       const episode = await episodeRepository.findByNumber(this.projectId, epNum);
       if (!episode) continue;
 
-      await episodeRepository.update(episode._id.toString(), { content: result.fixed });
+      await episodeRepository.update(episode._id.toString(), { content: await this.normalizeIfOverseas(result.fixed) });
 
       const originalWordCount = result.original.replace(/\s/g, '').length;
       const fixedWordCount = result.fixed.replace(/\s/g, '').length;

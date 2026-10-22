@@ -2,9 +2,12 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { BuyerUser, IBuyerUser } from '../models/BuyerUser';
 
-const JWT_SECRET = process.env.JWT_SECRET;
-if (!JWT_SECRET) {
-    throw new Error('JWT_SECRET environment variable is required');
+function getJwtSecret(): string {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+        throw new Error('JWT_SECRET environment variable is required');
+    }
+    return secret;
 }
 
 /**
@@ -18,7 +21,7 @@ export interface BuyerRequest extends Request {
 /**
  * JWT Token 载荷
  */
-interface TokenPayload {
+interface TokenPayload extends jwt.JwtPayload {
     userId: string;
     role: string;
 }
@@ -31,7 +34,7 @@ export function generateToken(user: IBuyerUser): string {
         userId: user._id.toString(),
         role: user.role,
     };
-    return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+    return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 /**
@@ -45,7 +48,7 @@ export async function buyerAuth(req: BuyerRequest, res: Response, next: NextFunc
         }
 
         const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+        const decoded = jwt.verify(token, getJwtSecret()) as TokenPayload;
 
         const user = await BuyerUser.findById(decoded.userId);
         if (!user) {
@@ -95,7 +98,7 @@ export async function optionalAuth(req: BuyerRequest, res: Response, next: NextF
         }
 
         const token = authHeader.substring(7);
-        const decoded = jwt.verify(token, JWT_SECRET) as TokenPayload;
+        const decoded = jwt.verify(token, getJwtSecret()) as TokenPayload;
 
         const user = await BuyerUser.findById(decoded.userId);
         if (user && user.status === 'active') {

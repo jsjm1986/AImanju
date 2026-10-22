@@ -93,7 +93,6 @@ const ProjectPublishSchema = new Schema<IProjectPublish>(
 );
 
 // 索引
-ProjectPublishSchema.index({ projectId: 1 });
 ProjectPublishSchema.index({ isPublished: 1, publishedAt: -1 });
 ProjectPublishSchema.index({ targetAudience: 1, isPublished: 1 });
 
