@@ -153,8 +153,6 @@ CreatorSchema.methods.getRemainingProjectQuota = function (): number {
 };
 
 // 索引
-CreatorSchema.index({ email: 1 });
-CreatorSchema.index({ username: 1 });
 CreatorSchema.index({ agentId: 1 });
 
 export const Creator = mongoose.model<ICreator>('Creator', CreatorSchema);

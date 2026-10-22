@@ -28,6 +28,10 @@ const routes = [
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/admin',
+    redirect: '/creator-admin',
+  },
+  {
     path: '/project/:id',
     name: 'ProjectDetail',
     component: () => import('@/views/ProjectDetail.vue'),
@@ -82,6 +86,10 @@ const routes = [
         meta: { requiresAuth: true },
       },
     ],
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/',
   },
   // 代理端路由
   {
@@ -162,6 +170,10 @@ router.beforeEach((to, _from, next) => {
     const authStore = useAuthStore();
     if (!authStore.isAuthenticated) {
       next({ name: 'Login', query: { redirect: to.fullPath } });
+      return;
+    }
+    if (to.meta.requiresAdmin && authStore.user?.role !== 'admin') {
+      next({ name: 'Projects' });
       return;
     }
   }

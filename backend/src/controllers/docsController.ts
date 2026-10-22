@@ -46,6 +46,9 @@ function buildDocsMap(): Record<string, { file: string; title: string; descripti
   const docsMap: Record<string, { file: string; title: string; description: string }> = { ...DOCS_MAP };
 
   try {
+    if (!fs.existsSync(DOCS_BASE_PATH)) {
+      return docsMap;
+    }
     const files = fs.readdirSync(DOCS_BASE_PATH);
     const mdFiles = files.filter((file) => file.toLowerCase().endsWith('.md'));
 

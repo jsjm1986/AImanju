@@ -75,8 +75,6 @@ const BuyerUserSchema = new Schema<IBuyerUser>(
 );
 
 // 索引
-BuyerUserSchema.index({ email: 1 });
-BuyerUserSchema.index({ username: 1 });
 BuyerUserSchema.index({ createdAt: -1 });
 
 export const BuyerUser = mongoose.model<IBuyerUser>('BuyerUser', BuyerUserSchema);
