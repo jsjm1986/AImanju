@@ -175,15 +175,27 @@ ${params.previousEpisodeContent}
     }
 
     if (params.constraints && params.constraints.length > 0) {
-      const list = params.constraints
-        .map((c, i) => `${i + 1}. ${typeof c === 'string' ? c : c.content}`)
-        .join('\n');
+      // 按优先级分组渲染：约束列表长且平会稀释注意力，
+      // 把【关键】置顶、【重要】次之，其余兜底，模型优先满足高优先级
+      const critical: string[] = [];
+      const important: string[] = [];
+      const normal: string[] = [];
+      for (const c of params.constraints) {
+        const s = typeof c === 'string' ? c : c.content;
+        if (/^【关键】/.test(s)) critical.push(s.replace(/^【关键】/, ''));
+        else if (/^【重要】/.test(s)) important.push(s.replace(/^【重要】/, ''));
+        else normal.push(s);
+      }
+      const block = (title: string, items: string[]) =>
+        items.length ? `\n${title}\n${items.map((s, i) => `${i + 1}. ${s}`).join('\n')}` : '';
+      const list =
+        block('★ 关键约束（最高优先级，必须全部满足）', critical) +
+        block('● 重要约束（应尽量满足）', important) +
+        block('○ 一般约束（不得明显违背）', normal);
       sections.push(`【生成约束 - 必须遵守】
-以下约束将在生成后自动验证，未满足的约束会触发重新生成：
+以下约束将在生成后自动验证，未满足的约束会触发重新生成：${list}
 
-${list}
-
-[重要] 请确保剧本内容满足上述所有约束条件。`);
+[重要] 请优先确保 ★关键约束 全部满足，其次 ●重要约束，其余不得明显违背。`);
     }
 
     if (params.suggestions && params.suggestions.length > 0) {

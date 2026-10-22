@@ -189,6 +189,18 @@ const presetParams: Record<string, Partial<RhythmParams>> = {
     romanceSpeed: 'slow', heartacheLevel: 'medium', villainIQ: 'genius',
     pressureCurve: 'hard', bossInterval: 25,
   },
+  'overseas-romance': {
+    faceSlappingFrequency: 4, coolPointDensity: 3, powerUpSpeed: 'fast',
+    equipmentDropRate: 'normal', plotTwistFrequency: 10, suspenseIntensity: 'strong',
+    romanceSpeed: 'fast', heartacheLevel: 'medium', villainIQ: 'smart',
+    pressureCurve: 'hard', bossInterval: 15,
+  },
+  'overseas-revenge': {
+    faceSlappingFrequency: 2, coolPointDensity: 3, powerUpSpeed: 'fast',
+    equipmentDropRate: 'frequent', plotTwistFrequency: 12, suspenseIntensity: 'medium',
+    romanceSpeed: 'slow', heartacheLevel: 'light', villainIQ: 'smart',
+    pressureCurve: 'hard', bossInterval: 12,
+  },
 };
 
 const loadPresets = async () => {

@@ -1,4 +1,5 @@
 import { aiClient, AIStreamCallbacks } from '../ai/AIClient';
+import { isOverseasFemaleChannel, isOverseasProject } from '../../constants/overseas';
 import {
   getOutlineCharactersPrompt,
   getOutlineSynopsisPrompt,
@@ -57,6 +58,10 @@ export class OutlineService {
   ): Promise<OutlineResult> {
     const { totalEpisodes } = params;
     const baseUserMessage = buildOutlineUserPrompt(params);
+    const overseas = isOverseasProject(params.genre, params.type);
+    const overseasChannel = overseas
+      ? (isOverseasFemaleChannel(params.genre, params.type) ? 'female' as const : 'male' as const)
+      : undefined;
 
     console.log('[AI-Stream] 开始流式生成大纲...');
     console.log('[AI-Stream] 用户概念:', params.concept?.substring(0, 100));
@@ -64,13 +69,13 @@ export class OutlineService {
     try {
       const characterCards = await this.runStep(
         1, '生成人物卡', '[AI-Stream]',
-        getOutlineCharactersPrompt(params.expertIdentity),
+        getOutlineCharactersPrompt(params.expertIdentity, overseasChannel),
         baseUserMessage, callbacks
       );
 
       const synopsis = await this.runStep(
         2, '生成剧情大纲', '[AI-Stream]',
-        getOutlineSynopsisPrompt(characterCards, params.expertIdentity),
+        getOutlineSynopsisPrompt(characterCards, params.expertIdentity, overseas),
         baseUserMessage, callbacks
       );
 
@@ -79,7 +84,7 @@ export class OutlineService {
         totalEpisodes, 3, '[AI-Stream]', callbacks,
         (start, end, prevSummary) => ({
           system: getOutlineEpisodesBatchPrompt(
-            characterCards, synopsis, start, end, totalEpisodes, prevSummary, params.expertIdentity
+            characterCards, synopsis, start, end, totalEpisodes, prevSummary, params.expertIdentity, overseas
           ),
           user: baseUserMessage,
         })

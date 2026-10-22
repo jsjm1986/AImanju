@@ -131,8 +131,8 @@ export function calculateForeshadowingSimilarity(text1: string, text2: string): 
   const union = new Set([...set1, ...set2]);
   const jaccardSimilarity = intersection.length / union.size;
 
-  // 计算实体匹配
-  const entityPattern = /[\u4e00-\u9fa5]{2,4}/g;
+  // 计算实体匹配（中文2-4字词 或 拉丁字母人名/词，兼容海外剧本英文名）
+  const entityPattern = /[\u4e00-\u9fa5]{2,4}|[A-Za-z][A-Za-z'’.\-]{1,19}/g;
   const entities1 = (t1.match(entityPattern) || []).slice(0, 5);
   const entities2 = (t2.match(entityPattern) || []).slice(0, 5);
 
@@ -185,8 +185,8 @@ export function verifyForeshadowingResolution(
 
   const matchRatio = matchedCount / allKeywords.length;
 
-  // 检查实体
-  const entityPattern = /[\u4e00-\u9fa5]{2,4}/g;
+  // 检查实体（兼容拉丁字母人名）
+  const entityPattern = /[\u4e00-\u9fa5]{2,4}|[A-Za-z][A-Za-z'’.\-]{1,19}/g;
   const entities = (foreshadowingContent.match(entityPattern) || []).slice(0, 3);
   let entityMatchCount = 0;
 
@@ -224,6 +224,8 @@ export function extractCliffhangerFromScript(scriptContent: string): string | nu
     /【?结尾悬念】?[：:]\s*(.+?)(?=\n|$)/i,
     /cliffhanger[：:]\s*(.+?)(?=\n|$)/i,
     /悬念[：:]\s*(.+?)(?=\n|$)/i,
+    /\[HOOK\]\s*(.+?)(?=\n|$)/i,
+    /【?钩子】?[：:]\s*(.+?)(?=\n|$)/i,
   ];
 
   for (const pattern of patterns) {

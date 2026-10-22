@@ -24,7 +24,8 @@ export type OutputFormatPreset =
   | 'ai_avatar'     // AI真人数字人格式
   | 'american_comic' // 美漫格式
   | 'chinese_comic'  // 国漫格式
-  | 'documentary';   // 纪录片/解说格式
+  | 'documentary'    // 纪录片/解说格式
+  | 'overseas_drama'; // 海外短剧格式（中文剧本/海外题材）
 
 export type DialogueStyle =
   | 'colon'         // 张三：内容

@@ -234,62 +234,77 @@ export class ConstraintValidator {
       };
     }
 
-    const constraintsText = verifiableConstraints
-      .map((c, i) => {
-        const id = safeGet(c, 'id', 'unknown');
-        const type = safeGet(c, 'type', 'unknown');
-        const severity = safeGet(c, 'severity', 'normal');
-        const content = safeGet(c, 'content', '(无内容)');
-        const context = safeGet(c, 'context', '');
+    const buildConstraintsText = (list: Constraint[], offset: number) =>
+      list
+        .map((c, i) => {
+          const id = safeGet(c, 'id', 'unknown');
+          const type = safeGet(c, 'type', 'unknown');
+          const severity = safeGet(c, 'severity', 'normal');
+          const content = safeGet(c, 'content', '(无内容)');
+          const context = safeGet(c, 'context', '');
 
-        let text = `${i + 1}. [${id}] (${type}, ${severity})`;
-        if (c.subject && c.object) text += `\n   场景: ${c.subject} → ${c.object}`;
-        text += `\n   内容: ${content}`;
-        if (context) text += `\n   上下文: ${context}`;
-        if (c.validationCriteria?.length) {
-          text += `\n   验证标准:`;
-          for (const v of c.validationCriteria) text += `\n     - ${v}`;
-        }
-        return text;
-      })
-      .join('\n\n');
+          let text = `${offset + i + 1}. [${id}] (${type}, ${severity})`;
+          if (c.subject && c.object) text += `\n   场景: ${c.subject} → ${c.object}`;
+          text += `\n   内容: ${content}`;
+          if (context) text += `\n   上下文: ${context}`;
+          if (c.validationCriteria?.length) {
+            text += `\n   验证标准:`;
+            for (const v of c.validationCriteria) text += `\n     - ${v}`;
+          }
+          return text;
+        })
+        .join('\n\n');
 
-    const prompt = CONSTRAINT_VALIDATION_PROMPT
-      .replace('{scriptContent}', scriptContent)
-      .replace('{constraints}', constraintsText);
+    // 分批验证：大约束集单次调用会超出输出预算导致截断/空返回（每批40条）
+    const BATCH_SIZE = 40;
+    const batches: Constraint[][] = [];
+    for (let i = 0; i < verifiableConstraints.length; i += BATCH_SIZE) {
+      batches.push(verifiableConstraints.slice(i, i + BATCH_SIZE));
+    }
 
     try {
-      logger.info(`开始验证 ${verifiableConstraints.length} 个可验证约束`);
+      logger.info(`开始验证 ${verifiableConstraints.length} 个可验证约束${batches.length > 1 ? `（分${batches.length}批）` : ''}`);
 
-      // 详细列出要验证的约束
-      verifiableConstraints.forEach((c, i) => {
-        const content = safeGet(c, 'content', '(无内容)');
-        const severity = safeGet(c, 'severity', 'normal');
-        const type = safeGet(c, 'type', 'unknown');
-        logger.info(`  ${i + 1}. [${severity}] ${type}: ${safeStringify(content, 50)}`);
-      });
+      const allResults: ValidationResponse['results'] = [];
+      let mergedSummary = '';
+      let mergedSuggestions: string[] = [];
 
-      const startTime = Date.now();
-      const response = await this.aiClient.generate('', prompt, 8000);
-      const aiDuration = Date.now() - startTime;
+      for (let bi = 0; bi < batches.length; bi++) {
+        const constraintsText = buildConstraintsText(batches[bi], bi * BATCH_SIZE);
+        const prompt = CONSTRAINT_VALIDATION_PROMPT
+          .replace('{scriptContent}', scriptContent)
+          .replace('{constraints}', constraintsText);
 
-      logger.info(`AI 验证完成`, { 耗时: `${(aiDuration / 1000).toFixed(1)}秒`, 响应长度: response.length });
+        const startTime = Date.now();
+        const response = await this.aiClient.generate('', prompt, 8000);
+        const aiDuration = Date.now() - startTime;
 
-      // 检查响应是否有效
-      if (!response || response.length < 50) {
-        logger.warn('AI 响应过短或为空', { 长度: response?.length || 0 });
+        logger.info(`AI 验证完成${batches.length > 1 ? `（第${bi + 1}/${batches.length}批）` : ''}`, { 耗时: `${(aiDuration / 1000).toFixed(1)}秒`, 响应长度: response.length });
+
+        if (!response || response.length < 50) {
+          logger.warn(`AI 响应过短或为空（第${bi + 1}批）`, { 长度: response?.length || 0 });
+          continue;
+        }
+
+        const result = robustParseJson<ValidationResponse>(response, DEFAULT_VALIDATION_RESPONSE);
+        if (Array.isArray(result.results)) allResults.push(...result.results);
+        if (!mergedSummary && result.summary) mergedSummary = result.summary;
+        if (Array.isArray(result.improvementSuggestions)) mergedSuggestions.push(...result.improvementSuggestions);
+      }
+
+      const result: ValidationResponse = {
+        ...DEFAULT_VALIDATION_RESPONSE,
+        results: allResults,
+        summary: mergedSummary,
+        improvementSuggestions: mergedSuggestions,
+      };
+
+      if (allResults.length === 0) {
+        logger.warn('所有批次均未返回有效结果');
         return {
           ...DEFAULT_VALIDATION_RESPONSE,
           summary: 'AI 响应无效',
         };
-      }
-
-      const result = robustParseJson<ValidationResponse>(response, DEFAULT_VALIDATION_RESPONSE);
-
-      // 验证解析结果
-      if (!result.results || !Array.isArray(result.results)) {
-        logger.warn('解析结果缺少 results 数组', { result: safeStringify(result, 200) });
-        result.results = [];
       }
 
       // 统计违规和满足率

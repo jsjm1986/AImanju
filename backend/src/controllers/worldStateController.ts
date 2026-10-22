@@ -9,7 +9,9 @@ import { CharacterTier } from '../models/WorldState';
 import { characterRepository, episodeRepository, generationLogRepository, projectRepository, worldStateRepository } from '../repositories';
 import { AIClient, aiClient } from '../services/ai/AIClient';
 import { GenreType, IStructuredConstraint, ModularAttentionSystem } from '../services/attention/AttentionModules';
+import { isOverseasFemaleChannel, OVERSEAS_TYPES } from '../constants/overseas';
 import { CharacterLifecycleManager } from '../services/character/CharacterLifecycleManager';
+import { CharacterType, parseCharacterCards } from '../services/character/CharacterParser';
 import { characterCharmAnalyzer } from '../services/character/CharacterCharmAnalyzer';
 import { characterArcTracker } from '../services/character/CharacterArcTracker';
 import { characterVoiceProfiler } from '../services/character/CharacterVoiceProfiler';
@@ -21,6 +23,7 @@ import { scriptService } from '../services/script/scriptService';
 import { SSEHandler } from '../services/sse/SSEHandler';
 import { EnhancedStateAnalyzer } from '../services/state/EnhancedStateAnalyzer';
 import { WorldStateManager } from '../services/world/WorldStateManager';
+import { normalizeOverseasScript, outputFormatService, scanOverseasScript } from '../services/format/OutputFormatService';
 import { createLogger } from '../utils/errorLogger';
 import { getOutlineRaw } from '../utils/outline';
 import { WordCountService } from '../utils/wordCount';
@@ -256,7 +259,13 @@ async function initRhythmController(projectId: string): Promise<RhythmController
   // 从数据库加载项目的节奏配置和追踪数据
   const project = await Project.findById(projectId).lean();
   if (project) {
-    const preset = (project.rhythmPreset as RhythmPresetType) || 'hot-blood';
+    // 默认预设跟随输出格式：海外剧按频道取 overseas-romance/overseas-revenge，否则 hot-blood
+    const fallbackPreset = project.outputFormat?.preset === 'overseas_drama'
+      ? (isOverseasFemaleChannel(project.genre, project.type) ? 'overseas-romance' : 'overseas-revenge')
+      : 'hot-blood';
+    const rawPreset = (project.rhythmPreset as string) || fallbackPreset;
+    // 非法/未知预设兜底，避免脏数据导致生成崩溃
+    const preset = (rawPreset in RHYTHM_PRESETS ? rawPreset : fallbackPreset) as RhythmPresetType;
     const controller = new RhythmController(preset);
 
     // 如果有自定义参数，应用它们
@@ -360,8 +369,70 @@ function mapProjectTypeToGenre(type: string): GenreType {
     '喜剧': 'xiju',
     '搞笑': 'xiju',
     '沙雕': 'xiju',
+    // 海外短剧系（清单以 constants/overseas.ts 为唯一源，防漂移）
+    ...Object.fromEntries(OVERSEAS_TYPES.map((t) => [t, 'overseas' as GenreType])),
+    '海外短剧': 'overseas',
+    '出海': 'overseas',
   };
   return mapping[type] || 'custom';
+}
+
+/**
+ * 海外短剧格式审查约束集——全部交由 AI 验证器对剧本全文做语义判定，
+ * 替代机械正则；仅在 AI 验证整体失效时才由确定性扫描兜底。
+ */
+function buildOverseasFormatAuditConstraints(wordLimitMax?: number): Constraint[] {
+  const list: Constraint[] = [];
+  let n = 0;
+  const add = (content: string, severity: Constraint['severity'], validationCriteria?: string[]) => {
+    list.push({
+      id: `methodology-audit-${++n}`,
+      type: 'methodology',
+      content,
+      severity,
+      source: 'narrativeMethodology',
+      category: 'verifiable',
+      validationCriteria,
+    });
+  };
+
+  add('对白长度控制：每句台词不超过25字（美式口语汉译腔，含潜台词）', 'normal');
+  add('开场钩子：开篇无铺垫直切冲突（直接承接上集结尾钩子或以极端画面开局）', 'important');
+  add('双钩引擎：本集结尾必须留强钩子（5秒内可理解），且情绪线与信息线同时推进', 'important');
+  add('弱动作句式禁止：全文不得出现"动词+了一下/一拍/一声/两秒"式收笔（收紧了一下/笑了一下/看了一眼/停了一拍），动作必须写到具体落点', 'normal');
+  add('OS/VO边界：内心独白只表达情绪与潜台词，不得用OS/VO交代剧情信息或推理结论', 'important');
+  add('抽象括号禁止：对白括号内不得出现抽象语气词（低声/压低声/轻声/小声/语气平静），必须写可视动作', 'normal');
+  add('场景过渡：相邻场景之间必须有视觉过渡——新场景以△画面开场，或出现"△切镜："过渡标记；禁止上一场景以台词收尾、下一场景头后直接接台词的硬切', 'normal',
+    ['逐个场景切换处检查过渡是否自然', '对白直接接新场景头再直接接对白视为违规']);
+  add('集尾钩子结构：全文最多一个[HOOK]标注且必须位于剧本最末尾，集尾必须是悬念而非情绪落定的收尾', 'important',
+    ['[HOOK]标记出现不超过一次', '集尾内容为悬念/危机/揭示而非平静收场']);
+  add('动作线克制：每条△只写一个动作或画面（约30字内），不得把多个连续动作堆进一条', 'normal',
+    ['单条△包含3个以上连贯动作节拍视为堆砌', '明显超长臃肿的△行需拆分']);
+  add('格式完整性：集标题下有"出场人物："行；每个场景头含且仅含一个【核心情绪：X】标签', 'important',
+    ['存在出场人物行且列出本集角色', '所有场景头均带单一核心情绪标签']);
+  if (wordLimitMax) {
+    add(`篇幅控制：本集正文应控制在约${wordLimitMax}字以内，明显超篇幅（超出一半以上）需压缩重复信息与弱功能场景`, 'normal',
+      [`正文长度约${wordLimitMax}字内`, '超出50%以上视为违规']);
+  }
+  return list;
+}
+
+/**
+ * 可验证约束预算控制：当约束总量过大时，全量喂给验证器会稀释注意力并加剧输出截断。
+ * 保留全部 critical+important，normal 级优先保留格式审查约束，其余按顺序补足预算；
+ * 被裁掉的 normal 约束仍参与生成指导，仅本次不参与评分。
+ */
+function capVerifiableConstraints(constraints: Constraint[], cap = 80): { capped: Constraint[]; dropped: number } {
+  const verifiable = constraints.filter(c => c.category === 'verifiable');
+  if (verifiable.length <= cap) return { capped: constraints, dropped: 0 };
+  const guidance = constraints.filter(c => c.category !== 'verifiable');
+  const crit = verifiable.filter(c => c.severity === 'critical');
+  const imp = verifiable.filter(c => c.severity === 'important');
+  const auditNormals = verifiable.filter(c => c.severity === 'normal' && c.source === 'narrativeMethodology');
+  const otherNormals = verifiable.filter(c => c.severity === 'normal' && c.source !== 'narrativeMethodology');
+  const slots = Math.max(0, cap - crit.length - imp.length);
+  const kept = [...crit, ...imp, ...auditNormals, ...otherNormals].slice(0, crit.length + imp.length + slots);
+  return { capped: [...kept, ...guidance], dropped: verifiable.length - kept.length };
 }
 
 /**
@@ -392,6 +463,8 @@ function collectAllConstraints(params: {
   characterStateConstraints: Array<{ name: string; condition: string }>;
   currentEpisode: number;
   enableNarrativeMethodology?: boolean;
+  outputFormatPreset?: string;
+  outputFormatWordLimitMax?: number;
 }): Constraint[] {
   const constraints: Constraint[] = [];
   let idCounter = 1;
@@ -532,34 +605,39 @@ function collectAllConstraints(params: {
     });
   }
 
-  // 7. 叙事科学方法论约束 - 可验证
-  if (params.enableNarrativeMethodology) {
-    constraints.push({
-      id: `methodology-${idCounter++}`,
-      type: 'methodology',
-      content: '对白长度控制：每句对白不超过15字',
-      severity: 'normal',
-      source: 'narrativeMethodology',
-      category: 'verifiable',
-    });
+  // 7. 叙事科学方法论约束 - 可验证（海外格式默认启用、可在项目设置中关闭；其他格式按开关）
+  const methodologyEnabled = params.enableNarrativeMethodology ?? (params.outputFormatPreset === 'overseas_drama');
+  if (methodologyEnabled) {
+    if (params.outputFormatPreset === 'overseas_drama') {
+      constraints.push(...buildOverseasFormatAuditConstraints(params.outputFormatWordLimitMax));
+    } else {
+      constraints.push({
+        id: `methodology-${idCounter++}`,
+        type: 'methodology',
+        content: '对白长度控制：每句对白不超过15字',
+        severity: 'normal',
+        source: 'narrativeMethodology',
+        category: 'verifiable',
+      });
 
-    constraints.push({
-      id: `methodology-${idCounter++}`,
-      type: 'methodology',
-      content: '开场钩子：前3秒必须出现明确冲突（威胁/羞辱/违和/危机）',
-      severity: 'important',
-      source: 'narrativeMethodology',
-      category: 'verifiable',
-    });
+      constraints.push({
+        id: `methodology-${idCounter++}`,
+        type: 'methodology',
+        content: '开场钩子：前3秒必须出现明确冲突（威胁/羞辱/违和/危机）',
+        severity: 'important',
+        source: 'narrativeMethodology',
+        category: 'verifiable',
+      });
 
-    constraints.push({
-      id: `methodology-${idCounter++}`,
-      type: 'methodology',
-      content: '爽点密度：3分钟内必须包含4-6个有效回报点（信息/情绪/地位/证据/身份/反转）',
-      severity: 'important',
-      source: 'narrativeMethodology',
-      category: 'verifiable',
-    });
+      constraints.push({
+        id: `methodology-${idCounter++}`,
+        type: 'methodology',
+        content: '爽点密度：3分钟内必须包含4-6个有效回报点（信息/情绪/地位/证据/身份/反转）',
+        severity: 'important',
+        source: 'narrativeMethodology',
+        category: 'verifiable',
+      });
+    }
   }
 
   return constraints;
@@ -723,12 +801,25 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           // 获取项目角色
           const characters = await characterRepository.findByProject(projectId);
 
-          // 基于大纲提取初始设定
-          const outlineInfo = extractOutlineInfo(project.outline);
-
-          // 创建初始 WorldState
-          worldState = await worldStateManager.initializeFromProject({
-            characters: characters.map((c) => ({
+          // 角色库为空但大纲有人物卡时，从大纲人物卡播种初始角色（避免 ep0 初始化零角色起步）
+          const outlineCards = typeof project.outline === 'object' ? project.outline?.characterCards : undefined;
+          let initChars: Array<{ name: string; role: string; tier: CharacterTier; abilities?: string[]; equipment?: string[]; identity?: string; personality?: string }>;
+          if (characters.length === 0 && outlineCards) {
+            const parsed = parseCharacterCards(outlineCards);
+            initChars = parsed.map((p) => ({
+              name: p.name,
+              role: p.role || p.identity || '未知',
+              tier: p.type === CharacterType.MAIN ? 'core' : p.type === CharacterType.EXTRA ? 'extra' : 'recurring',
+              abilities: p.abilities || [],
+              equipment: p.equipment || [],
+              identity: p.identity,
+              personality: p.personality,
+            }));
+            if (initChars.length > 0) {
+              sse.sendLog(`[WorldState] 角色库为空，从大纲人物卡播种 ${initChars.length} 个初始角色`);
+            }
+          } else {
+            initChars = characters.map((c) => ({
               name: c.name,
               role: c.role || c.type || '未知',
               tier: typeToTier(c.type) as CharacterTier,
@@ -736,7 +827,15 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
               equipment: c.initialEquipment || [],
               identity: c.identity,
               personality: c.personality,
-            })),
+            }));
+          }
+
+          // 基于大纲提取初始设定
+          const outlineInfo = extractOutlineInfo(project.outline);
+
+          // 创建初始 WorldState
+          worldState = await worldStateManager.initializeFromProject({
+            characters: initChars,
             outline: outlineInfo,
             projectType: project.type,
           });
@@ -1042,10 +1141,23 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           // 🆕 保存多头结构化约束（供后续验证使用）
           savedMultiHeadConstraints = multiHeadResult.aggregatedConstraints;
 
-          // 将多头分析的约束和建议合并到生成上下文（使用约束content字符串）
+          // 将多头分析的约束和建议合并到生成上下文（按严重度打标+去重，
+          // 让生成模型在长约束列表中优先分配注意力给关键项）
+          const sevTag = (s: string) => (s === 'critical' ? '【关键】' : s === 'important' ? '【重要】' : '');
+          const seenKeys = new Set(
+            generationContext.constraints.map(c => (c || '').replace(/【[^】]*】/g, '').replace(/\s+/g, '').replace(/[，。；：""'']/g, ''))
+          );
+          const newHeadConstraints = multiHeadResult.aggregatedConstraints
+            .filter(c => {
+              const key = (c.content || '').replace(/【[^】]*】/g, '').replace(/\s+/g, '').replace(/[，。；：""'']/g, '');
+              if (seenKeys.has(key)) return false;
+              seenKeys.add(key);
+              return true;
+            })
+            .map(c => `${sevTag(c.severity)}${c.content}`);
           generationContext.constraints = [
             ...generationContext.constraints,
-            ...multiHeadResult.aggregatedConstraints.map(c => c.content),
+            ...newHeadConstraints,
           ];
           generationContext.suggestions = [
             ...generationContext.suggestions,
@@ -1244,33 +1356,64 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
               category: c.category,
             }));
 
+          // 按归一化内容去重（多头约束常与AI决策约束语义重复，重复条目空耗验证预算）
+          const seen = new Set(collectedConstraints.map(c => (c.content || '').replace(/\s+/g, '').replace(/[，。；：""'']/g, '')));
+          const deduped = multiHeadConstraintsForValidation.filter(c => {
+            const key = (c.content || '').replace(/\s+/g, '').replace(/[，。；：""'']/g, '');
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          const dupCount = multiHeadConstraintsForValidation.length - deduped.length;
+
           collectedConstraints = [
             ...collectedConstraints,
-            ...multiHeadConstraintsForValidation,
+            ...deduped,
           ];
 
-          sse.sendLog(`[多头约束] 合并 ${multiHeadConstraintsForValidation.length} 个可验证约束到验证队列`);
+          sse.sendLog(`[多头约束] 合并 ${deduped.length} 个可验证约束到验证队列${dupCount > 0 ? `（去重剔除${dupCount}条重复）` : ''}`);
+        }
+
+        // 🆕 海外格式：注入格式审查约束集，由 AI 验证器对全文语义判定（非机械正则）
+        const methodologyAuditEnabled = project.outputFormat?.enableNarrativeMethodology
+          ?? (project.outputFormat?.preset === 'overseas_drama');
+        if (methodologyAuditEnabled && project.outputFormat?.preset === 'overseas_drama') {
+          const auditConstraints = buildOverseasFormatAuditConstraints(
+            outputFormatService.resolveConfig(project.outputFormat).wordLimit?.max,
+          );
+          collectedConstraints = [...collectedConstraints, ...auditConstraints];
+          sse.sendLog(`[格式审查] 注入 ${auditConstraints.length} 项 AI 审查约束（语义判定）`);
         }
 
         // 同时更新 generationContext.constraints 用于剧本生成
         // 将 AI 决策的约束添加到生成上下文中
         const aiConstraintStrings = unifiedConstraints
           .filter(c => c.category === 'verifiable')
-          .map(c => c.content);
+          .map(c => `${c.severity === 'critical' ? '【关键】' : c.severity === 'important' ? '【重要】' : ''}${c.content}`);
         const aiGuidanceStrings = unifiedConstraints
           .filter(c => c.category === 'guidance')
           .map(c => c.content);
 
-        // 替换原有的约束（移除旧的节奏约束和伏笔约束）
+        // 替换原有的约束（移除旧的节奏约束和伏笔约束），并与已有多头约束去重
+        const keptContextConstraints = generationContext.constraints.filter(c =>
+          !c.includes('【节奏约束') &&
+          !c.includes('【节奏建议') &&
+          !c.includes('【伏笔约束') &&
+          !c.includes('【悬念约束') &&
+          !c.includes('【状态约束')
+        );
+        const ctxSeenKeys = new Set(
+          keptContextConstraints.map(c => (c || '').replace(/【[^】]*】/g, '').replace(/\s+/g, '').replace(/[，。；：""'']/g, ''))
+        );
+        const dedupedAiConstraints = aiConstraintStrings.filter(s => {
+          const key = s.replace(/【[^】]*】/g, '').replace(/\s+/g, '').replace(/[，。；：""'']/g, '');
+          if (ctxSeenKeys.has(key)) return false;
+          ctxSeenKeys.add(key);
+          return true;
+        });
         generationContext.constraints = [
-          ...generationContext.constraints.filter(c =>
-            !c.includes('【节奏约束') &&
-            !c.includes('【节奏建议') &&
-            !c.includes('【伏笔约束') &&
-            !c.includes('【悬念约束') &&
-            !c.includes('【状态约束')
-          ),
-          ...aiConstraintStrings,
+          ...keptContextConstraints,
+          ...dedupedAiConstraints,
         ];
         generationContext.suggestions = [
           ...generationContext.suggestions,
@@ -1355,6 +1498,10 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           characterStateConstraints,
           currentEpisode: episodeNumber,
           enableNarrativeMethodology: project.outputFormat?.enableNarrativeMethodology,
+          outputFormatPreset: project.outputFormat?.preset,
+          outputFormatWordLimitMax: project.outputFormat?.preset
+            ? outputFormatService.resolveConfig(project.outputFormat).wordLimit?.max
+            : undefined,
         });
 
         sse.sendLog(`[约束系统-回退] 收集到 ${collectedConstraints.length} 个约束`);
@@ -1379,6 +1526,10 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
     let lastValidation: ValidationResponse | null = null;
     let currentConstraints = collectedConstraints;
     let firstGenerationContent = '';  // 保存第一次生成的内容，用于改写模式
+    // 历史最优结果：达到最大尝试次数时保留满足率最高的一版，而非最后一次
+    let bestContent = '';
+    let bestRate = -1;
+    let bestValidation: ValidationResponse | null = null;
 
     // 4. 生成剧本（带验证重试）
     const generateWithValidation = async (
@@ -1445,7 +1596,13 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
 
         // 强化未满足的约束 - 增强版：包含详细的修正指令
         if (lastValidation) {
-          const unfulfilledResults = lastValidation.results.filter((r) => !r.fulfilled);
+          const severityRank: Record<string, number> = { critical: 0, important: 1, normal: 2 };
+          const MAX_CORRECTIONS = 20;
+          const allUnfulfilled = lastValidation.results
+            .filter((r) => !r.fulfilled)
+            .sort((a, b) => (severityRank[a.severity] ?? 2) - (severityRank[b.severity] ?? 2));
+          const unfulfilledResults = allUnfulfilled.slice(0, MAX_CORRECTIONS);
+          const omittedCount = allUnfulfilled.length - unfulfilledResults.length;
 
           // 🆕 构建详细的修正指令，让 AI 明确知道哪里错了、应该怎么改
           const detailedCorrections = unfulfilledResults.map((r, idx) => {
@@ -1488,6 +1645,9 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
             .filter(r => r.evidence)
             .map(r => `- ${r.evidence}`)
             .join('\n');
+          const omittedNote = omittedCount > 0
+            ? `\n【其余${omittedCount}项低优先级违规】本次暂不逐条列出，生成时一并规避同类问题。`
+            : '';
 
           // 强化约束对象
           currentConstraints = constraintValidator.strengthenConstraints(
@@ -1498,7 +1658,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           // 🆕 更新 generationContext 的约束，添加详细修正指令
           generationContext.constraints = [
             ...generationContext.constraints.filter(c => c && !c.includes('【必须修正') && !c.includes('【必须满足】') && !c.includes('===== 修正指令')),
-            `\n===== 第${currentAttempt}次尝试：以下问题必须修正 =====${detailedCorrections}\n${forbiddenContent ? `\n【禁止使用】以下内容导致上次验证失败，本次生成必须避免：\n${forbiddenContent}` : ''}\n===== 修正指令结束 =====\n`,
+            `\n===== 第${currentAttempt}次尝试：以下问题必须修正 =====${detailedCorrections}${omittedNote}\n${forbiddenContent ? `\n【禁止使用】以下内容导致上次验证失败，本次生成必须避免：\n${forbiddenContent}` : ''}\n===== 修正指令结束 =====\n`,
           ];
 
           // 记录详细的修正日志
@@ -1550,8 +1710,53 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           sse.sendProgress(60, 100, '正在验证约束满足情况...');
           sse.sendLog(`[约束验证] 开始验证 ${currentConstraints.length} 个约束...`);
 
-          const validation = await constraintValidator.validateConstraints(content, currentConstraints);
+          // 可验证约束预算控制：防止约束膨胀稀释验证器注意力
+          const { capped: validationSet, dropped: droppedNormal } = capVerifiableConstraints(currentConstraints);
+          if (droppedNormal > 0) {
+            sse.sendLog(`[约束验证] 预算控制：${currentConstraints.length}→${validationSet.length}（${droppedNormal} 条 normal 级超额，仅作生成指导不参与本次评分）`, 'warn');
+          }
+
+          const validation = await constraintValidator.validateConstraints(content, validationSet);
+
+          // 海外短剧：规则审查以 AI 语义判定为主（methodology 约束集已含格式审查项）；
+          // 确定性扫描仅作兜底——当 AI 验证完全无结果（响应截断/解析失败）时，由正则扫描接管底线
+          let scanHasImportant = false;
+          const aiValidationEmpty = validation.results.length === 0;
+          if (project.outputFormat?.preset === 'overseas_drama' && aiValidationEmpty) {
+            const resolvedFmt = outputFormatService.resolveConfig(project.outputFormat);
+            const scanViolations = scanOverseasScript(content, resolvedFmt.wordLimit?.max);
+            scanHasImportant = scanViolations.some(v => v.severity === 'important');
+            if (scanViolations.length > 0) {
+              validation.results.push(...scanViolations.map((v, i) => ({
+                constraintId: `overseas-scan-${i}`,
+                constraintType: 'methodology' as const,
+                constraintContent: v.content,
+                fulfilled: false,
+                confidence: 1.0,
+                evidence: v.evidence,
+                reasoning: '确定性正则扫描命中',
+                severity: v.severity,
+                suggestions: [v.suggestion],
+              })));
+              const fulfilledCount = validation.results.filter(r => r.fulfilled).length;
+              validation.satisfactionRate = validation.results.length > 0
+                ? fulfilledCount / validation.results.length : 1;
+              validation.criticalViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'critical').length;
+              validation.importantViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'important').length;
+              validation.normalViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'normal').length;
+              validation.overallSatisfied = false;
+              sse.sendLog(`[格式扫描] AI验证无结果，启用确定性兜底扫描，命中 ${scanViolations.length} 项: ${scanViolations.map(v => v.evidence.slice(0, 40)).join(' | ')}`, 'warn');
+            }
+          }
+
           lastValidation = validation;
+
+          // 记录满足率最高的一版
+          if (validation.satisfactionRate > bestRate) {
+            bestRate = validation.satisfactionRate;
+            bestContent = content;
+            bestValidation = validation;
+          }
 
           // 发送验证结果
           sse.sendConstraintValidation({
@@ -1570,21 +1775,29 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           sse.sendLog(`  - Critical 违规: ${validation.criticalViolations}`);
           sse.sendLog(`  - Important 违规: ${validation.importantViolations}`);
 
-          // 检查是否需要重新生成
-          const { shouldRegenerate, reason } = constraintValidator.shouldRegenerate(validation);
+          // 检查是否需要重新生成（海外格式：important 级扫描命中同样触发重试，不受条数门槛限制）
+          const { shouldRegenerate: shouldRegenBase, reason } = constraintValidator.shouldRegenerate(validation);
+          const shouldRegenerate = shouldRegenBase || (scanHasImportant && !validation.overallSatisfied);
+          const regenReason = reason || '海外格式确定性扫描命中重要违规';
 
           if (shouldRegenerate && currentAttempt < MAX_ATTEMPTS) {
-            sse.sendLog(`[约束验证] ${reason}，将进行重试`, 'warn');
+            sse.sendLog(`[约束验证] ${regenReason}，将进行重试`, 'warn');
             currentAttempt++;
             continue;
           } else if (shouldRegenerate) {
-            sse.sendLog(`[约束验证] ${reason}，但已达到最大尝试次数`, 'warn');
+            sse.sendLog(`[约束验证] ${regenReason}，但已达到最大尝试次数`, 'warn');
           }
         }
 
-        // 验证通过或达到最大尝试次数
+        // 验证通过或达到最大尝试次数——若重试反而更差，保留满足率最高的一版
         validationPassed = true;
-        finalContent = content;
+        if (bestContent && lastValidation && bestValidation && lastValidation.satisfactionRate < bestValidation.satisfactionRate) {
+          sse.sendLog(`[约束验证] 保留满足率更高的一版生成结果（${(bestValidation.satisfactionRate * 100).toFixed(1)}% > ${(lastValidation.satisfactionRate * 100).toFixed(1)}%）`, 'warn');
+          finalContent = bestContent;
+          lastValidation = bestValidation;
+        } else {
+          finalContent = content;
+        }
         break;
       } catch (genError) {
         const err = genError as Error;
@@ -1604,6 +1817,11 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
 
     // 使用 finalContent 继续后续处理
     let fullContent = finalContent;
+
+    // 海外短剧：归一化排版漂移（## 前缀、OS/VO 空格、场标空格），分析与保存均用归一化文本
+    if (project.outputFormat?.preset === 'overseas_drama' && fullContent) {
+      fullContent = normalizeOverseasScript(fullContent);
+    }
 
     // ========== 后续处理：分析、生命周期、保存 ==========
     if (!sse.isClosed() && fullContent) {
@@ -2037,7 +2255,7 @@ router.post('/rhythm-config/:projectId', async (req: Request, res: Response) => 
     const { preset, params } = req.body;
 
     // 验证预设类型
-    const validPresets = ['extreme-cool', 'hot-blood', 'brain-burn', 'horror-thriller', 'sweet-romance', 'system-flow', 'mind-game', 'custom'];
+    const validPresets = ['extreme-cool', 'hot-blood', 'brain-burn', 'horror-thriller', 'sweet-romance', 'system-flow', 'mind-game', 'overseas-romance', 'overseas-revenge', 'custom'];
 
     // 加载现有控制器（保留追踪数据）
     let controller = await initRhythmController(projectId);
@@ -2337,6 +2555,7 @@ router.get('/attention-heads/all', async (req: Request, res: Response) => {
       GAME_HEADS,
       COOL_HEADS,
       STYLE_HEADS,
+      OVERSEAS_HEADS,
       GENRE_HEAD_MAPPING,
     } = await import('../services/attention/AttentionModules');
 
@@ -2348,6 +2567,7 @@ router.get('/attention-heads/all', async (req: Request, res: Response) => {
       ...GAME_HEADS.map((h) => ({ ...h, required: false })),
       ...COOL_HEADS.map((h) => ({ ...h, required: false })),
       ...STYLE_HEADS.map((h) => ({ ...h, required: false })),
+      ...OVERSEAS_HEADS.map((h) => ({ ...h, required: false })),
     ];
 
     res.json({
@@ -2612,16 +2832,18 @@ function getEpisodePlanFromOutline(outline: unknown, episodeNumber: number): str
  * 人物：xxx
  */
 function parseEpisodeSummaryFromText(text: string, episodeNumber: number): string {
+  // 集标题后允许出现可选的标注后缀（如"（一卡）""【付费卡点】"），不影响提取
+  const epTag = '(?:[（(【][^）)】]*[）)】])?';
   // 尝试多种正则模式匹配
   const patterns = [
     // 格式1：第N集：\n梗概：xxx\n人物：xxx
     new RegExp(
-      `第${episodeNumber}集[：:]\\s*\\n?梗概[：:]\\s*([^\\n]+(?:\\n(?!第\\d+集|人物[：:]).*?)*)`,
+      `第${episodeNumber}集${epTag}[：:]\\s*\\n?梗概[：:]\\s*([^\\n]+(?:\\n(?!第\\d+集|人物[：:]).*?)*)`,
       'i'
     ),
     // 格式2：第N集：xxx（直接跟内容）
     new RegExp(
-      `第${episodeNumber}集[：:]\\s*([^第]+?)(?=第\\d+集|$)`,
+      `第${episodeNumber}集${epTag}[：:]\\s*([^第]+?)(?=第\\d+集|$)`,
       'i'
     ),
     // 格式3：N. xxx 或 N、xxx

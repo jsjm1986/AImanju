@@ -27,6 +27,9 @@ const HEAD_NAME_MAP: Record<string, string> = {
   'style-emotions': '情感弧线',
   'style-pacing': '节奏控制',
   'style-humor': '幽默调节',
+  'overseas-hook-engine': '双钩引擎',
+  'overseas-function-density': '功能密度',
+  'overseas-voice-redline': '声口红线',
 };
 
 const CATEGORY_NAME_MAP: Record<string, string> = {
@@ -37,9 +40,10 @@ const CATEGORY_NAME_MAP: Record<string, string> = {
   game: '系统',
   cool: '爽文',
   style: '风格',
+  overseas: '海外',
 };
 
-const CATEGORIES: AttentionHeadCategory[] = ['base', 'mystery', 'horror', 'mind', 'game', 'cool', 'style'];
+const CATEGORIES: AttentionHeadCategory[] = ['base', 'mystery', 'horror', 'mind', 'game', 'cool', 'style', 'overseas'];
 
 function getHeadCategory(headType: string): AttentionHeadCategory {
   const prefix = headType.split('-')[0];

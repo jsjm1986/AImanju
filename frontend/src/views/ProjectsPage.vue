@@ -97,11 +97,18 @@ const presetColors = [
   '#84CC16', 'var(--warning)', '#14B8A6', 'var(--primary-hover)'
 ];
 
-const typeOptions = [
+const DOMESTIC_TYPES = [
   '甜宠', '都市', '虐恋', '古风', '悬疑', '穿越',
   '推理', '恋爱', '逆袭', '现实', '文旅', '奇幻',
   '玄幻', '重生', '系统', '末世', '仙侠', '历史',
   '科幻', '校园', '职场', '竞技', '游戏', '军事'
+];
+const OVERSEAS_FEMALE_TYPES = [
+  '霸总契约', '黑手党', '狼人', 'ABO', '吸血鬼', '契约婚姻',
+  '禁忌之恋', '隐藏身份', '重生复仇', '神话虐恋', '豪门恩怨'
+];
+const OVERSEAS_MALE_TYPES = [
+  '复仇逆袭', '黑帮枭雄', '都市强者', '技术流逆袭', '身份揭露', '战神归来'
 ];
 
 const newProject = ref({
@@ -113,6 +120,21 @@ const newProject = ref({
   writingStyle: 'colloquial' as WritingStylePreset,
   customWritingStyle: '',
   outputFormat: 'standard',
+});
+
+const isOverseasGenre = computed(() => newProject.value.genre.includes('海外'));
+const typeOptions = computed(() => {
+  if (newProject.value.genre === '海外女频') return OVERSEAS_FEMALE_TYPES;
+  if (newProject.value.genre === '海外男频') return OVERSEAS_MALE_TYPES;
+  return DOMESTIC_TYPES;
+});
+
+watch(() => newProject.value.genre, () => {
+  if (!typeOptions.value.includes(newProject.value.type)) {
+    newProject.value.type = typeOptions.value[0] || '玄幻';
+    newProject.value.customType = '';
+  }
+  newProject.value.outputFormat = isOverseasGenre.value ? 'overseas_drama' : 'standard';
 });
 
 const useCustomType = computed(() => newProject.value.type === '__custom__');
@@ -796,6 +818,8 @@ const handleClickOutside = (event: MouseEvent) => {
           <select v-model="newProject.genre">
             <option>男频漫剧</option>
             <option>女频漫剧</option>
+            <option>海外女频</option>
+            <option>海外男频</option>
           </select>
         </div>
         <div class="form-group">

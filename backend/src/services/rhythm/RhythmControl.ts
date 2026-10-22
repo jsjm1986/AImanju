@@ -48,6 +48,8 @@ export type RhythmPresetType =
   | 'sweet-romance'     // 甜宠言情
   | 'system-flow'       // 系统流爽文
   | 'mind-game'         // 智斗谋略
+  | 'overseas-romance'  // 海外女频（情感赌注升级）
+  | 'overseas-revenge'  // 海外男频（复仇打脸逆袭）
   | 'custom';           // 自定义
 
 export interface IRhythmPreset {
@@ -221,6 +223,52 @@ export const RHYTHM_PRESETS: Record<RhythmPresetType, IRhythmPreset> = {
     recommendedGenres: ['zhidou'],
     enabledModules: ['mind'],
     enabledStyleHeads: [],
+  },
+
+  'overseas-romance': {
+    type: 'overseas-romance',
+    name: '海外女频',
+    description: '情感赌注高频升级、压抑-释放强对比、双钩牵引',
+    icon: '💘',
+    params: {
+      faceSlappingFrequency: 4,
+      coolPointDensity: 3,
+      powerUpSpeed: 'fast',
+      equipmentDropRate: 'normal',
+      plotTwistFrequency: 10,
+      suspenseIntensity: 'strong',
+      romanceSpeed: 'fast',
+      heartacheLevel: 'medium',
+      villainIQ: 'smart',
+      pressureCurve: 'hard',
+      bossInterval: 15,
+    },
+    recommendedGenres: ['overseas'],
+    enabledModules: ['cool', 'overseas'],
+    enabledStyleHeads: ['style-emotions', 'style-theme'],
+  },
+
+  'overseas-revenge': {
+    type: 'overseas-revenge',
+    name: '海外男频',
+    description: '复仇打脸高密度、身份揭露反转快、权力压制-反击',
+    icon: '🗡️',
+    params: {
+      faceSlappingFrequency: 2,
+      coolPointDensity: 3,
+      powerUpSpeed: 'fast',
+      equipmentDropRate: 'frequent',
+      plotTwistFrequency: 12,
+      suspenseIntensity: 'medium',
+      romanceSpeed: 'slow',
+      heartacheLevel: 'light',
+      villainIQ: 'smart',
+      pressureCurve: 'hard',
+      bossInterval: 12,
+    },
+    recommendedGenres: ['overseas'],
+    enabledModules: ['cool', 'overseas'],
+    enabledStyleHeads: ['style-pacing', 'style-theme'],
   },
 
   custom: {

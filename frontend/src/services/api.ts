@@ -1496,6 +1496,7 @@ export interface AIModel {
   name: string;
   displayName: string;
   provider: 'claude' | 'openai';
+  brand: string;
 }
 
 export interface CurrentModelInfo {

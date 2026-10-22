@@ -343,6 +343,7 @@ ${customPrompt.trim()}`;
             documentary:    { contentType: '解说词',   unitName: '期', actionDesc: '画面描述' },
             american_comic: { contentType: '漫画脚本', unitName: '期', actionDesc: 'Panel描写' },
             chinese_comic:  { contentType: '漫画脚本', unitName: '话', actionDesc: '画面描写' },
+            overseas_drama: { contentType: '海外短剧剧本', unitName: '集', actionDesc: '动作线' },
         };
 
         if (preset && TERMINOLOGY_MAP[preset]) {
@@ -355,3 +356,178 @@ ${customPrompt.trim()}`;
 
 // 导出单例
 export const outputFormatService = new OutputFormatService();
+
+/**
+ * 海外短剧格式的机械性归一化（仅处理排版漂移，不改内容语义）：
+ * - 剥离集标题前的 markdown 标题符（## 第1集 → 第1集）
+ * - 角色名与 OS/VO 之间去空格（Nora OS → NoraOS）
+ * - 场标序号与场景名之间去空格（3-1 宅邸 → 3-1宅邸）
+ */
+export function normalizeOverseasScript(content: string): string {
+    return content
+        .replace(/^#{1,6}\s*(第\d+集)/gm, '$1')
+        .replace(/([A-Za-z\u4e00-\u9fa5'’\-])\s+(OS|VO)(?=：|\()/g, '$1$2')
+        .replace(/^(\d+-\d+) +/gm, '$1');
+}
+
+export interface OverseasScanViolation {
+    content: string;
+    evidence: string;
+    severity: 'important' | 'normal';
+    suggestion: string;
+}
+
+/**
+ * 海外短剧格式的确定性正则扫描（不依赖 AI 判断，命中即确凿违规）：
+ * - 弱动作句式："动词+了一下/一拍/一声/两秒"
+ * - 抽象语气括号：（低声）（压低声）（轻声）（小声）（语气平静）等整词命中
+ * - OS 密度：单集 OS 行超过4条大概率为信息交代滥用
+ * - 字数上限：按解析后的格式配置判定
+ */
+export function scanOverseasScript(content: string, wordLimitMax?: number): OverseasScanViolation[] {
+    const violations: OverseasScanViolation[] = [];
+    const samples = (arr: string[], n = 3) => arr.slice(0, n).join('；');
+
+    const weakHits = (content.match(/[^，。！？\n「」()（）]{1,10}了[一二]?[下拍声秒]/g) || [])
+        .filter(h => {
+            const m = h.match(/(.)了[一二]?([下拍声秒])$/);
+            return !(m && m[1] === m[2]);  // 排除动词重叠（拍了拍/看了看），非弱动作句式
+        });
+    if (weakHits.length > 0) {
+        violations.push({
+            content: '弱动作句式禁止：全文不得出现"动词+了一下/一拍/一声/两秒"式收笔，动作必须写到具体落点',
+            evidence: `命中${weakHits.length}处，如：${samples(weakHits)}`,
+            severity: 'normal',
+            suggestion: '把"了一下"式收笔改写为有落点的具体动作',
+        });
+    }
+
+    const parenHits = content.match(/（低[声音量]）|（压低声）|（压低声音）|（轻声）|（小声）|（语气平静）/g) || [];
+    if (parenHits.length > 0) {
+        violations.push({
+            content: '抽象括号禁止：对白括号内不得出现抽象语气词，必须写可视动作',
+            evidence: `命中${parenHits.length}处：${samples(parenHits)}`,
+            severity: 'normal',
+            suggestion: '将抽象语气词替换为可拍摄的动作描述',
+        });
+    }
+
+    const osCount = (content.match(/^[A-Za-z\u4e00-\u9fa5'’\-]+OS/mg) || []).length;
+    if (osCount > 4) {
+        violations.push({
+            content: 'OS/VO边界：OS仅用于情绪与潜台词，单集OS不得超过4条；禁止用OS交代剧情信息或推理结论',
+            evidence: `本集OS共${osCount}条，超阈值`,
+            severity: 'important',
+            suggestion: '将交代信息的OS改写为道具行为或高压对白，仅保留纯情绪OS',
+        });
+    }
+
+    if (wordLimitMax && content.length > wordLimitMax) {
+        violations.push({
+            content: `字数上限：每集不得超过${wordLimitMax}字`,
+            evidence: `本集${content.length}字，超出${content.length - wordLimitMax}字`,
+            severity: content.length > wordLimitMax * 1.5 ? 'important' : 'normal',
+            suggestion: '压缩重复信息与弱功能场景至字数范围内',
+        });
+    }
+
+    // 场景过渡：场景头前后两侧均无△行（对白→场景头→对白的纯硬切）
+    const lines = content.split('\n');
+    const hardCuts: string[] = [];
+    const nonEmpty = (idx: number, dir: number) => {
+        for (let j = idx + dir; j >= 0 && j < lines.length; j += dir) {
+            const t = lines[j].trim();
+            if (t) return t;
+        }
+        return '';
+    };
+    for (let i = 0; i < lines.length; i++) {
+        if (!/^\d+-\d+/.test(lines[i].trim())) continue;
+        const prev = nonEmpty(i, -1);
+        const next = nonEmpty(i, 1);
+        const prevOk = prev.startsWith('△') || prev.startsWith('【闪出】')
+            || /^出场人物[：:]/.test(prev) || /^第\d+集/.test(prev) || prev === '';
+        const nextOk = next.startsWith('△') || next === '';
+        if (!prevOk && !nextOk) {
+            hardCuts.push(`${prev.slice(0, 16)}… → ${lines[i].trim().slice(0, 16)} → ${next.slice(0, 16)}…`);
+        }
+    }
+    if (hardCuts.length > 0) {
+        violations.push({
+            content: '场景过渡：场景切换处须有视觉过渡（△过渡行或△切镜：标记），禁止对白直接接新场景头的硬切',
+            evidence: `命中${hardCuts.length}处硬切：${samples(hardCuts)}`,
+            severity: 'normal',
+            suggestion: '在场景头前或后补一条△过渡动作行（如△切镜：车驶入夜色），或让场景以△画面开场',
+        });
+    }
+
+    // [HOOK] 唯一且必须位于集尾（多钩或中段钩子破坏结构）
+    const hookMatches = [...content.matchAll(/\[HOOK\]/g)];
+    if (hookMatches.length > 1) {
+        violations.push({
+            content: '集尾钩子唯一性：每集只允许一个[HOOK]标注，且必须位于剧本末尾',
+            evidence: `命中${hookMatches.length}个[HOOK]标记`,
+            severity: 'important',
+            suggestion: '删除中段[HOOK]，仅保留集尾最后一个',
+        });
+    } else if (hookMatches.length === 1 && hookMatches[0].index !== undefined && hookMatches[0].index < content.length * 0.85) {
+        violations.push({
+            content: '集尾钩子位置：[HOOK]必须位于剧本末尾（后15%）',
+            evidence: `[HOOK]位于正文${Math.round((hookMatches[0].index! / content.length) * 100)}%处`,
+            severity: 'normal',
+            suggestion: '将[HOOK]移至剧本最后一行之后',
+        });
+    }
+
+    // 台词行长：角色名（…）：台词 超过25字（排除出场人物/字幕/黑屏/HOOK/OS/VO行）
+    const longDialogue = lines.filter(l => {
+        const t = l.trim();
+        if (/^(出场人物|字幕|黑屏)|^\[HOOK\]|OS[（：:]|VO[（：:]/.test(t)) return false;
+        const m = t.match(/^[^△\s【\[][^(（\n]{1,20}(?:（[^）]*）)?[：:](.*)$/);
+        if (!m) return false;
+        const spoken = m[1].replace(/\s/g, '');
+        return spoken.length > 25;
+    });
+    if (longDialogue.length > 0) {
+        violations.push({
+            content: '对白精简：单句台词不得超过25字（不含语气括号）',
+            evidence: `命中${longDialogue.length}行长台词，如：${samples(longDialogue.map(l => l.trim().slice(0, 34)))}`,
+            severity: 'normal',
+            suggestion: '拆成两句或删冗余修饰，保留短促有力的口语',
+        });
+    }
+
+    // △行长：超过30字
+    const longActions = lines.filter(l => l.trim().startsWith('△') && l.trim().replace(/\s/g, '').length > 32);
+    if (longActions.length > 0) {
+        violations.push({
+            content: '动作线精简：每条△不得超过30字',
+            evidence: `命中${longActions.length}条长△，如：${samples(longActions.map(l => l.trim().slice(0, 36)))}`,
+            severity: 'normal',
+            suggestion: '一条△只写一个动作/画面，拆分长句',
+        });
+    }
+
+    // 场标缺情绪标签
+    const headersMissingEmotion = lines.filter(l => /^\d+-\d+/.test(l.trim()) && !l.includes('【核心情绪'));
+    if (headersMissingEmotion.length > 0) {
+        violations.push({
+            content: '场景头必须包含【核心情绪：X】标签',
+            evidence: `命中${headersMissingEmotion.length}个场景头缺情绪标签：${samples(headersMissingEmotion.map(l => l.trim().slice(0, 24)))}`,
+            severity: 'important',
+            suggestion: '为每个场景头补【核心情绪：单一情绪词】',
+        });
+    }
+
+    // 缺出场人物行
+    if (!/出场人物[：:]/.test(content)) {
+        violations.push({
+            content: '集标题下必须有"出场人物："行',
+            evidence: '全文未检出"出场人物："标记',
+            severity: 'important',
+            suggestion: '在集标题下一行补"出场人物：角色A、角色B"',
+        });
+    }
+
+    return violations;
+}
