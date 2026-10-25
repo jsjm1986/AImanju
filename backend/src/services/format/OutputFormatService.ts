@@ -519,6 +519,17 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         });
     }
 
+    // ---- 花括号镜头指令混入拍摄执行参数（实测泄漏：{固定镜头-肩部以上构图-持续3秒}） ----
+    const execCamHits = lines.filter(l => /^\{[^}\n]*(\d+\s*秒|\d+\s*帧|持续\d|构图|机位|景别|运镜)[^}\n]*\}/.test(l.trim()));
+    if (execCamHits.length > 0) {
+        violations.push({
+            content: '镜头指令含拍摄执行参数：花括号内只写镜头类型/视角标签，不得写时长/构图/机位',
+            evidence: `命中${execCamHits.length}处：${samples(execCamHits)}`,
+            severity: 'normal',
+            suggestion: '改为纯镜头标签，如 {特写} {升格+慢镜头} {主观视角}；情绪节拍用动作描写表达',
+        });
+    }
+
     const missingCast: string[] = [];
     const hardCuts: string[] = [];
     const nonEmptyLine = (idx: number, dir: number) => {
