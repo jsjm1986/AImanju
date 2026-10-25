@@ -71,6 +71,12 @@ describe('新生产格式扫描', () => {
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('英文台词过长'))).toBeTruthy();
   });
+
+  it('道具文字行不判为非双语台词（白名单）', () => {
+    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\n她翻开卷宗。\n纸上写着：GHOST。\n收款人一栏：D. Ricci。\n{特写}封皮备注：CASE 11-04。\nEmma EMMA：Stay.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('双语'))).toBeUndefined();
+  });
 });
 
 describe('新生产格式归一化', () => {
@@ -89,5 +95,13 @@ describe('新生产格式归一化', () => {
     const c = `ClaudiaCLAUDIA(VO)：I got to him first.`;
     const n = normalizeOverseasScript(c);
     expect(n).toContain('Claudia CLAUDIA(V.O.)：');
+  });
+
+  it('裸镜头词冒号写法归一为花括号，闪回/闪出归一为方头括号', () => {
+    const c = `特写：纸上写的是"GHOST"。\n慢镜头: 他倒下。\n闪回：三年前的雨夜。`;
+    const n = normalizeOverseasScript(c);
+    expect(n).toContain('{特写}纸上写的是');
+    expect(n).toContain('{慢镜头}他倒下');
+    expect(n).toContain('【闪回】三年前的雨夜');
   });
 });

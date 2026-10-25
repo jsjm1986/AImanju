@@ -380,6 +380,9 @@ export function normalizeOverseasScript(content: string): string {
         .replace(/^(\d+-\d+) {2,}/gm, '$1 ')
         .replace(/【核心情绪[：:][^】]*】/g, '')
         .replace(/^△\s*/gm, '')
+        .replace(/^(特写|大特写|慢镜头|升格镜头|主观视角)[：:]\s*/gm, '{$1}')
+        .replace(/^闪回[：:]\s*/gm, '【闪回】')
+        .replace(/^闪出[：:]\s*/gm, '【闪出】')
         .replace(/^出场人物[：:]/gm, '人物：')
         .replace(/^\s*\[HOOK\][^\n]*$/gm, '')
         .replace(/^\s*-{3,}\s*$/gm, '');
@@ -398,8 +401,10 @@ const SCENE_HEADER_RE = /^\d+-\d+\s+\S/;
 const CAST_LINE_RE = /^人物[：:]/;
 /** 合并双语台词行：`Claudia CLAUDIA(Smiling brightly)：English line`（中文名 英文名（英文情绪）：英文台词） */
 const DIALOGUE_LINE_RE = /^[^\s：:（(\[【]{1,12}\s+[A-Za-z][A-Za-z'’.\- ]*\s*(?:（[^）]{1,40}）|\([^)]{1,60}\))?[：:](.+)$/;
-/** 台词行前的行型（非台词判定；字幕/黑屏允许带括号变体如"字幕（特写）："） */
-const NON_DIALOGUE_RE = /^(人物|字幕|黑屏)(?:[（(][^）)]{0,20}[）)])?[：:]|^第\s*\d+\s*集|^【|^【闪出】|^\{[^}]*\}$/;
+/** 台词行前的行型（非台词判定；字幕/黑屏允许带括号变体如"字幕（特写）："；{起始为镜头指令行） */
+const NON_DIALOGUE_RE = /^(人物|字幕|黑屏)(?:[（(][^）)]{0,20}[）)])?[：:]|^第\s*\d+\s*集|^【|^【闪出】|^\{/;
+/** 道具/画面文字行（"纸上写着：GHOST""收款人一栏：D. Ricci"等）——含冒号但非台词 */
+const PROP_TEXT_RE = /^[^\s：:（(【\[]{0,10}(?:写着|显示|备注|打字|刻着|标明|打印|字样|一栏|一行字)[：:]/;
 const ENGLISH_WORD_RE = /[A-Za-z]{2,}/;
 
 /**
@@ -556,7 +561,7 @@ export function scanOverseasScript(content: string, wordLimitMax?: number): Over
     const longDialogue: string[] = [];
     for (const raw of lines) {
         const t = raw.trim();
-        if (!t || NON_DIALOGUE_RE.test(t) || SCENE_HEADER_RE.test(t)) continue;
+        if (!t || NON_DIALOGUE_RE.test(t) || PROP_TEXT_RE.test(t) || SCENE_HEADER_RE.test(t)) continue;
         if (!/[：:]/.test(t)) continue; // 无冒号=动作行
         const m = t.match(DIALOGUE_LINE_RE);
         if (!m) {
