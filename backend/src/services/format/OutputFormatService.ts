@@ -411,7 +411,7 @@ const ENGLISH_WORD_RE = /[A-Za-z]{2,}/;
  * 海外短剧格式的确定性正则扫描（不依赖 AI 判断，命中即确凿违规）。
  * 对齐《批量剧制作流程》交付格式：合并双语台词、行业标准场记、场景级人物行、无内部标记。
  */
-export function scanOverseasScript(content: string, wordLimitMax?: number): OverseasScanViolation[] {
+export function scanOverseasScript(content: string, wordLimitMax?: number, sceneMax?: number): OverseasScanViolation[] {
     const violations: OverseasScanViolation[] = [];
     const samples = (arr: string[], n = 3) => arr.slice(0, n).join('；');
     const lines = content.split('\n');
@@ -508,6 +508,14 @@ export function scanOverseasScript(content: string, wordLimitMax?: number): Over
             evidence: '全文未检出场景头',
             severity: 'important',
             suggestion: '为每场补标准场景头行',
+        });
+    }
+    if (sceneMax && sceneHeaderIdx.length > sceneMax) {
+        violations.push({
+            content: `场景数超限：本集${sceneHeaderIdx.length}场，超出规范上限${sceneMax}场`,
+            evidence: `检出场景头${sceneHeaderIdx.length}个`,
+            severity: 'normal',
+            suggestion: '合并弱功能场景或压缩过场戏，集中主场景推进',
         });
     }
 

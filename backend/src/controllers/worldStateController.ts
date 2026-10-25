@@ -1348,6 +1348,10 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
 
         // 🆕 将多头注意力约束合并到 collectedConstraints（用于验证）
         if (savedMultiHeadConstraints.length > 0) {
+          // Harness：文本不可判定的拍摄层要求（镜头秒数/帧数/构图/机位）降级为指导性约束——
+          // 保留生成指导价值，但不参与评分，杜绝"镜头须持续两秒"类幻影违规（实测出现）
+          const UNVERIFIABLE_RE = /(镜头|画面|特写|慢镜头)(持续|停留|长达|保持)|(?:至少|不少于|超过|持续)?\s*\d+\s*(?:秒|帧)|构图|机位|运镜|景别/;
+          let downgraded = 0;
           const multiHeadConstraintsForValidation: Constraint[] = savedMultiHeadConstraints
             .filter(c => c.category === 'verifiable')  // 只验证 verifiable 类型
             .map((c, idx) => ({
@@ -1359,7 +1363,15 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
               context: `来自${c.headCategory}类注意力头 (权重: ${c.headWeight.toFixed(1)})`,
               category: c.category,
             }));
-
+          for (const c of multiHeadConstraintsForValidation) {
+            if (UNVERIFIABLE_RE.test(c.content || '')) {
+              c.category = 'guidance';
+              downgraded++;
+            }
+          }
+          if (downgraded > 0) {
+            sse.sendLog(`[可验证性过滤] ${downgraded} 条拍摄层要求降级为指导性约束（不参与评分）`);
+          }
           // 按归一化内容去重（多头约束常与AI决策约束语义重复，重复条目空耗验证预算）
           const seen = new Set(collectedConstraints.map(c => (c.content || '').replace(/\s+/g, '').replace(/[，。；：""'']/g, '')));
           const deduped = multiHeadConstraintsForValidation.filter(c => {
@@ -1375,7 +1387,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
             ...deduped,
           ];
 
-          sse.sendLog(`[多头约束] 合并 ${deduped.length} 个可验证约束到验证队列${dupCount > 0 ? `（去重剔除${dupCount}条重复）` : ''}`);
+          sse.sendLog(`[多头约束] 合并 ${deduped.filter(c => c.category === 'verifiable').length} 个可验证约束到验证队列${dupCount > 0 ? `（去重剔除${dupCount}条重复）` : ''}`);
         }
 
         // 🆕 海外格式：注入格式审查约束集，由 AI 验证器对全文语义判定（非机械正则）
@@ -1616,7 +1628,8 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
         // 强化未满足的约束 - 增强版：包含详细的修正指令
         if (lastValidation) {
           const severityRank: Record<string, number> = { critical: 0, important: 1, normal: 2 };
-          const MAX_CORRECTIONS = 20;
+          // 实测：20条修正指令会稀释模型注意力导致重试分数随机游走；海外收紧到12条聚焦 critical/important
+          const MAX_CORRECTIONS = isOverseasFmt ? 12 : 20;
           const allUnfulfilled = lastValidation.results
             .filter((r) => !r.fulfilled)
             .sort((a, b) => (severityRank[a.severity] ?? 2) - (severityRank[b.severity] ?? 2));
@@ -1739,7 +1752,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
         // 验证对象与最终落库文本一致；命中 important 级违规即判本次 attempt 机械失败
         const content = isOverseasFmt ? normalizeOverseasScript(rawContent) : rawContent;
         lastMechViolations = isOverseasFmt
-          ? scanOverseasScript(content, outputFormatService.resolveConfig(project.outputFormat).wordLimit?.max)
+          ? (() => { const f = outputFormatService.resolveConfig(project.outputFormat); return scanOverseasScript(content, f.wordLimit?.max, f.sceneLimit?.max); })()
           : [];
         const mech = mechScore(lastMechViolations);
         const mechFailed = mech.imp > 0;
