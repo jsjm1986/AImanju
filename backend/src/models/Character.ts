@@ -3,6 +3,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ICharacter extends Document {
   projectId: mongoose.Types.ObjectId;
   name: string;
+  nameCn?: string;       // 中文译名（海外品类：克劳迪娅·雷耶斯，用于双语台词中文名位）
   role?: string;         // 角色定位：男主角、反派等
   type: string;          // 角色类型（自由文本）
   gender: string;        // 性别（自由文本：男/女/不明等）
@@ -36,7 +37,7 @@ const CharacterSchema = new Schema<ICharacter>(
   {
     projectId: { $type: Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     name: { $type: String, required: true },
-    role: { $type: String },  // 角色定位
+    nameCn: { $type: String },  // 中文译名（海外品类）
     type: { $type: String, default: '配角' },  // 角色类型（自由文本）
     gender: { $type: String, default: '未知' },
     age: { $type: String },

@@ -23,7 +23,7 @@ import { scriptService } from '../services/script/scriptService';
 import { SSEHandler } from '../services/sse/SSEHandler';
 import { EnhancedStateAnalyzer } from '../services/state/EnhancedStateAnalyzer';
 import { WorldStateManager } from '../services/world/WorldStateManager';
-import { normalizeOverseasScript, outputFormatService, scanOverseasScript } from '../services/format/OutputFormatService';
+import { normalizeOverseasScript, outputFormatService, scanOverseasScript, OverseasScanViolation } from '../services/format/OutputFormatService';
 import { createLogger } from '../utils/errorLogger';
 import { getOutlineRaw } from '../utils/outline';
 import { WordCountService } from '../utils/wordCount';
@@ -1523,7 +1523,9 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
       }
     }
 
-    const MAX_ATTEMPTS = 2;
+    // 海外格式启用机械闸门（归一化+确定性扫描），重试反馈更精确，允许 3 次尝试；其他格式保持 2 次
+    const isOverseasFmt = project.outputFormat?.preset === 'overseas_drama';
+    const MAX_ATTEMPTS = isOverseasFmt ? 3 : 2;
     let currentAttempt = 1;
     let finalContent = '';
     let validationPassed = false;
@@ -1534,6 +1536,18 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
     let bestContent = '';
     let bestRate = -1;
     let bestValidation: ValidationResponse | null = null;
+    // —— Harness 层状态：机械违规（海外格式确定性扫描）——
+    let lastMechViolations: OverseasScanViolation[] = [];  // 上一次的机械违规（用于重试反馈）
+    const mechScore = (v: OverseasScanViolation[]) => ({
+      imp: v.filter(x => x.severity === 'important').length,
+      nor: v.length - v.filter(x => x.severity === 'important').length,
+    });
+    // 双轨裁决：机械违规数（重要→一般）优先，其次语义满足率
+    type TrackScore = { imp: number; nor: number; rate: number };
+    const isBetterScore = (a: TrackScore, b: TrackScore) =>
+      a.imp < b.imp || (a.imp === b.imp && (a.nor < b.nor || (a.nor === b.nor && a.rate > b.rate)));
+    let bestScore: TrackScore = { imp: Number.MAX_SAFE_INTEGER, nor: Number.MAX_SAFE_INTEGER, rate: -1 };
+    let lastScore: TrackScore = { imp: Number.MAX_SAFE_INTEGER, nor: Number.MAX_SAFE_INTEGER, rate: -1 };
 
     // 4. 生成剧本（带验证重试）
     const generateWithValidation = async (
@@ -1551,6 +1565,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           episodePlan: generationContext.episodePlan,
           characters: characters.map((c) => ({
             name: c.name,
+            nameCn: c.nameCn,
             identity: c.identity,
             personality: c.personality,
             appearance: c.appearance,
@@ -1682,19 +1697,35 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
             strengthenedConstraints: unfulfilledResults.map((r) => r.constraintContent),
           });
         }
+
+        // Harness：机械违规修正指令——独立于语义验证，每次重试都附带具体行号级反馈。
+        // 标题含"修正指令"，下次重试时会被上方 filter 一并清除，避免跨轮累积。
+        if (lastMechViolations.length > 0) {
+          generationContext.constraints = generationContext.constraints.filter(
+            c => c && !c.includes('===== 修正指令（机械格式违规')
+          );
+          generationContext.constraints.push(
+            `\n===== 修正指令（机械格式违规，全部必须修正）=====\n` +
+            lastMechViolations.map((v, i) =>
+              `${i + 1}. 【${v.severity === 'important' ? '重要' : '一般'}】${v.content}\n   命中：${v.evidence}\n   改法：${v.suggestion}`
+            ).join('\n') +
+            `\n===== 修正指令结束 =====\n`
+          );
+          sse.sendLog(`[机械闸门] 重试附带 ${lastMechViolations.length} 条格式修正指令`, 'warn');
+        }
       }
 
       try {
         // 生成剧本（重试时传入第一次生成的内容作为参考）
         const isRetry = currentAttempt > 1;
-        const content = await generateWithValidation(
+        const rawContent = await generateWithValidation(
           isRetry ? firstGenerationContent : undefined,
           isRetry
         );
 
         // 检测空内容，强制重试
-        if (!content || content.trim().length < 100) {
-          console.error(`[生成] 第${currentAttempt}次尝试返回空内容或内容过短 (${content?.length || 0}字)`);
+        if (!rawContent || rawContent.trim().length < 100) {
+          console.error(`[生成] 第${currentAttempt}次尝试返回空内容或内容过短 (${rawContent?.length || 0}字)`);
           sse.sendLog(`[生成] 内容生成失败或过短，将重试...`, 'warn');
           if (currentAttempt < MAX_ATTEMPTS) {
             currentAttempt++;
@@ -1703,6 +1734,23 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
             throw new Error('剧本生成失败：多次尝试后仍无法获取有效内容');
           }
         }
+
+        // —— Harness 层（海外）：先归一化（自动修可修的排版漂移），再对归一化文本跑确定性机械扫描。
+        // 验证对象与最终落库文本一致；命中 important 级违规即判本次 attempt 机械失败
+        const content = isOverseasFmt ? normalizeOverseasScript(rawContent) : rawContent;
+        lastMechViolations = isOverseasFmt
+          ? scanOverseasScript(content, outputFormatService.resolveConfig(project.outputFormat).wordLimit?.max)
+          : [];
+        const mech = mechScore(lastMechViolations);
+        const mechFailed = mech.imp > 0;
+        if (lastMechViolations.length > 0) {
+          sse.sendLog(
+            `[机械闸门] 格式扫描命中 ${lastMechViolations.length} 项（重要${mech.imp}/一般${mech.nor}）：` +
+            lastMechViolations.slice(0, 3).map(v => v.content.slice(0, 24)).join(' | '),
+            mechFailed ? 'warn' : 'info'
+          );
+        }
+        lastScore = { imp: mech.imp, nor: mech.nor, rate: -1 };
 
         // 保存第一次生成的内容
         if (currentAttempt === 1) {
@@ -1722,41 +1770,32 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
 
           const validation = await constraintValidator.validateConstraints(content, validationSet);
 
-          // 海外短剧：规则审查以 AI 语义判定为主（methodology 约束集已含格式审查项）；
-          // 确定性扫描仅作兜底——当 AI 验证完全无结果（响应截断/解析失败）时，由正则扫描接管底线
-          let scanHasImportant = false;
-          const aiValidationEmpty = validation.results.length === 0;
-          if (project.outputFormat?.preset === 'overseas_drama' && aiValidationEmpty) {
-            const resolvedFmt = outputFormatService.resolveConfig(project.outputFormat);
-            const scanViolations = scanOverseasScript(content, resolvedFmt.wordLimit?.max);
-            scanHasImportant = scanViolations.some(v => v.severity === 'important');
-            if (scanViolations.length > 0) {
-              validation.results.push(...scanViolations.map((v, i) => ({
-                constraintId: `overseas-scan-${i}`,
-                constraintType: 'methodology' as const,
-                constraintContent: v.content,
-                fulfilled: false,
-                confidence: 1.0,
-                evidence: v.evidence,
-                reasoning: '确定性正则扫描命中',
-                severity: v.severity,
-                suggestions: [v.suggestion],
-              })));
-              const fulfilledCount = validation.results.filter(r => r.fulfilled).length;
-              validation.satisfactionRate = validation.results.length > 0
-                ? fulfilledCount / validation.results.length : 1;
-              validation.criticalViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'critical').length;
-              validation.importantViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'important').length;
-              validation.normalViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'normal').length;
-              validation.overallSatisfied = false;
-              sse.sendLog(`[格式扫描] AI验证无结果，启用确定性兜底扫描，命中 ${scanViolations.length} 项: ${scanViolations.map(v => v.evidence.slice(0, 40)).join(' | ')}`, 'warn');
-            }
+          // —— Harness：机械违规并入验证结果（污染控制：不计入 satisfactionRate——语义指标保持纯净；
+          // 计入违规计数、SSE 与重试修正指令。机械重要违规同时拉低 overallSatisfied 以触发闸门）
+          if (lastMechViolations.length > 0) {
+            validation.results.push(...lastMechViolations.map((v, i) => ({
+              constraintId: `overseas-scan-${i}`,
+              constraintType: 'methodology' as const,
+              constraintContent: v.content,
+              fulfilled: false,
+              confidence: 1.0,
+              evidence: v.evidence,
+              reasoning: '确定性正则扫描命中',
+              severity: v.severity,
+              suggestions: [v.suggestion],
+            })));
+            validation.criticalViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'critical').length;
+            validation.importantViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'important').length;
+            validation.normalViolations = validation.results.filter(r => !r.fulfilled && r.severity === 'normal').length;
+            if (mechFailed) validation.overallSatisfied = false;
           }
 
           lastValidation = validation;
+          lastScore.rate = validation.satisfactionRate;
 
-          // 记录满足率最高的一版
-          if (validation.satisfactionRate > bestRate) {
+          // 双轨择优：机械违规数（重要→一般）优先，其次语义满足率
+          if (isBetterScore(lastScore, bestScore)) {
+            bestScore = { ...lastScore };
             bestRate = validation.satisfactionRate;
             bestContent = content;
             bestValidation = validation;
@@ -1779,26 +1818,45 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           sse.sendLog(`  - Critical 违规: ${validation.criticalViolations}`);
           sse.sendLog(`  - Important 违规: ${validation.importantViolations}`);
 
-          // 检查是否需要重新生成（海外格式：important 级扫描命中同样触发重试，不受条数门槛限制）
+          // 检查是否需要重新生成（机械闸门：important 级格式违规必须重试，不受 AI 阈值限制）
           const { shouldRegenerate: shouldRegenBase, reason } = constraintValidator.shouldRegenerate(validation);
-          const shouldRegenerate = shouldRegenBase || (scanHasImportant && !validation.overallSatisfied);
-          const regenReason = reason || '海外格式确定性扫描命中重要违规';
+          const shouldRegenerate = shouldRegenBase || mechFailed;
+          const regenReason = mechFailed
+            ? `机械闸门命中 ${mech.imp} 项重要格式违规${shouldRegenBase ? `（同时${reason}）` : ''}`
+            : reason;
 
           if (shouldRegenerate && currentAttempt < MAX_ATTEMPTS) {
             sse.sendLog(`[约束验证] ${regenReason}，将进行重试`, 'warn');
             currentAttempt++;
             continue;
           } else if (shouldRegenerate) {
-            sse.sendLog(`[约束验证] ${regenReason}，但已达到最大尝试次数`, 'warn');
+            sse.sendLog(`[约束验证] ${regenReason}，但已达到最大尝试次数，保留双轨最优版本`, 'warn');
+          }
+        } else if (mechFailed) {
+          // 无可验证约束时机械闸门独立生效（海外格式违规必须重试，重试反馈由 lastMechViolations 提供）
+          if (currentAttempt < MAX_ATTEMPTS) {
+            sse.sendLog(`[机械闸门] 命中 ${mech.imp} 项重要格式违规（无约束验证场景），将进行重试`, 'warn');
+            currentAttempt++;
+            continue;
+          }
+          sse.sendLog(`[机械闸门] 命中 ${mech.imp} 项重要格式违规，但已达最大尝试次数`, 'warn');
+        } else if (isOverseasFmt) {
+          // 无约束场景下也记录双轨分数供 best-of-N 使用
+          if (isBetterScore(lastScore, bestScore)) {
+            bestScore = { ...lastScore };
+            bestContent = content;
           }
         }
 
-        // 验证通过或达到最大尝试次数——若重试反而更差，保留满足率最高的一版
+        // 验证通过或达到最大尝试次数——双轨裁决：机械违规更少者优先，同级比满足率
         validationPassed = true;
-        if (bestContent && lastValidation && bestValidation && lastValidation.satisfactionRate < bestValidation.satisfactionRate) {
-          sse.sendLog(`[约束验证] 保留满足率更高的一版生成结果（${(bestValidation.satisfactionRate * 100).toFixed(1)}% > ${(lastValidation.satisfactionRate * 100).toFixed(1)}%）`, 'warn');
+        if (bestContent && isBetterScore(bestScore, lastScore)) {
+          sse.sendLog(
+            `[约束验证] 保留双轨最优版本（机械违规 重${bestScore.imp}/般${bestScore.nor} 满足率${(bestRate * 100).toFixed(1)}% > 重${lastScore.imp}/般${lastScore.nor} 满足率${(lastScore.rate * 100).toFixed(1)}%）`,
+            'warn'
+          );
           finalContent = bestContent;
-          lastValidation = bestValidation;
+          if (bestValidation) lastValidation = bestValidation;
         } else {
           finalContent = content;
         }

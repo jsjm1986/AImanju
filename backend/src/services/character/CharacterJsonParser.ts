@@ -155,6 +155,7 @@ export function parseCharacterCardsJson(text: string): ParsedCharacter[] {
       // 构建角色数据
       const character: ParsedCharacter = {
         name: card.name.trim(),
+        nameCn: safeString(card.nameCn) || undefined,
         role: safeString(card.role, '配角'),
         type,
         gender: safeString(card.gender, '未知'),

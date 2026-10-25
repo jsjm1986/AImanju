@@ -236,7 +236,11 @@ ${customPrompt.trim()}`;
 
         const lines: string[] = [];
 
-        lines.push(`- **字数要求**：每集实际内容严格控制在 **${wordLimit.min}-${wordLimit.target}字** 之间，上限 **${wordLimit.max}字**。`);
+        if (config.sourcePreset === 'overseas_drama') {
+            lines.push(`- **字数要求**：每集按"中文字数+英文台词词数"计，控制在 **${wordLimit.min}-${wordLimit.target}** 之间，上限 **${wordLimit.max}**（英文台词按词计，不按字母计）。`);
+        } else {
+            lines.push(`- **字数要求**：每集实际内容严格控制在 **${wordLimit.min}-${wordLimit.target}字** 之间，上限 **${wordLimit.max}字**。`);
+        }
         lines.push(`- **场景数量**：每集 ${sceneLimit.min}-${sceneLimit.max} 个场景。`);
 
         if (guidelines.avoidWatering || guidelines.showDontTell) {
@@ -422,12 +426,31 @@ export function scanOverseasScript(content: string, wordLimitMax?: number): Over
         });
     }
 
-    // ---- 中文抽象语气括号残留（新格式情绪描述应为英文） ----
-    const parenHits = content.match(/（低[声音量]）|（压低声）|（压低声音）|（轻声）|（小声）|（语气平静）/g) || [];
-    if (parenHits.length > 0) {
+    // ---- 台词括号内中文情绪（生产格式硬契约：下游配音/翻译管线依赖英文描述） ----
+    const cnEmotionHits: string[] = [];
+    for (const raw of lines) {
+        const t = raw.trim();
+        if (!DIALOGUE_LINE_RE.test(t)) continue;
+        for (const pm of t.matchAll(/[（(]([^）)]*)[）)]/g)) {
+            if (/[\u4e00-\u9fa5]/.test(pm[1])) cnEmotionHits.push(`(${pm[1]})`);
+        }
+    }
+    if (cnEmotionHits.length > 0) {
+        violations.push({
+            content: '台词情绪必须为英文：括号内情绪/动作描述不得使用中文',
+            evidence: `命中${cnEmotionHits.length}处：${samples(cnEmotionHits)}`,
+            severity: 'important',
+            suggestion: '改为英文可表演状态，如 (Quietly)/(Voice low)/(Gritting teeth)',
+        });
+    }
+
+    // ---- 非台词行中文抽象语气括号残留 ----
+    const nonDlgLines = lines.filter(l => !DIALOGUE_LINE_RE.test(l.trim())).join('\n');
+    const baseParenHits: string[] = nonDlgLines.match(/（低[声音量]）|（压低声）|（压低声音）|（轻声）|（小声）|（语气平静）/g) || [];
+    if (baseParenHits.length > 0) {
         violations.push({
             content: '抽象括号禁止：对白括号内不得出现中文抽象语气词，情绪/动作描述须用英文',
-            evidence: `命中${parenHits.length}处：${samples(parenHits)}`,
+            evidence: `命中${baseParenHits.length}处：${samples(baseParenHits)}`,
             severity: 'normal',
             suggestion: '情绪描述改为英文可表演状态，如 (Quietly)/(Voice low)',
         });
@@ -445,12 +468,15 @@ export function scanOverseasScript(content: string, wordLimitMax?: number): Over
         });
     }
 
-    // ---- 字数上限 ----
-    if (wordLimitMax && content.length > wordLimitMax) {
+    // ---- 字数上限（双语口径：中文字数+英文词数，英文台词不按字母计） ----
+    const cnChars = (content.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const enWords = (content.match(/[A-Za-z]+(?:['’][A-Za-z]+)?/g) || []).length;
+    const effectiveLen = cnChars + enWords;
+    if (wordLimitMax && effectiveLen > wordLimitMax) {
         violations.push({
-            content: `字数上限：每集不得超过${wordLimitMax}字`,
-            evidence: `本集${content.length}字，超出${content.length - wordLimitMax}字`,
-            severity: content.length > wordLimitMax * 1.5 ? 'important' : 'normal',
+            content: `字数上限：每集不得超过${wordLimitMax}字（中文字+英文词口径）`,
+            evidence: `本集等效${effectiveLen}字（中文${cnChars}+英文词${enWords}），超出${effectiveLen - wordLimitMax}字`,
+            severity: effectiveLen > wordLimitMax * 1.5 ? 'important' : 'normal',
             suggestion: '压缩重复信息与弱功能场景至字数范围内',
         });
     }
