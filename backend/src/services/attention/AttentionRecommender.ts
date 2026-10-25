@@ -46,7 +46,7 @@ const AVAILABLE_HEADS: HeadInfo[] = [
   { type: 'style-pacing', name: '节奏控制', description: '控制叙事节奏快慢', category: 'style', useCases: ['日常', '轻松', '慢节奏', '治愈'] },
   { type: 'style-humor', name: '幽默调节', description: '管理幽默元素和搞笑时机', category: 'style', useCases: ['喜剧', '搞笑', '轻松', '沙雕', '日常'] },
   { type: 'style-theme', name: '主题贯穿', description: '追踪故事的中心主题和象征元素', category: 'style', useCases: ['所有题材'] },
-  { type: 'overseas-hook-engine', name: '双钩引擎', description: '检查单集钩子/主线钩子/零铺垫入戏/付费卡点强度', category: 'overseas', useCases: ['海外', '短剧', '出海', '黑手党', '狼人', '吸血鬼', '霸总', '契约婚姻', '禁忌之恋', '隐藏身份', '神话', '豪门', '复仇', '逆袭'] },
+  { type: 'overseas-hook-engine', name: '三钩引擎', description: '检查单集钩子/主线钩子/场钩/零铺垫入戏/付费卡点强度', category: 'overseas', useCases: ['海外', '短剧', '出海', '黑手党', '狼人', '吸血鬼', '霸总', '契约婚姻', '禁忌之恋', '隐藏身份', '神话', '豪门', '复仇', '逆袭'] },
   { type: 'overseas-function-density', name: '功能密度', description: '检查场景/对话功能覆盖、信息线边界、无功能句', category: 'overseas', useCases: ['海外', '短剧', '出海', '仿真人'] },
   { type: 'overseas-voice-redline', name: '声口红线', description: '检查角色声口一致性、地域语体、海外内容红线', category: 'overseas', useCases: ['海外', '短剧', '出海', '欧美', '狼人', '吸血鬼', '黑手党'] },
 ];

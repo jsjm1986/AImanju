@@ -25,6 +25,7 @@ export const TYPE_WEIGHTS: Record<CharacterType, number> = {
 // 解析后的角色数据
 export interface ParsedCharacter {
   name: string;
+  nameCn?: string;      // 中文译名（海外卡：英文名（中文译名·角色定位）中的译名部分）
   role: string;         // 角色定位：男主角、反派等
   type: CharacterType;
   gender: string;
@@ -66,37 +67,54 @@ export function parseCharacterCards(text: string): ParsedCharacter[] {
     const headerMatch = block.match(/(\d+)\.\s*([^（(（\n]+)[（(]([^）)）]+)[）)]/);
     if (!headerMatch) continue;
 
-    const [, , name, role] = headerMatch;
+    const [, , name, parensRaw] = headerMatch;
 
-    // 提取各字段（支持中英文冒号）
-    const genderMatch = block.match(/性别[：:]\s*([^\n]+)/);
-    const ageMatch = block.match(/年龄[：:]\s*([^\n]+)/);
-    const identityMatch = block.match(/身份[：:]\s*([^\n]+)/);
-    const personalityMatch = block.match(/性格[：:]\s*([^\n]+)/);
+    // 括号内容拆分：新格式为"中文译名·角色定位"，旧格式为纯"角色定位"或纯"中文译名"
+    const ROLE_KEYWORDS = /主角|反派|配角|客串|龙套|对手|boss|群像|男主|女主|男配|女配/i;
+    const parenParts = parensRaw.split(/[·，,—]/).map(s => s.trim()).filter(Boolean);
+    const nonRoleParts = parenParts.filter(p => !ROLE_KEYWORDS.test(p));
+    let role = parenParts.find(p => ROLE_KEYWORDS.test(p)) ?? '';
+    let nameCn = nonRoleParts.join('·');
+    if (!role && ROLE_KEYWORDS.test(parensRaw)) { role = parensRaw.trim(); nameCn = ''; }
+
+    // 提取各字段（支持中英文冒号；行首锚定防"身份背景"被子字段"背景"重复捕获等子串碰撞）
+    const genderMatch = block.match(/(?:^|\n)性别[：:]\s*([^\n]+)/);
+    const ageMatch = block.match(/(?:^|\n)年龄[：:]\s*([^\n]+)/);
+    // 角色定位字段（新格式独立成行时优先于括号）
+    const roleMatch = block.match(/(?:^|\n)角色定位[：:]\s*([^\n]+)/);
+    if (roleMatch) role = roleMatch[1].trim();
+    // 身份：新格式"身份背景"优先，旧格式"身份"
+    const identityMatch = block.match(/(?:^|\n)身份背景[：:]\s*([^\n]+)/) || block.match(/(?:^|\n)身份[：:]\s*([^\n]+)/);
+    // 性格：新格式"性格特质"优先，旧格式"性格"
+    const personalityMatch = block.match(/(?:^|\n)性格特质[：:]\s*([^\n]+)/) || block.match(/(?:^|\n)性格[：:]\s*([^\n]+)/);
+    // 新人物小传字段：核心动机/人物弧光/关键关系
+    const motivationMatch = block.match(/(?:^|\n)核心动机[：:]\s*([^\n]+)/);
+    const arcMatch = block.match(/(?:^|\n)人物弧光[：:]\s*([^\n]+)/);
+    const relationsMatch = block.match(/(?:^|\n)关键关系[：:]\s*([^\n]+)/);
 
     // 详细外貌字段
-    const hairStyleMatch = block.match(/发型[：:]\s*([^\n]+)/);
-    const hairColorMatch = block.match(/发色[：:]\s*([^\n]+)/);
-    const faceTypeMatch = block.match(/脸型[：:]\s*([^\n]+)/);
-    const bodyTypeMatch = block.match(/身材[：:]\s*([^\n]+)/);
-    const clothingMatch = block.match(/穿着[：:]\s*([^\n]+)/);
-    const accessoriesMatch = block.match(/配饰[：:]\s*([^\n]+)/);
+    const hairStyleMatch = block.match(/(?:^|\n)发型[：:]\s*([^\n]+)/);
+    const hairColorMatch = block.match(/(?:^|\n)发色[：:]\s*([^\n]+)/);
+    const faceTypeMatch = block.match(/(?:^|\n)脸型[：:]\s*([^\n]+)/);
+    const bodyTypeMatch = block.match(/(?:^|\n)身材[：:]\s*([^\n]+)/);
+    const clothingMatch = block.match(/(?:^|\n)穿着[：:]\s*([^\n]+)/);
+    const accessoriesMatch = block.match(/(?:^|\n)配饰[：:]\s*([^\n]+)/);
 
     // 合并外貌字段（兼容旧格式）
-    const appearanceMatch = block.match(/外貌[：:]\s*([\s\S]*?)(?=性格[：:]|能力[：:]|装备[：:]|$)/);
+    const appearanceMatch = block.match(/(?:^|\n)外貌[：:]\s*([\s\S]*?)(?=\n(?:性格|性格特质|能力|装备)[：:]|$)/);
 
     // 海外人物卡扩展字段：英文名（别名）、形态（狼人/ABO等变身形态）
-    const englishNameMatch = block.match(/英文名[：:]\s*([^\n]+)/);
-    const formMatch = block.match(/形态[：:]\s*([^\n]+)/);
+    const englishNameMatch = block.match(/(?:^|\n)英文名[：:]\s*([^\n]+)/);
+    const formMatch = block.match(/(?:^|\n)形态[：:]\s*([^\n]+)/);
     // 海外人物卡小传层字段：背景/渴望/反差/软肋
-    const backgroundMatch = block.match(/背景[：:]\s*([^\n]+)/);
-    const desireMatch = block.match(/渴望[：:]\s*([^\n]+)/);
-    const contrastMatch = block.match(/反差[：:]\s*([^\n]+)/);
-    const weaknessMatch = block.match(/软肋[：:]\s*([^\n]+)/);
+    const backgroundMatch = block.match(/(?:^|\n)背景[：:]\s*([^\n]+)/);
+    const desireMatch = block.match(/(?:^|\n)渴望[：:]\s*([^\n]+)/);
+    const contrastMatch = block.match(/(?:^|\n)反差[：:]\s*([^\n]+)/);
+    const weaknessMatch = block.match(/(?:^|\n)软肋[：:]\s*([^\n]+)/);
 
     // 初始装备和能力
-    const abilitiesMatch = block.match(/能力[：:]\s*([^\n]+)/);
-    const equipmentMatch = block.match(/装备[：:]\s*([^\n]+)/);
+    const abilitiesMatch = block.match(/(?:^|\n)能力[：:]\s*([^\n]+)/);
+    const equipmentMatch = block.match(/(?:^|\n)装备[：:]\s*([^\n]+)/);
 
     // 判断角色类型
     let type = CharacterType.SUPPORTING;
@@ -122,13 +140,17 @@ export function parseCharacterCards(text: string): ParsedCharacter[] {
     // 构建角色数据
     const character: ParsedCharacter = {
       name: name.trim(),
-      role: role.trim(),
+      nameCn: nameCn || undefined,
+      role: (role || '').trim(),
       type,
       gender: genderMatch ? genderMatch[1].trim() : '',
       age: ageMatch ? ageMatch[1].trim() : '',
       identity: identityMatch ? identityMatch[1].trim() : '',
       personality: [
         personalityMatch ? personalityMatch[1].trim() : '',
+        motivationMatch ? `核心动机：${motivationMatch[1].trim()}` : '',
+        arcMatch ? `人物弧光：${arcMatch[1].trim()}` : '',
+        relationsMatch ? `关键关系：${relationsMatch[1].trim()}` : '',
         backgroundMatch ? `背景：${backgroundMatch[1].trim()}` : '',
         desireMatch ? `渴望：${desireMatch[1].trim()}` : '',
         contrastMatch ? `反差：${contrastMatch[1].trim()}` : '',
