@@ -1350,7 +1350,11 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
         if (savedMultiHeadConstraints.length > 0) {
           // Harness：文本不可判定的拍摄层要求（镜头秒数/帧数/构图/机位）降级为指导性约束——
           // 保留生成指导价值，但不参与评分，杜绝"镜头须持续两秒"类幻影违规（实测出现）
-          const UNVERIFIABLE_RE = /(镜头|画面|特写|慢镜头)(持续|停留|长达|保持)|(?:至少|不少于|超过|持续)?\s*\d+\s*(?:秒|帧)|构图|机位|运镜|景别/;
+          // 中文数字/范围同样不可判定（"影子停七秒""特写三秒""1-2镜头"实测漏网）
+          const UNVERIFIABLE_RE = /(镜头|画面|特写|慢镜头)(持续|停留|长达|保持)|(?:至少|不少于|超过|持续|停留|长达|约)?\s*[0-9一二三四五六七八九十两]+\s*(?:秒|帧)|[0-9]+\s*[-~～—]\s*[0-9]+\s*镜头|构图|机位|运镜|景别/;
+          // 逐字/关键词硬性要求——技术上可判定但几乎不可满足（"含'替我'""三关键词""完全一致"），
+          // 降级为指导性：保留意图进生成提示，不作为通过/否决条件
+          const VERBATIM_RE = /含['"「『][^'"」』]{1,30}['"」』]|完全一致|逐字|原话复现|关键词/;
           let downgraded = 0;
           const multiHeadConstraintsForValidation: Constraint[] = savedMultiHeadConstraints
             .filter(c => c.category === 'verifiable')  // 只验证 verifiable 类型
@@ -1364,7 +1368,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
               category: c.category,
             }));
           for (const c of multiHeadConstraintsForValidation) {
-            if (UNVERIFIABLE_RE.test(c.content || '')) {
+            if (UNVERIFIABLE_RE.test(c.content || '') || VERBATIM_RE.test(c.content || '')) {
               c.category = 'guidance';
               downgraded++;
             }
@@ -1373,11 +1377,28 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
             sse.sendLog(`[可验证性过滤] ${downgraded} 条拍摄层要求降级为指导性约束（不参与评分）`);
           }
           // 按归一化内容去重（多头约束常与AI决策约束语义重复，重复条目空耗验证预算）
-          const seen = new Set(collectedConstraints.map(c => (c.content || '').replace(/\s+/g, '').replace(/[，。；：""'']/g, '')));
+          // 升级版：字面去重 + bigram Jaccard 相似度去重（实测"'替我'要求"同义改写×3穿透字面去重）
+          const norm = (s: string) => (s || '').replace(/\s+/g, '').replace(/[，。；：""''『』【】（）()《》]/g, '');
+          const bigramsOf = (s: string) => {
+            const t = norm(s);
+            const set = new Set<string>();
+            for (let i = 0; i < t.length - 1; i++) set.add(t.slice(i, i + 2));
+            return set;
+          };
+          const jaccard = (a: Set<string>, b: Set<string>) => {
+            let inter = 0;
+            for (const x of a) if (b.has(x)) inter++;
+            return inter / (a.size + b.size - inter || 1);
+          };
+          const seen = new Set(collectedConstraints.map(c => norm(c.content || '')));
+          const seenGrams = collectedConstraints.map(c => bigramsOf(c.content || ''));
           const deduped = multiHeadConstraintsForValidation.filter(c => {
-            const key = (c.content || '').replace(/\s+/g, '').replace(/[，。；：""'']/g, '');
+            const key = norm(c.content || '');
             if (seen.has(key)) return false;
+            const g = bigramsOf(c.content || '');
+            if (g.size > 0 && seenGrams.some(sg => sg.size > 0 && jaccard(g, sg) > 0.55)) return false;
             seen.add(key);
+            seenGrams.push(g);
             return true;
           });
           const dupCount = multiHeadConstraintsForValidation.length - deduped.length;

@@ -116,6 +116,7 @@ export const ENHANCED_ANALYSIS_PROMPT = `你是剧本分析专家。请分析以
   "newCharacters": [
     {
       "name": "新角色名",
+      "nameCn": "中文译名（如 Marcus→马库斯；无对应中文名时可省略）",
       "suggestedTier": "core|recurring|arc|temporary|extra",
       "reason": "层级建议原因",
       "belongsToArc": "所属剧情弧（如果是arc角色）",

@@ -486,6 +486,7 @@ export interface ICharacterUpdate {
 
 export interface INewCharacter {
   name: string;
+  nameCn?: string;
   suggestedTier: 'core' | 'recurring' | 'arc' | 'temporary' | 'extra';
   reason: string;
   belongsToArc?: string;

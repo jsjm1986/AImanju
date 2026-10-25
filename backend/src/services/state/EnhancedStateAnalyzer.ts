@@ -459,6 +459,7 @@ export class EnhancedStateAnalyzer {
       await Character.create({
         projectId: this.projectId,
         name: newChar.name,
+        nameCn: newChar.nameCn || undefined,
         role: newChar.initialState?.role || '',
         type: this.tierToType(newChar.suggestedTier),
         gender: '未知',
