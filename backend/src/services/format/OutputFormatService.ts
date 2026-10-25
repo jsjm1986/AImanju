@@ -377,6 +377,7 @@ export function normalizeOverseasScript(content: string): string {
         .replace(/^第\s*(\d+)\s*集/mg, '第 $1 集')
         .replace(/\((?:V\.?O\.?|v\.?o\.?)\)/g, '(V.O.)')
         .replace(/([a-z\u4e00-\u9fa5'’.\-])([A-Z]{2,}[A-Za-z'’.]*)\s*(?=[（(])/g, '$1 $2')
+        .replace(/([A-Z])['’]\s+([A-Z])/g, "$1'$2")
         .replace(/^(\d+-\d+) {2,}/gm, '$1 ')
         .replace(/【核心情绪[：:][^】]*】/g, '')
         .replace(/^△\s*/gm, '')
