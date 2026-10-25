@@ -519,9 +519,16 @@ export class ContextManager {
     const summary = summaryMatch ? summaryMatch[1].trim() : '';
 
     const keyEvents: string[] = [];
-    const actionMatches = scriptContent.matchAll(/△([^△\n]{20,80})/g);
-    for (const match of actionMatches) {
-      const action = match[1].trim();
+    // 动作行提取：兼容两种格式——△前缀行（标准格式）与纯动作行（海外生产格式）
+    for (const raw of scriptContent.split('\n')) {
+      const line = raw.trim();
+      const isMarkedAction = line.startsWith('△');
+      const isPlainAction = !isMarkedAction && line.length >= 20 && line.length <= 80
+        && !/[：:（(【{\[]/.test(line) && !/^\d+-\d+/.test(line)
+        && !/^第\s*\d+\s*集/.test(line) && !/^(人物|字幕|黑屏)/.test(line)
+        && /[\u4e00-\u9fa5]/.test(line);
+      if (!isMarkedAction && !isPlainAction) continue;
+      const action = (isMarkedAction ? line.slice(1) : line).trim();
       if (matchesAnyKeyword(action, ACTION_KEYWORDS)) {
         keyEvents.push(action.substring(0, 50));
         if (keyEvents.length >= 3) break;

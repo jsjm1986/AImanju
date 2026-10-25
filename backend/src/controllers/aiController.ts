@@ -11,6 +11,7 @@ import { RewriteService } from '../services/rewrite/RewriteService';
 import { scriptService } from '../services/script/scriptService';
 import { SSEHandler } from '../services/sse/SSEHandler';
 import { EnhancedStateAnalyzer } from '../services/state/EnhancedStateAnalyzer';
+import { normalizeOverseasScript } from '../services/format/OutputFormatService';
 import { getOutlineRaw } from '../utils/outline';
 import { WordCountService } from '../utils/wordCount';
 import { aiClient } from '../services/ai/AIClient';
@@ -437,35 +438,40 @@ router.post('/generate-script', async (req: Request, res: Response) => {
 
     if (sse.isClosed()) return;
 
+    // 海外短剧：归一化排版漂移（## 前缀、集标题空格、(VO)变体、中英名粘连、内部标记剥离）
+    const normalizedContent = project.outputFormat?.preset === 'overseas_drama'
+      ? normalizeOverseasScript(content)
+      : content;
+
     let summary = '';
     try {
-      summary = await scriptService.generateSummary(content);
+      summary = await scriptService.generateSummary(normalizedContent);
     } catch (summaryError) {
       console.error('摘要生成失败:', summaryError);
-      summary = `第${episodeNumber}集剧本内容 (${content.length}字)`;
+      summary = `第${episodeNumber}集剧本内容 (${normalizedContent.length}字)`;
     }
 
     try {
-      const summaryData = contextManager.extractEpisodeSummaryFromScript(content, episodeNumber);
+      const summaryData = contextManager.extractEpisodeSummaryFromScript(normalizedContent, episodeNumber);
       await contextManager.recordEpisodeSummary(episodeNumber, summaryData);
     } catch (e) {
       console.error('摘要记录失败:', e);
     }
 
     await episodeRepository.upsert(projectId, episodeNumber, {
-      content, summary, wordCount: content.length, status: 'completed',
+      content: normalizedContent, summary, wordCount: normalizedContent.length, status: 'completed',
     });
 
     // 状态分析失败不阻断剧本保存
     try {
-      await new EnhancedStateAnalyzer(projectId).analyzeEpisode(episodeNumber, content, true);
+      await new EnhancedStateAnalyzer(projectId).analyzeEpisode(episodeNumber, normalizedContent, true);
       console.log(`[AI] 第${episodeNumber}集状态分析完成`);
     } catch (analysisError) {
       console.error(`[AI] 第${episodeNumber}集状态分析失败:`, analysisError);
     }
 
     sse.sendProgress(100, 100, '剧本生成完成');
-    sse.sendDone({ projectId, episodeNumber, wordCount: content.length });
+    sse.sendDone({ projectId, episodeNumber, wordCount: normalizedContent.length });
 
   } catch (error) {
     if (!sse.isClosed()) sse.sendError((error as Error).message);
