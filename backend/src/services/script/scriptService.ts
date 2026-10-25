@@ -21,6 +21,7 @@ const sceneRhythmPlanner = new SceneRhythmPlanner();
 
 export interface CharacterInfo {
   name: string;
+  nameCn?: string;  // 中文译名（海外品类双语台词中文名位）
   identity: string;
   personality: string;
   appearance?: string;

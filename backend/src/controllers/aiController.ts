@@ -81,9 +81,10 @@ async function collectStateChanges(
 }
 
 /** 将角色列表映射为 CharacterInfo[] */
-function toCharacterInfoList(characters: Array<{ name: string; identity: string; personality: string; appearance?: string }>): CharacterInfo[] {
+function toCharacterInfoList(characters: Array<{ name: string; nameCn?: string; identity: string; personality: string; appearance?: string }>): CharacterInfo[] {
   return characters.map(c => ({
     name: c.name,
+    nameCn: c.nameCn,
     identity: c.identity,
     personality: c.personality,
     appearance: c.appearance,
@@ -147,6 +148,7 @@ async function extractAndSaveCharacters(projectId: string, characterCardsText: s
       await characterRepository.create({
         projectId: new mongoose.Types.ObjectId(projectId),
         name: char.name,
+        nameCn: char.nameCn,
         role: char.role,
         type: char.type,
         gender: char.gender || '未知',

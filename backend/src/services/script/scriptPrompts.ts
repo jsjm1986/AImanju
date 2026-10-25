@@ -267,6 +267,7 @@ export const SUMMARY_PROMPT = `你是一位剧本分析专家。请根据提供�
  */
 export function buildCharacterContext(characters: Array<{
   name: string;
+  nameCn?: string;
   identity: string;
   personality: string;
   appearance?: string;
@@ -279,7 +280,9 @@ export function buildCharacterContext(characters: Array<{
   }
 
   return characters.map((char, index) => {
-    let context = `${index + 1}. ${char.name}（${char.identity}）\n`;
+    // 海外双语格式：中文名+空格+英文名与台词"中文名 英文名"位对齐
+    const displayName = char.nameCn ? `${char.nameCn} ${char.name}` : char.name;
+    let context = `${index + 1}. ${displayName}（${char.identity}）\n`;
     context += `性格：${char.personality}\n`;
 
     if (char.appearance) {
