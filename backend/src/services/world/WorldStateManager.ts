@@ -789,9 +789,12 @@ JSON格式要求：
   private buildCharacterMap(
     characters: Array<{ name: string; role: string; tier: CharacterTier; abilities?: string[]; equipment?: string[] }>
   ): Map<string, ICharacterState> {
+    // Mongoose Map 键不允许"."和"$"开头（"Dr. Aaron Pike"实测触发初始化崩溃）——与 update 路径 mk() 保持一致口径
+    const sanitizeKey = (s: string) => s.replace(/\./g, '·').replace(/^\$+/, '');
     const map = new Map<string, ICharacterState>();
     for (const char of characters) {
-      map.set(char.name, createDefaultCharacterState(char));
+      const safeName = sanitizeKey(char.name);
+      map.set(safeName, createDefaultCharacterState({ ...char, name: safeName }));
     }
     return map;
   }
