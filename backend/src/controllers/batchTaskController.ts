@@ -5,8 +5,12 @@ import { Project } from '../models/Project';
 import { broadcastTaskUpdate } from './taskManagerController';
 import { aiClient } from '../services/ai/AIClient';
 import { creatorAuth } from '../middleware/creatorMiddleware';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: { id: (id) => BatchTask.findById(id).select('projectId').exec() },
+});
 
 /**
  * 创建批量任务

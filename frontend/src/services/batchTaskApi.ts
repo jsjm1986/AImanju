@@ -97,55 +97,25 @@ export const batchTaskApi = {
     /**
      * 获取所有任务
      */
-    getAllTasks: () => {
-        const url = getAbsoluteUrl('/tasks');
-        return http.get<IBatchTask[]>(url);
-    },
+    getAllTasks: () => http.get<IBatchTask[]>('/tasks'),
 
     /**
      * 暂停任务
      */
-    pauseTask: (taskId: string) => {
-        const url = getAbsoluteUrl(`/tasks/${taskId}/pause`);
-        return http.post(url);
-    },
+    pauseTask: (taskId: string) => http.post(`/tasks/${taskId}/pause`),
 
     /**
      * 恢复任务
      */
-    resumeTask: (taskId: string) => {
-        const url = getAbsoluteUrl(`/tasks/${taskId}/resume`);
-        return http.post(url);
-    },
+    resumeTask: (taskId: string) => http.post(`/tasks/${taskId}/resume`),
 
     /**
      * 停止任务 (新版)
      */
-    stopTaskV2: (taskId: string) => {
-        const url = getAbsoluteUrl(`/tasks/${taskId}/stop`);
-        return http.post(url);
-    },
+    stopTaskV2: (taskId: string) => http.post(`/tasks/${taskId}/stop`),
 
     /**
      * 删除任务 (新版)
      */
-    deleteTaskV2: (taskId: string) => {
-        const url = getAbsoluteUrl(`/tasks/${taskId}`);
-        return http.delete(url);
-    },
+    deleteTaskV2: (taskId: string) => http.delete(`/tasks/${taskId}`),
 };
-
-// 辅助函数：构造绝对 URL 以绕过 axios potential baseURL double-prefix issue
-function getAbsoluteUrl(path: string): string {
-    const envBase = import.meta.env.VITE_API_BASE || 'http://localhost:8333/api';
-    console.log('[TaskApi] EnvBase:', envBase);
-
-    // 确保 base 不以前缀 / 结尾
-    const base = envBase.endsWith('/') ? envBase.slice(0, -1) : envBase;
-    // 确保 path 以 / 开头
-    const cleanPath = path.startsWith('/') ? path : `/${path}`;
-
-    const finalUrl = `${base}${cleanPath}`;
-    console.log('[TaskApi] Requesting:', finalUrl);
-    return finalUrl;
-}

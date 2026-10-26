@@ -6,6 +6,31 @@ export interface ProjectOutline {
   characterCards: string;
   synopsis: string;
   episodeSummaries: string;
+  storyCore?: string;
+  characterFunctions?: string;
+  generationConfig?: {
+    storyMode?: 'complete' | 'open_ended' | 'sequel';
+    pacing?: 'fast' | 'standard' | 'slow';
+    previousSeasonId?: string;
+  };
+}
+
+// 大纲生成草稿（断点续传检查点）
+export interface OutlineDraft {
+  generationId: string;
+  inputKey: string;
+  mode: 'standard' | 'enhanced';
+  modelName: string;
+  model: string;
+  status: 'running' | 'interrupted' | 'failed' | 'completed';
+  completedSteps: number[];
+  result: Partial<ProjectOutline> & { raw?: string };
+  episodeBatches: Array<{ startEpisode: number; endEpisode: number; content: string }>;
+  error?: string;
+  updatedAt: string;
+  concept?: string;
+  requirements?: string;
+  generationConfig?: ProjectOutline['generationConfig'];
 }
 
 export type WritingStylePreset =
@@ -83,8 +108,11 @@ export interface Project {
   totalEpisodes: number;
   status: ProjectStatus;
   outline?: ProjectOutline | string;
+  outlineDraft?: OutlineDraft;
   concept?: string;
   requirements?: string;
+  storyMode?: 'complete' | 'open_ended' | 'sequel';
+  pacing?: 'fast' | 'standard' | 'slow';
   tags?: string[];
   writingStyle?: WritingStyle;  // 写作风格配置
   outputFormat?: { mode: string; preset?: string; customPrompt?: string; enableNarrativeMethodology?: boolean };  // 输出格式配置

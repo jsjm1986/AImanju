@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { apiUrl } from '@/services/apiConfig';
 import { ref, onMounted, computed, watch, nextTick, onUnmounted } from 'vue';
 import { marked } from 'marked';
 import mermaid from 'mermaid';
@@ -125,7 +126,7 @@ const loadUpdateSummary = async () => {
     const results = await Promise.all(
       docsToLoad.map(async (doc) => {
         try {
-          const response = await fetch(`/api/docs/${doc.id}`);
+          const response = await fetch(apiUrl(`/docs/${doc.id}`));
           if (!response.ok) return [];
           const data = await response.json();
           return extractUpdateRecords(data.content || '', doc);
@@ -143,7 +144,7 @@ const loadUpdateSummary = async () => {
 
 const loadDocsList = async () => {
   try {
-    const response = await fetch('/api/docs');
+    const response = await fetch(apiUrl('/docs'));
     if (response.ok) {
       const data = await response.json();
       docsList.value = data.docs || [];
@@ -161,7 +162,7 @@ const loadDocument = async (docId?: string) => {
   const targetDocId = docId || currentDocId.value;
   
   try {
-    const response = await fetch(`/api/docs/${targetDocId}`);
+    const response = await fetch(apiUrl(`/docs/${targetDocId}`));
     if (!response.ok) {
       throw new Error('加载文档失败');
     }

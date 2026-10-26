@@ -7,7 +7,8 @@ import { Request, Response, Router } from 'express';
 import { IRhythmTracking, Project } from '../models/Project';
 import { CharacterTier } from '../models/WorldState';
 import { characterRepository, episodeRepository, generationLogRepository, projectRepository, worldStateRepository } from '../repositories';
-import { AIClient, aiClient } from '../services/ai/AIClient';
+import { protectProjectRouter } from '../middleware/projectAccess';
+import { AIClient, aiClient, withModel, currentRequestSignal, throwIfContextAborted } from '../services/ai/AIClient';
 import { GenreType, IStructuredConstraint, ModularAttentionSystem } from '../services/attention/AttentionModules';
 import { isOverseasFemaleChannel, OVERSEAS_TYPES } from '../constants/overseas';
 import { CharacterLifecycleManager } from '../services/character/CharacterLifecycleManager';
@@ -27,10 +28,11 @@ import { normalizeOverseasScript, outputFormatService, scanOverseasScript, Overs
 import { createLogger } from '../utils/errorLogger';
 import { getOutlineRaw } from '../utils/outline';
 import { WordCountService } from '../utils/wordCount';
-import { optionalCreatorAuth } from '../middleware/creatorMiddleware';
+import { creatorAuth, optionalCreatorAuth } from '../middleware/creatorMiddleware';
 import { Creator } from '../models/Creator';
 
 const router = Router();
+protectProjectRouter(router);
 const logger = createLogger('WorldStateController');
 
 // ========== 共享常量 ==========
@@ -651,37 +653,146 @@ function collectAllConstraints(params: {
  * WorldState 增强版剧本生成 (SSE)
  * 使用 WorldState 构建上下文，生成后自动分析更新
  */
-router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Request, res: Response) => {
-  const sse = new SSEHandler(res);
+// 同项目增强生成排他（单实例）；进程重启后锁自动释放
+const activeEnhancedRuns = new Map<string, string>();
+
+/**
+ * 生成入口：预检（认证/归属/参数/模型/前集/配额前置）后再建 SSE；
+ * withModel 快照 + 请求级 AbortSignal，断开才取消上游。
+ */
+router.post('/generate-script-enhanced', creatorAuth, async (req: Request, res: Response) => {
+  if (req.aborted || res.destroyed) return;
+  const requestId = req.requestId || '';
+  const { projectId, modelName } = req.body || {};
+  const useWorldState = req.body?.useWorldState === undefined ? true : req.body.useWorldState;
+  if (typeof useWorldState !== 'boolean') {
+    res.status(400).json({ error: '非法的 useWorldState 参数', requestId: req.requestId }); return;
+  }
+  if (modelName !== undefined && typeof modelName !== 'string') {
+    res.status(400).json({ error: '非法的 modelName 参数', requestId: req.requestId }); return;
+  }
+  const json = (code: number, msg: string, extra: object = {}) =>
+    res.status(code).json({ error: msg, requestId, ...extra });
 
   try {
-    const { projectId, episodeNumber, useWorldState = true } = req.body;
-
-    if (!projectId || !episodeNumber) {
-      sse.sendError('缺少必要参数');
-      return;
+    // ---- 全部前置校验在 SSE/配额之前：JSON 错误 ----
+    if (typeof projectId !== 'string' || !projectId.trim() || !/^[0-9a-fA-F]{24}$/.test(projectId.trim())) {
+      json(400, '无效的项目ID'); return;
+    }
+    const episodeNumber = req.body?.episodeNumber;
+    if (typeof episodeNumber !== 'number' || !Number.isInteger(episodeNumber) || episodeNumber < 1) {
+      json(400, '集数必须是正整数'); return;
     }
 
-    const project = await projectRepository.findById(projectId);
-    if (!project) {
-      sse.sendError('项目不存在');
-      return;
+    const project = await projectRepository.findById(projectId.trim());
+    if (!project) { json(404, '项目不存在'); return; }
+    const pid = project._id.toString();
+
+    // 归属：绑定创建者的项目仅所有者/管理员；未绑定的历史项目仅管理员（无隐式放行）
+    const isAdmin = req.creator?.role === 'admin';
+    const ownerId = project.creatorId?.toString();
+    if (!isAdmin && (!ownerId || ownerId !== req.creatorId)) {
+      json(403, '无权访问此项目'); return;
     }
 
-    // 配额检查：检查项目所有者的试用配额
-    if (project.creatorId) {
-      const creator = await Creator.findById(project.creatorId);
-      if (creator && creator.tier === 'trial' && creator.role !== 'admin') {
-        const trialLimit = parseInt(process.env.TRIAL_EPISODE_LIMIT || '10');
-        if (creator.trialEpisodesUsed >= trialLimit) {
-          sse.sendError(`试用配额已用完（${trialLimit}集），请购买项目配额以解锁无限生成`);
-          return;
-        }
-        // 预增加使用量（生成开始时）
-        await Creator.findByIdAndUpdate(project.creatorId, { $inc: { trialEpisodesUsed: 1 } });
-        sse.sendLog(`[配额] 试用用户剩余: ${trialLimit - creator.trialEpisodesUsed - 1}集`);
+    if (episodeNumber > (project.totalEpisodes || 500)) {
+      json(400, `集数必须在1-${project.totalEpisodes || 500}之间`); return;
+    }
+
+    // 前集依赖：第N集需第N-1集已生成（跳集 => 409）
+    let prevEpisode: Awaited<ReturnType<typeof episodeRepository.findByNumber>> = null;
+    if (episodeNumber > 1) {
+      prevEpisode = await episodeRepository.findByNumber(pid, episodeNumber - 1);
+      if (!prevEpisode || !prevEpisode.content?.trim()) {
+        json(409, `请先生成第${episodeNumber - 1}集，不支持跳集生成`, { code: 'PREVIOUS_EPISODE_REQUIRED' });
+        return;
       }
     }
+
+    // 模型：显式指定须已配置；默认须当前已配置模型
+    let pinnedModel: string;
+    if (typeof modelName === 'string' && modelName && modelName !== 'default') {
+      if (!aiClient.isModelConfigured(modelName)) {
+        json(503, `模型 ${modelName} 未配置或不存在`, { code: 'MODEL_NOT_CONFIGURED' }); return;
+      }
+      pinnedModel = modelName;
+    } else {
+      pinnedModel = aiClient.getCurrentModelName();
+      if (!aiClient.isModelConfigured(pinnedModel)) {
+        json(503, '当前模型未配置，请先配置 API 密钥', { code: 'MODEL_NOT_CONFIGURED' }); return;
+      }
+    }
+
+    // 同项目排他：并发同项目生成 => 409（计费与上游调用之前）
+    const runId = requestId || `${Date.now()}`;
+    if (activeEnhancedRuns.has(pid)) {
+      json(409, '该项目已有正在进行的剧本生成', { code: 'RUN_IN_PROGRESS' }); return;
+    }
+    activeEnhancedRuns.set(pid, runId);
+
+    const abortController = new AbortController();
+    const onResClose = () => { if (!res.writableFinished) abortController.abort(); };
+    res.on('close', onResClose);
+    try {
+      if (res.destroyed || req.aborted) return;
+      // Reserve trial usage atomically, only after authorization and generation preflight.
+      if (project.creatorId) {
+        const creator = await Creator.findById(project.creatorId);
+        if (abortController.signal.aborted) return;
+        if (creator?.tier === 'trial' && creator.role !== 'admin') {
+          const trialLimit = parseInt(process.env.TRIAL_EPISODE_LIMIT || '10', 10);
+          if (!Number.isFinite(trialLimit) || trialLimit < 0) {
+            json(503, '试用配额配置无效，请联系管理员'); return;
+          }
+          const reserved = await Creator.findOneAndUpdate(
+            {
+              _id: project.creatorId,
+              tier: 'trial',
+              $or: [
+                { trialEpisodesUsed: { $lt: trialLimit } },
+                ...(trialLimit > 0 ? [{ trialEpisodesUsed: { $exists: false } }] : []),
+              ],
+            },
+            { $inc: { trialEpisodesUsed: 1 } },
+            { new: true }
+          ).exec();
+          if (!reserved) {
+            json(403, `试用配额已用完（${trialLimit}集），请购买项目配额以解锁无限生成`, { code: 'EPISODE_QUOTA_EXCEEDED' });
+            return;
+          }
+        }
+      }
+      if (abortController.signal.aborted) return;
+      return await withModel(
+        pinnedModel,
+        () => handleGenerateScriptEnhanced(req, res, pid, project, episodeNumber, useWorldState, prevEpisode?.content || null),
+        abortController.signal
+      );
+    } finally {
+      res.removeListener('close', onResClose);
+      if (activeEnhancedRuns.get(pid) === runId) activeEnhancedRuns.delete(pid);
+    }
+  } catch (e) {
+    if (!res.headersSent && !res.destroyed) json(500, (e as Error).message);
+    else if (!res.writableEnded) res.end();
+  }
+});
+
+async function handleGenerateScriptEnhanced(
+  req: Request, res: Response,
+  pid: string,
+  project: NonNullable<Awaited<ReturnType<typeof projectRepository.findById>>>,
+  episodeNumber: number,
+  useWorldState: boolean,
+  prevEpisodeContent: string | null
+): Promise<void> {
+  const sse = new SSEHandler(res);
+  const signal = currentRequestSignal();
+  const checkAbort = throwIfContextAborted;
+
+  try {
+    checkAbort();
+    const projectId = pid;
 
     sse.onClose(() => {
       console.log(`[WorldState] 第${episodeNumber}集生成被中断`);
@@ -770,16 +881,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
     }> = [];
     let savedPreviousCliffhanger: string | undefined;
 
-    // 2. 检查跳集生成（不支持跳集）+ 保存上一集内容
-    let savedPreviousEpisodeContent: string | undefined;  // 🆕 用于多头分析
-    if (episodeNumber > 1) {
-      const prevEpisode = await episodeRepository.findByNumber(projectId, episodeNumber - 1);
-      if (!prevEpisode || !prevEpisode.content) {
-        sse.sendError(`无法生成第${episodeNumber}集：请先生成第${episodeNumber - 1}集。不支持跳集生成。`);
-        return;
-      }
-      savedPreviousEpisodeContent = prevEpisode.content;  // 🆕 保存上一集内容
-    }
+    const savedPreviousEpisodeContent = prevEpisodeContent || undefined;
 
     // 3. 获取 WorldState（如果启用）
     let generationContext: {
@@ -1547,13 +1649,9 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
 
     // ========== 生成与验证循环 ==========
     // 获取上一集完整内容（用于保持信息一致性）
-    let previousEpisodeContent = '';
-    if (episodeNumber > 1) {
-      const prevEpisode = await episodeRepository.findByNumber(projectId, episodeNumber - 1);
-      if (prevEpisode?.content) {
-        previousEpisodeContent = prevEpisode.content;
-        sse.sendLog(`[上下文] 已加载第${episodeNumber - 1}集内容作为事实参考（${prevEpisode.content.length}字）`);
-      }
+    const previousEpisodeContent = prevEpisodeContent || '';
+    if (previousEpisodeContent) {
+      sse.sendLog(`[上下文] 已加载第${episodeNumber - 1}集内容作为事实参考（${previousEpisodeContent.length}字）`);
     }
 
     // 海外格式启用机械闸门（归一化+确定性扫描），重试反馈更精确，允许 3 次尝试；其他格式保持 2 次
@@ -1642,6 +1740,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
 
     // 主生成循环
     while (currentAttempt <= MAX_ATTEMPTS && !validationPassed) {
+      checkAbort();
       if (currentAttempt > 1) {
         sse.sendProgress(25, 100, `正在重新生成剧本（第${currentAttempt}次尝试，改写模式）...`);
         sse.sendLog(`[约束验证] 约束未满足，开始第${currentAttempt}次生成尝试（改写模式）...`, 'warn');
@@ -1756,6 +1855,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           isRetry ? firstGenerationContent : undefined,
           isRetry
         );
+        checkAbort();
 
         // 检测空内容，强制重试
         if (!rawContent || rawContent.trim().length < 100) {
@@ -1803,6 +1903,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           }
 
           const validation = await constraintValidator.validateConstraints(content, validationSet);
+          checkAbort();
 
           // —— Harness：机械违规并入验证结果（污染控制：不计入 satisfactionRate——语义指标保持纯净；
           // 计入违规计数、SSE 与重试修正指令。机械重要违规同时拉低 overallSatisfied 以触发闸门）
@@ -1896,6 +1997,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
         }
         break;
       } catch (genError) {
+        checkAbort();
         const err = genError as Error;
         console.error(`[生成] ❌ 第${currentAttempt}次尝试失败:`);
         console.error(`  错误类型: ${err.name}`);
@@ -1931,6 +2033,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
           fullContent,
           useWorldState // autoUpdate
         );
+        checkAbort();
 
         // 6. 使用约束验证结果更新节奏追踪（替代原来的关键词匹配）
         // 改进：即使没有约束，也应该检测剧本内容来更新追踪
@@ -2183,6 +2286,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
             }
           }
         } catch (lifecycleError) {
+          checkAbort();
           logGenerationError('角色生命周期处理失败', lifecycleError, '角色生命周期管理', { projectId, episodeNumber });
           sse.sendLog(`[角色生命周期] 处理失败: ${(lifecycleError as Error).message}`, 'warn');
         }
@@ -2190,6 +2294,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
         sse.sendProgress(95, 100, '正在保存剧本...');
         sse.sendLog(`[保存] 正在保存剧本...`);
       } catch (analysisError) {
+        checkAbort();
         logGenerationError('剧本分析失败', analysisError, '剧本状态分析', { projectId, episodeNumber });
         sse.sendLog(`[分析] 分析失败: ${(analysisError as Error).message}`, 'error');
         // 分析失败不影响剧本保存
@@ -2200,11 +2305,13 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
       try {
         summary = await scriptService.generateSummary(fullContent);
       } catch (summaryError) {
+        checkAbort();
         logGenerationError('摘要生成失败', summaryError, '生成摘要', { projectId, episodeNumber });
         // 摘要生成失败时使用默认摘要
         summary = `第${episodeNumber}集剧本内容 (${fullContent.length}字)`;
       }
 
+      checkAbort();
       await episodeRepository.upsert(projectId, episodeNumber, {
         content: fullContent,
         summary,
@@ -2292,6 +2399,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
       });
     }
   } catch (error) {
+    if (signal?.aborted) return;
     const err = error as Error;
     logger.error('生成剧本错误', err, {
       method: 'generate-script-enhanced',
@@ -2304,7 +2412,7 @@ router.post('/generate-script-enhanced', optionalCreatorAuth, async (req: Reques
       sse.sendError(`生成失败: ${err.message}`);
     }
   }
-});
+}
 
 /**
  * 获取节奏控制预设列表

@@ -6,6 +6,7 @@ import { useSSE } from '@/composables/useSSE';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import CharacterEnhancementInitCard from '@/components/character/CharacterEnhancementInitCard.vue';
+import { parseOutlineText } from '@/services/outlineParse';
 
 const route = useRoute();
 const projectStore = useProjectStore();
@@ -35,6 +36,12 @@ const availablePreviousProjects = computed(() =>
   )
 );
 
+const draftInfo = ref<import('@/types').OutlineDraft | null>(null);
+const completedSteps = ref<number[]>([]);
+const lastRequestId = ref('');
+const viewingSavedOutline = ref(false); // 有未完成草稿时临时查看已保存大纲
+const workingDraft = ref(false);
+const isDraftView = computed(() => !viewingSavedOutline.value && (workingDraft.value || !!draftInfo.value));
 const isEditing = ref(false);
 const editBackup = ref({ characterCards: '', synopsis: '', episodeSummaries: '' });
 
@@ -42,6 +49,14 @@ type TabKey = 'storyCore' | 'charFunctions' | 'characters' | 'synopsis' | 'episo
 const activeTab = ref<TabKey>('characters');
 
 const currentStep = ref(0);
+
+/** 步骤完成标记：草稿/进行中只看持久化 completedSteps；已完成正式大纲视图视为全部完成 */
+const stepDone = (step: number) => {
+  if (isLoading.value || isDraftView.value) return completedSteps.value.includes(step);
+  return !!currentProject.value?.outline && !!(contentFields[getTabForStep(step)]?.value ?? '').trim();
+};
+const tabDone = (tab: TabKey) =>
+  stepDone((totalSteps.value === 5 ? tabsFor5Steps : tabsFor3Steps).indexOf(tab) + 1);
 const totalSteps = ref(3);
 const stepNames = computed(() => totalSteps.value === 5
   ? ['故事内核', '角色功能', '人物卡', '剧情大纲', '分集梗概']
@@ -61,6 +76,17 @@ const currentProject = computed(() =>
 const hasOutline = computed(() =>
   !!(characterCards.value || synopsis.value || episodeSummaries.value)
 );
+
+// 手动标记 outline_done 前置条件：所有必需章节齐全（不依据非空部分文本推断完成）
+const allRequiredSectionsPresent = computed(() => {
+  // 未完成草稿视图（非已保存大纲视图）一律不满足“已完成”前置，禁止标记/编辑保存
+  if (isLoading.value || isDraftView.value) return false;
+  const base = !!(characterCards.value.trim() && synopsis.value.trim() && episodeSummaries.value.trim());
+  if (totalSteps.value === 5) {
+    return base && !!storyCore.value.trim() && !!characterFunctions.value.trim();
+  }
+  return base;
+});
 
 const contentFields: Record<string, ReturnType<typeof ref<string>>> = {
   storyCore, charFunctions: characterFunctions,
@@ -108,46 +134,137 @@ onMounted(async () => {
   if (hasOutline.value) isInputCollapsed.value = true;
 });
 
-watch(() => currentProject.value?.outline, () => loadOutlineFromProject());
+watch(() => currentProject.value?.outline, () => { if (!viewingSavedOutline.value) loadOutlineFromProject(); });
+watch(() => currentProject.value?.outlineDraft, () => loadOutlineFromProject());
+
+/** 切项目时清空全部字段与配置（不残留上一项目内容） */
+function resetAllFields() {
+  concept.value = '';
+  requirements.value = '';
+  characterCards.value = '';
+  synopsis.value = '';
+  episodeSummaries.value = '';
+  rawOutput.value = '';
+  storyCore.value = '';
+  characterFunctions.value = '';
+  storyMode.value = 'complete';
+  pacing.value = 'standard';
+  previousSeasonId.value = '';
+  showAdvanced.value = false;
+  totalSteps.value = 3;
+  completedSteps.value = [];
+  draftInfo.value = null;
+  workingDraft.value = false;
+  viewingSavedOutline.value = false;
+  isEditing.value = false;
+}
+
+function applyOutlineObject(outline: import('@/types').ProjectOutline) {
+  characterCards.value = outline.characterCards || '';
+  synopsis.value = outline.synopsis || '';
+  episodeSummaries.value = outline.episodeSummaries || '';
+  rawOutput.value = outline.raw || '';
+  storyCore.value = outline.storyCore || '';
+  characterFunctions.value = outline.characterFunctions || '';
+  storyMode.value = outline.generationConfig?.storyMode || 'complete';
+  pacing.value = outline.generationConfig?.pacing || 'standard';
+  previousSeasonId.value = outline.generationConfig?.previousSeasonId || '';
+  // 确定性模式重置：含增强字段/配置 => 5步；否则恢复3步（不沿用上个草稿的模式）
+  const enhanced = !!(outline.storyCore || outline.characterFunctions || outline.generationConfig);
+  showAdvanced.value = enhanced;
+  totalSteps.value = enhanced ? 5 : 3;
+}
 
 function loadOutlineFromProject() {
-  if (currentProject.value?.outline) {
-    const outline = currentProject.value.outline;
+  if (isLoading.value) return; // 流式生成中不被 store 更新覆盖
+  const proj = currentProject.value;
+  const draft = proj?.outlineDraft;
+  const hasUnfinishedDraft = !!(draft && draft.status !== 'completed');
+
+  // 未完成草稿优先：恢复草稿的输入快照与工作结果；
+  // 已有成功大纲保存在 store 中，可通过"查看已保存大纲"显式查看
+  if (hasUnfinishedDraft && !viewingSavedOutline.value) {
+    workingDraft.value = true;
+    draftInfo.value = draft!;
+    const r = draft!.result || {};
+    storyCore.value = r.storyCore || '';
+    characterFunctions.value = r.characterFunctions || '';
+    characterCards.value = r.characterCards || '';
+    synopsis.value = r.synopsis || '';
+    episodeSummaries.value = r.episodeSummaries
+      || (draft!.episodeBatches || []).map(b => b.content).filter(Boolean).join('\n\n');
+    completedSteps.value = [...(draft!.completedSteps || [])];
+    showAdvanced.value = draft!.mode === 'enhanced';
+    totalSteps.value = showAdvanced.value ? 5 : 3;
+    concept.value = draft!.concept ?? proj?.concept ?? '';
+    requirements.value = draft!.requirements ?? proj?.requirements ?? '';
+    storyMode.value = draft!.generationConfig?.storyMode || 'complete';
+    pacing.value = draft!.generationConfig?.pacing || 'standard';
+    previousSeasonId.value = draft!.generationConfig?.previousSeasonId || '';
+    return;
+  }
+
+  draftInfo.value = hasUnfinishedDraft ? draft! : null;
+  workingDraft.value = false;
+  completedSteps.value = [];
+
+  // 正式大纲（或草稿存在时的"查看已保存大纲"视图）
+  if (proj?.outline) {
+    const outline = proj.outline;
     if (typeof outline === 'object') {
-      characterCards.value = outline.characterCards || '';
-      synopsis.value = outline.synopsis || '';
-      episodeSummaries.value = outline.episodeSummaries || '';
-      rawOutput.value = outline.raw || '';
+      applyOutlineObject(outline);
     } else if (typeof outline === 'string') {
       parseOutlineContent(outline);
     }
+  } else {
+    characterCards.value = '';
+    synopsis.value = '';
+    episodeSummaries.value = '';
+    rawOutput.value = '';
+    storyCore.value = '';
+    characterFunctions.value = '';
   }
-  if (currentProject.value?.concept) concept.value = currentProject.value.concept;
-  if (currentProject.value?.requirements) requirements.value = currentProject.value.requirements;
+  if (proj?.storyMode) storyMode.value = proj.storyMode;
+  if (proj?.pacing) pacing.value = proj.pacing;
+  concept.value = proj?.concept || '';
+  requirements.value = proj?.requirements || '';
 }
 
-const outlineSections = [
-  { field: characterCards, md: '一、人物卡', bracket: '人物卡', nextMd: '二、', nextBracket: '剧情大纲' },
-  { field: synopsis, md: '二、剧情大纲', bracket: '剧情大纲', nextMd: '三、', nextBracket: '分集梗概' },
-  { field: episodeSummaries, md: '三、分集梗概', bracket: '分集梗概', nextMd: null, nextBracket: null },
-];
+const hasSavedOutline = computed(() => !!currentProject.value?.outline);
+
+/** 草稿存在时：显式切换到查看已保存大纲 */
+function viewSavedOutline() {
+  viewingSavedOutline.value = true;
+  loadOutlineFromProject();
+}
+/** 返回未完成草稿视图 */
+function backToDraft() {
+  viewingSavedOutline.value = false;
+  loadOutlineFromProject();
+}
+
 
 function parseOutlineContent(content: string) {
   rawOutput.value = content;
-  for (const sec of outlineSections) {
-    const nextMd = sec.nextMd ? `(?=###?\\s*${sec.nextMd}|$)` : '';
-    const nextBr = sec.nextBracket ? `(?=【${sec.nextBracket}】|$)` : '';
-    const match = content.match(new RegExp(`###?\\s*${sec.md}[\\s\\S]*?${nextMd || ''}`, 'i')) ||
-                  content.match(new RegExp(`【${sec.bracket}】[\\s\\S]*?${nextBr || ''}`, ''));
-    if (match) {
-      sec.field.value = match[0].replace(new RegExp(`###?\\s*${sec.md}\\s*`, 'i'), '').replace(new RegExp(`【${sec.bracket}】\\s*`), '').trim();
-    }
-  }
+  const parsed = parseOutlineText(content);
+  storyCore.value = parsed.storyCore;
+  characterFunctions.value = parsed.characterFunctions;
+  characterCards.value = parsed.characterCards;
+  synopsis.value = parsed.synopsis;
+  episodeSummaries.value = parsed.episodeSummaries;
+  showAdvanced.value = parsed.enhanced;
+  totalSteps.value = parsed.enhanced ? 5 : 3;
 }
 
-const handleGenerate = async () => {
+const handleGenerate = async (resume: boolean | Event = false) => {
+  const doResume = resume === true;
   if (isLoading.value) return;
   if (!concept.value.trim()) { toast.warning('请填写故事概念'); return; }
+  lastRequestId.value = '';
+  viewingSavedOutline.value = false;
+  workingDraft.value = true;
+  const targetPid = projectId.value;
+  if (!doResume) { completedSteps.value = []; }
 
   Object.values(contentFields).forEach(f => f.value = '');
   rawOutput.value = '';
@@ -172,6 +289,7 @@ const handleGenerate = async () => {
       pacing: useEnhanced ? pacing.value : undefined,
       previousSeasonId: (useEnhanced && storyMode.value === 'sequel' && previousSeasonId.value)
         ? previousSeasonId.value : undefined,
+      resume: doResume || undefined,
     },
     {
       onMessage: (data: Record<string, unknown>) => {
@@ -186,6 +304,21 @@ const handleGenerate = async () => {
           const tab = getTabForStep(step);
           const field = contentFields[tab];
           if (field) { field.value += chunk; scrollToBottom(step); }
+        } else if (data.type === 'checkpoint') {
+          // 断点水合：恢复已保存步骤与字段（不推断完成）
+          const r = (data.result || {}) as Record<string, string>;
+          if (r.storyCore) storyCore.value = r.storyCore;
+          if (r.characterFunctions) characterFunctions.value = r.characterFunctions;
+          if (r.characterCards) characterCards.value = r.characterCards;
+          if (r.synopsis) synopsis.value = r.synopsis;
+          const batches = (data.episodeBatches as Array<{ content?: string }>) || [];
+          episodeSummaries.value = r.episodeSummaries || batches.map(b => b.content).filter(Boolean).join('\n\n');
+          completedSteps.value = (data.completedSteps as number[]) || [];
+        } else if (data.type === 'step_done') {
+          const st = data.step as number;
+          if (!completedSteps.value.includes(st)) completedSteps.value = [...completedSteps.value, st];
+        } else if (data.type === 'error' && (data as any).requestId) {
+          lastRequestId.value = (data as any).requestId as string;
         } else if (data.type === 'done') {
           const doneFields: Record<string, ReturnType<typeof ref<string>>> = {
             characterCards, synopsis, episodeSummaries,
@@ -197,10 +330,16 @@ const handleGenerate = async () => {
         }
       },
       onChunk: (text: string) => { rawOutput.value += text; },
-      onDone: async () => {
+      onDone: async (data, connection) => {
         currentStep.value = 0;
+        draftInfo.value = null;
+        workingDraft.value = false;
         isInputCollapsed.value = true;
-        await projectStore.fetchProjects();
+        const warn = (data as Record<string, unknown> | undefined)?.warning;
+        const refreshed = await projectStore.fetchProjects();
+        if (!connection.isCurrent() || projectId.value !== targetPid) return;
+        if (warn) toast.warning(String(warn));
+        if (!refreshed) toast.warning('大纲已保存，但刷新项目失败；当前结果保留，请稍后刷新');
         toast.success('大纲生成完成');
       },
       onError: (msg: string) => {
@@ -209,16 +348,46 @@ const handleGenerate = async () => {
       },
     }
   );
+  // connect 解析后统一刷新一次（isLoading 已清理），按断点草稿/正式大纲状态重建视图
+  if (error.value && projectId.value === targetPid) {
+    const refreshed = await projectStore.fetchProjects();
+    if (refreshed && projectId.value === targetPid && !isLoading.value) loadOutlineFromProject();
+  }
 };
 
 
-const handleStop = () => {
+const handleStop = async () => {
+  const targetPid = projectId.value;
   disconnect();
   currentStep.value = 0;
   toast.info('已停止生成');
+  // disconnect 先完成清理再刷新一次：断点草稿立即可见
+  const refreshed = await projectStore.fetchProjects();
+  if (refreshed && projectId.value === targetPid && !isLoading.value) loadOutlineFromProject();
 };
 
+const handleResume = async () => {
+  if (!draftInfo.value) { toast.warning('没有可继续的草稿'); return; }
+  await handleGenerate(true);
+};
+
+const handleRestart = async () => {
+  if (await confirmDialog.warning('重新开始将清空草稿进度，确定重新生成？')) {
+    draftInfo.value = null;
+    completedSteps.value = [];
+    await handleGenerate(false);
+  }
+};
+
+// 项目切换/路由变化：断开旧连接并重置全部字段，避免跨项目串数据
+watch(projectId, () => {
+  disconnect();
+  resetAllFields();
+  loadOutlineFromProject();
+});
+
 const toggleEdit = () => {
+  if (!allRequiredSectionsPresent.value) { toast.warning('大纲内容不完整，暂不能标记完成或编辑保存'); return; }
   if (isLoading.value) return;
   if (!isEditing.value) {
     editBackup.value = {
@@ -242,13 +411,23 @@ function buildRawOutline(): string {
   return `### 一、人物卡\n\n${characterCards.value}\n\n### 二、剧情大纲\n\n${synopsis.value}\n\n### 三、分集梗概\n\n${episodeSummaries.value}`;
 }
 
+function buildRawOutlineV2(): string {
+  return `## 故事内核\n\n${storyCore.value}\n\n## 角色功能\n\n${characterFunctions.value}\n\n## 人物卡\n\n${characterCards.value}\n\n## 剧情大纲\n\n${synopsis.value}\n\n## 分集梗概\n\n${episodeSummaries.value}`;
+}
+
 function buildOutlinePayload(extra: Record<string, unknown> = {}) {
+  const enhanced = !!(storyCore.value || characterFunctions.value || totalSteps.value === 5);
   return {
     outline: {
-      raw: buildRawOutline(),
+      raw: enhanced ? buildRawOutlineV2() : buildRawOutline(),
       characterCards: characterCards.value,
       synopsis: synopsis.value,
       episodeSummaries: episodeSummaries.value,
+      storyCore: enhanced ? storyCore.value : undefined,
+      characterFunctions: enhanced ? characterFunctions.value : undefined,
+      generationConfig: enhanced
+        ? { storyMode: storyMode.value, pacing: pacing.value, previousSeasonId: previousSeasonId.value || undefined }
+        : undefined,
     },
     status: 'outline_done' as const,
     ...extra,
@@ -256,6 +435,7 @@ function buildOutlinePayload(extra: Record<string, unknown> = {}) {
 }
 
 const saveEdit = async () => {
+  if (!allRequiredSectionsPresent.value) { toast.warning('大纲内容不完整，不能保存为已完成大纲'); return; }
   try {
     await projectStore.updateProject(projectId.value, buildOutlinePayload());
     isEditing.value = false;
@@ -268,7 +448,11 @@ const handleClear = async () => {
     characterCards.value = '';
     synopsis.value = '';
     episodeSummaries.value = '';
+    storyCore.value = '';
+    characterFunctions.value = '';
     rawOutput.value = '';
+    completedSteps.value = [];
+    draftInfo.value = null;
     isInputCollapsed.value = false;
     toast.success('已清空');
   }
@@ -276,6 +460,7 @@ const handleClear = async () => {
 
 const handleSaveOutline = async () => {
   if (!hasOutline.value) { toast.warning('没有可保存的内容'); return; }
+  if (!allRequiredSectionsPresent.value) { toast.warning('大纲内容不完整，不能标记为已完成'); return; }
   try {
     await projectStore.updateProject(projectId.value, buildOutlinePayload({
       concept: concept.value,
@@ -304,7 +489,8 @@ const copyContent = async (content: string, name: string) => {
 const copyActiveTab = () => copyContent(activeTabContent.value, activeTab.value);
 
 const exportOutline = () => {
-  const content = `【人物卡】\n\n${characterCards.value}\n\n【剧情大纲】\n\n${synopsis.value}\n\n【分集梗概】\n\n${episodeSummaries.value}`;
+  const enhanced = !!(storyCore.value || characterFunctions.value || totalSteps.value === 5);
+  const content = enhanced ? buildRawOutlineV2() : buildRawOutline();
   const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -327,7 +513,7 @@ const exportOutline = () => {
         <button
           class="btn-primary-sm"
           @click="handleSaveOutline"
-          :disabled="!hasOutline || isLoading || currentProject?.status === 'outline_done'"
+          :disabled="!hasOutline || isLoading || currentProject?.status === 'outline_done' || !allRequiredSectionsPresent || !!(draftInfo && !viewingSavedOutline)"
         >💾 保存大纲</button>
         <button class="btn-text danger" @click="handleClear" :disabled="!hasOutline || isLoading">清空</button>
       </div>
@@ -463,11 +649,11 @@ const exportOutline = () => {
           v-for="(name, index) in stepNames"
           :key="index"
           class="step"
-          :class="{ active: currentStep === index + 1, done: currentStep > index + 1 }"
+          :class="{ active: currentStep === index + 1, done: stepDone(index + 1) }"
         >
           <span v-if="currentStep === index + 1" class="step-indicator"></span>
           {{ name }}
-          <span v-if="currentStep > index + 1" class="step-check">✓</span>
+          <span v-if="stepDone(index + 1)" class="step-check">✓</span>
         </span>
       </div>
       <div class="progress-bar">
@@ -476,10 +662,31 @@ const exportOutline = () => {
       </div>
     </div>
 
-    <div v-if="error" class="error-banner">{{ error }}</div>
+    <div v-if="error" class="error-banner" role="alert">
+      {{ error }}
+      <span v-if="lastRequestId" class="error-reqid">请求ID: {{ lastRequestId }}</span>
+    </div>
+
+    <div v-if="draftInfo && !isLoading && !viewingSavedOutline" class="draft-banner" role="status">
+      <span class="draft-text">
+        ⚠️ 存在未完成的大纲草稿（{{ draftInfo.status === 'interrupted' ? '生成被中断' : '上次生成未完成' }}，
+        已保存 {{ draftInfo.completedSteps?.length || 0 }} 步进度）
+      </span>
+      <span class="draft-actions">
+        <button class="btn-primary-sm" @click="handleResume">继续生成</button>
+        <button class="btn-text" @click="handleRestart">重新开始</button>
+        <button v-if="hasSavedOutline" class="btn-text" @click="viewSavedOutline">查看已保存大纲</button>
+      </span>
+    </div>
+    <div v-if="viewingSavedOutline" class="draft-banner" role="status">
+      <span class="draft-text">📄 正在查看已保存的正式大纲（草稿进度仍保留）</span>
+      <span class="draft-actions">
+        <button class="btn-text" @click="backToDraft">返回草稿</button>
+      </span>
+    </div>
 
     <CharacterEnhancementInitCard
-      v-if="hasOutline && !isLoading"
+      v-if="currentProject?.status === 'outline_done' && allRequiredSectionsPresent && !isLoading"
       :project-id="projectId"
       :character-count="0"
       @initialized="handleCharEnhanceInit"
@@ -497,12 +704,12 @@ const exportOutline = () => {
             @click="activeTab = tab.key"
           >
             {{ tab.label }}
-            <span v-if="contentFields[tab.key]?.value" class="tab-check">✓</span>
+            <span v-if="tabDone(tab.key)" class="tab-check">✓</span>
           </button>
         </div>
         <div class="tabs-actions">
           <template v-if="!isEditing">
-            <button class="btn-edit" @click="toggleEdit" :disabled="!hasOutline || isLoading">✏️ 编辑</button>
+            <button class="btn-edit" @click="toggleEdit" :disabled="!hasOutline || isLoading || !!(draftInfo && !viewingSavedOutline)">✏️ 编辑</button>
             <button class="btn-text" @click="copyActiveTab" :disabled="!hasOutline">复制</button>
           </template>
           <template v-else>
@@ -1222,5 +1429,71 @@ const exportOutline = () => {
 .btn-cancel:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+.error-reqid {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  font-family: monospace;
+}
+
+.draft-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--warning-muted);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-md);
+  color: var(--warning);
+  font-size: var(--text-sm);
+}
+
+.draft-banner .draft-text {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.draft-banner .draft-actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .outline-page { overflow-y: auto; }
+  .page-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+  .page-title, .toolbar-actions button { white-space: nowrap; }
+  .toolbar-actions { flex-wrap: wrap; }
+  .input-header { padding-inline: var(--space-3); }
+  .input-header-left { min-width: 0; }
+  .input-preview { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .input-body { padding-inline: var(--space-3); }
+  .input-grid, .option-row { grid-template-columns: minmax(0, 1fr); }
+  .input-textarea, .option-select { font-size: 16px; }
+  .input-footer { align-items: stretch; flex-direction: column; gap: var(--space-3); }
+  .project-tags { flex-wrap: wrap; }
+  .output-section { flex: 1 0 360px; min-width: 0; }
+  .tabs-header { flex-wrap: wrap; gap: var(--space-2); padding-inline: var(--space-3); }
+  .tabs-nav { flex: 1 0 100%; min-width: 0; overflow-x: auto; }
+  .tab-btn { flex-shrink: 0; white-space: nowrap; padding-inline: var(--space-3); }
+  .tabs-actions { margin-left: auto; padding-bottom: var(--space-2); }
+  .progress-steps { flex-wrap: wrap; }
+  .draft-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .draft-banner .draft-actions {
+    width: 100%;
+  }
 }
 </style>

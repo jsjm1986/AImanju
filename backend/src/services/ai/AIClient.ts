@@ -3,6 +3,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { AsyncLocalStorage } from 'async_hooks';
 import * as fs from 'fs';
 import * as path from 'path';
 import { createLogger, safeStringify } from '../../utils/errorLogger';
@@ -26,7 +27,7 @@ export interface ModelConfig {
 
 export interface AIStreamCallbacks {
   onChunk?: (text: string) => void;
-  onComplete?: (fullText: string) => void;
+  onComplete?: (fullText: string) => void | Promise<void>;
   onError?: (error: Error) => void;
   onLog?: (message: string, level?: 'info' | 'warn' | 'error') => void;
 }
@@ -205,6 +206,39 @@ function getModelConfigs(): Record<string, ModelConfig> {
 
 let currentModelName = '';
 
+// ==================== 请求级模型快照 ====================
+// AsyncLocalStorage 让单次生成/请求锁定一个模型配置：
+// 其他用户并发切换全局模型不会改变进行中的请求。
+interface ModelCtx { modelName: string; signal?: AbortSignal; }
+const modelContext = new AsyncLocalStorage<ModelCtx>();
+
+/**
+ * 在 fn 执行期间（含内部 await）将模型固定为 modelName；不改全局选择、不持久化。
+ * signal 挂到请求上下文：generate/generateStream 及上游请求默认取显式参数或上下文 signal。
+ * 显式指定未知模型名 => 抛错（绝不回退到别的计费提供者）。
+ */
+export function withModel<T>(modelName: string, fn: () => T, signal?: AbortSignal): T {
+  if (!Object.prototype.hasOwnProperty.call(getModelConfigs(), modelName)) {
+    throw new Error(`未知模型: ${modelName}`);
+  }
+  const parent = modelContext.getStore();
+  return modelContext.run({ modelName, signal: signal ?? parent?.signal }, fn);
+}
+
+/** 当前请求上下文的取消信号（若有） */
+export function currentRequestSignal(): AbortSignal | undefined {
+  return modelContext.getStore()?.signal;
+}
+
+/** 当前上下文已取消则抛 AbortError */
+export function throwIfContextAborted(): void {
+  if (modelContext.getStore()?.signal?.aborted) throw createAbortError();
+}
+
+function resolveModelName(): string {
+  return modelContext.getStore()?.modelName || currentModelName;
+}
+
 // ==================== 模型选择持久化 ====================
 // 用户在 UI 选择的模型持久化到本地 JSON 文件，重启后保留。
 // 优先级：持久化文件 > DEFAULT_AI_PROVIDER 环境变量 > 内置默认。
@@ -229,21 +263,63 @@ function persistModel(modelName: string): void {
   }
 }
 
+/** 配置完整性判定：非空密钥 + 合法 http(s) 网关 + 非空模型名 */
+export function isModelConfigComplete(config?: ModelConfig): boolean {
+  return !modelUnavailableReason(config);
+}
+
+/** 返回模型不可用的可读原因（不含密钥），已配置返回 null */
+export function modelUnavailableReason(config?: ModelConfig): string | null {
+  if (!config) return '未知模型';
+  if (!config.apiKey || !config.apiKey.trim()) return '未配置 API 密钥';
+  if (!config.model || !config.model.trim()) return '未配置模型名';
+  const baseUrl = config.baseUrl?.trim();
+  if (!baseUrl) return '未配置 API 网关地址';
+  try {
+    const url = new URL(baseUrl);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad protocol');
+  } catch {
+    return 'API 网关地址无效';
+  }
+  return null;
+}
+
+/** 列表/当前模型展示名：部分注册键对应多个实际模型（如 deepseek-chat 键承载 deepseek-flash） */
+function displayNameFor(config: ModelConfig): string {
+  if (config.name === 'deepseek-chat' && config.model === 'deepseek-flash') return 'DeepSeek Flash';
+  return config.displayName;
+}
+
 function initDefaultModel(): void {
   if (currentModelName) return;
   const configs = getModelConfigs();
   const preferred = loadPersistedModel()
     || (process.env.DEFAULT_AI_PROVIDER === 'glm' ? 'glm-night' : 'ds-qwen35-plus');
-  // 首选模型无 key 时兜底到第一个已配置模型——避免启动即处于无 key 状态导致全站生成失败
-  if (configs[preferred]?.apiKey) {
+  // 首选模型未完整配置时兜底到第一个已配置模型——避免启动即处于无 key 状态导致全站生成失败
+  if (isModelConfigComplete(configs[preferred])) {
     currentModelName = preferred;
-  } else {
-    const configured = Object.values(configs).find(c => c.apiKey);
-    currentModelName = configured?.name || preferred;
-    if (configured) {
-      console.warn(`[AI] 首选模型 ${preferred} 未配置 API Key，回退到 ${configured.displayName}`);
-    }
+    return;
   }
+  const configured = Object.values(configs).find(c => isModelConfigComplete(c));
+  if (configured) {
+    currentModelName = configured.name;
+    console.warn(`[AI] 首选模型 ${preferred} 未完整配置，回退到 ${configured.displayName}`);
+    return;
+  }
+  // 无已配置模型或持久化值已失效：仍落到已知注册项，保证 list/current 可用、生成报明确配置错误
+  const fallbackName = configs[preferred] ? preferred : Object.keys(configs)[0];
+  if (!configs[preferred]) {
+    console.warn(`[AI] 持久化模型 ${preferred} 不在注册表中，回退到 ${fallbackName}`);
+  }
+  currentModelName = fallbackName;
+}
+
+/** 名称不在注册表时回退到已知项（防止陈旧持久化/上下文值令 getCurrentConfig 崩溃） */
+function resolveKnownConfig(name: string): ModelConfig {
+  const configs = getModelConfigs();
+  if (configs[name]) return configs[name];
+  const configured = Object.values(configs).find(c => isModelConfigComplete(c));
+  return configured || Object.values(configs)[0];
 }
 
 /** 品牌标签（前端徽章显示用，由模型 key 推导，保证列表接口单源） */
@@ -267,6 +343,8 @@ const MODEL_MAX_OUTPUT = 32000;
 const TIMEOUT_STREAM = 1800000;
 const TIMEOUT_NORMAL = 180000;
 const TIMEOUT_TEST  = 30000;
+/** 上游流式响应字节空闲上限：任意字节（含心跳注释）都会重置 */
+const TIMEOUT_STREAM_IDLE = 120000;
 
 export const TOKEN_CONFIG = {
   OUTLINE: MODEL_MAX_OUTPUT,
@@ -297,8 +375,30 @@ const RETRYABLE_ERRORS_LOWER = RETRY_CONFIG.retryableErrors.map(e => e.toLowerCa
 
 export const SAFE_MAX_TOKENS = 8192;
 
-export function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) { reject(createAbortError()); return; }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+    const onAbort = () => {
+      clearTimeout(timer);
+      reject(createAbortError());
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+export function createAbortError(): Error {
+  const err = new Error('请求已取消');
+  err.name = 'AbortError';
+  return err;
+}
+
+function isAbortError(error: unknown): boolean {
+  return (error as Error)?.name === 'AbortError' ||
+    (error as Error)?.message === '请求已取消';
 }
 
 // ==================== 工具函数 ====================
@@ -314,7 +414,23 @@ function matchesRetryablePatterns(str: string): boolean {
   return RETRYABLE_ERRORS_LOWER.some(e => lower.includes(e));
 }
 
+/** 归一未知抛出值为 Error（保留原始消息） */
+function normalizeError(error: unknown): Error {
+  if (error instanceof Error) return error;
+  if (typeof error === 'string') return new Error(error);
+  if (error && typeof error === 'object' && 'message' in (error as any)) return new Error(String((error as any).message));
+  return new Error(String(error ?? '未知错误'));
+}
+
+/** 标记：已对消费者发出部分内容后失败——禁止透明重试，避免重复追加内容 */
+function markNonRetryable(error: unknown): void {
+  try { (normalizeError(error) as any).nonRetryable = true; (error as any).nonRetryable = true; } catch { /* 非对象 */ }
+}
+
 function isRetryableError(error: Error): boolean {
+  if ((error as any).nonRetryable) return false;
+  if (isAbortError(error)) return false;
+  if ((error as any).forceRetryable) return true;
   if (matchesRetryablePatterns(error.message || '')) return true;
 
   const cause = (error as any).cause;
@@ -351,66 +467,196 @@ function getRetryDelay(attempt: number, isRateLimit: boolean = false): number {
   return Math.min(RETRY_CONFIG.baseDelay * Math.pow(2, attempt), RETRY_CONFIG.maxDelay) + Math.random() * 1000;
 }
 
-/** 带超时的 fetch，统一 AbortController 模式 */
+/** 带超时的流式 fetch：头超时独立；返回后用户中止仍联动到 body 读取，直到调用方 release */
 async function fetchWithTimeout(
   url: string,
   init: RequestInit,
   timeoutMs: number,
-  timeoutMessage: string
-): Promise<Response> {
+  timeoutMessage: string,
+  signal?: AbortSignal
+): Promise<{ response: Response; release: () => void; abort: () => void }> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const onOuterAbort = () => controller.abort();
+  signal?.addEventListener('abort', onOuterAbort, { once: true });
+  const release = () => {
+    clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', onOuterAbort);
+  };
   try {
     const response = await fetch(url, { ...init, signal: controller.signal });
-    clearTimeout(timeoutId);
-    return response;
+    clearTimeout(timeoutId); // 头时限结束；body 阶段由用户 signal 联动 + 调用方主动 abort
+    return { response, release, abort: () => controller.abort() };
   } catch (error) {
-    clearTimeout(timeoutId);
-    if ((error as Error).name === 'AbortError') throw new Error(timeoutMessage);
+    release();
+    if ((error as Error).name === 'AbortError') {
+      if (signal?.aborted) throw createAbortError();
+      throw new Error(timeoutMessage);
+    }
     throw error;
   }
 }
 
-/** 读取 SSE 流并逐行回调 */
+const ERROR_BODY_READ_TIMEOUT = 30_000;
+
+/**
+ * 带总时限的非流式请求：超时覆盖响应头返回 + 响应体读取，
+ * 防止"头已返回、体悬挂"绕过测试/普通调用时限。
+ */
+async function fetchJsonWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+  timeoutMessage: string,
+  signal?: AbortSignal
+): Promise<{ ok: boolean; status: number; json: unknown; text: string }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const onOuterAbort = () => controller.abort();
+  signal?.addEventListener('abort', onOuterAbort, { once: true });
+  try {
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    const text = await response.text();
+    let json: unknown = null;
+    try { json = JSON.parse(text); } catch { /* 非 JSON 响应体 */ }
+    return { ok: response.ok, status: response.status, json, text };
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') {
+      if (signal?.aborted) throw createAbortError();
+      throw new Error(timeoutMessage);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', onOuterAbort);
+  }
+}
+
+interface UpstreamSSEOptions {
+  /** 字节空闲上限：任意字节（含注释心跳）重置 */
+  idleTimeoutMs: number;
+  /** 流总时长上限（可选） */
+  totalTimeoutMs?: number;
+  idleMessage: string;
+  totalMessage?: string;
+  signal?: AbortSignal;
+}
+
+/**
+ * 读取上游 SSE 流。
+ * - 支持 CRLF、注释心跳、无空格冒号、多行 data、跨 chunk UTF-8、末尾 decoder flush
+ * - onData 抛出异常会向上传播（绝不吞掉消费方回调异常）
+ * - onData 返回 'terminal' 表示显式结束标记（如 message_stop）；'[DONE]' 自动识别
+ * - EOF 之前未收到结束标记 => 抛出连接中断错误（不得视为成功）
+ * - 超时取消不能伪装成正常 EOF
+ */
 async function readSSEStream(
   response: Response,
-  onLine: (data: string) => void,
-  timeoutMs: number,
-  timeoutMessage: string
+  onData: (data: string) => void | 'terminal' | Promise<void | 'terminal'>,
+  opts: UpstreamSSEOptions
 ): Promise<void> {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('无法获取响应流');
 
-  const timeoutId = setTimeout(() => reader.cancel(), timeoutMs);
   const decoder = new TextDecoder();
   let buffer = '';
+  let sawTerminal = false;
+  let abortedBySignal = false;
+  let idleTimedOut = false;
+  let totalTimedOut = false;
+
+  let idleTimer: ReturnType<typeof setTimeout> | null = null;
+  const armIdleTimer = () => {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      idleTimedOut = true;
+      reader.cancel().catch(() => {});
+    }, opts.idleTimeoutMs);
+  };
+  const totalTimer = opts.totalTimeoutMs
+    ? setTimeout(() => {
+        totalTimedOut = true;
+        reader.cancel().catch(() => {});
+      }, opts.totalTimeoutMs)
+    : null;
+  const onAbort = () => {
+    abortedBySignal = true;
+    reader.cancel().catch(() => {});
+  };
+  opts.signal?.addEventListener('abort', onAbort, { once: true });
+  armIdleTimer();
+
+  const dispatchEvent = async (block: string) => {
+    const dataLines: string[] = [];
+    for (const rawLine of block.split('\n')) {
+      const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+      if (!line || line.startsWith(':')) continue; // 注释/心跳
+      if (line.startsWith('event:')) continue;
+      if (line.startsWith('data:')) {
+        // 允许 'data:' 或 'data: ' 两种写法
+        dataLines.push(line.slice(5).replace(/^ /, ''));
+      }
+    }
+    if (dataLines.length === 0) return;
+    const data = dataLines.join('\n').trim();
+    if (!data) return;
+    if (data === '[DONE]') {
+      sawTerminal = true;
+      return;
+    }
+    const result = await onData(data);
+    if (result === 'terminal') sawTerminal = true;
+  };
 
   try {
     while (true) {
+      if (opts.signal?.aborted) { abortedBySignal = true; break; }
       const { done, value } = await reader.read();
       if (done) break;
+      armIdleTimer();
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const data = line.slice(6).trim();
-        if (data && data !== '[DONE]') onLine(data);
+      // 规范行尾为 \n；末尾孤立 '\r' 保留下次再判（可能和下一块的 '\n' 组成 \r\n）
+      let pendingCR = '';
+      if (buffer.endsWith('\r')) { pendingCR = '\r'; buffer = buffer.slice(0, -1); }
+      buffer = buffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n') + pendingCR;
+      const blocks = buffer.split('\n\n');
+      buffer = blocks.pop() || '';
+      for (const block of blocks) {
+        if (sawTerminal) break; // 同一 chunk 内终止帧之后的块不再派发
+        if (abortedBySignal || idleTimedOut || totalTimedOut || opts.signal?.aborted) break;
+        if (block.trim()) await dispatchEvent(block);
+      }
+      // 显式终止标记已到：不必等待 socket EOF（保持打开的连接不应悬挂）
+      if (sawTerminal) {
+        try { await reader.cancel(); } catch { /* 忽略 */ }
+        break;
       }
     }
-
-    if (buffer.trim() && buffer.startsWith('data: ')) {
-      const data = buffer.slice(6).trim();
-      if (data && data !== '[DONE]') onLine(data);
+    // 处理残余帧前先检查取消/超时：预取消的 reader 不应继续派发
+    if (abortedBySignal || idleTimedOut || totalTimedOut) {
+      try { await reader.cancel(); } catch { /* 忽略 */ }
+    } else if (!sawTerminal) {
+      // 最终 flush：decoder 尾部字节 + 缓冲区残余 block
+      buffer += decoder.decode();
+      for (const block of buffer.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n\n')) {
+        if (block.trim()) await dispatchEvent(block);
+      }
     }
-    clearTimeout(timeoutId);
   } catch (error) {
-    clearTimeout(timeoutId);
-    if ((error as Error).name === 'AbortError') throw new Error(timeoutMessage);
+    try { await reader.cancel(); } catch { /* 忽略 */ }
     throw error;
+  } finally {
+    if (idleTimer) clearTimeout(idleTimer);
+    if (totalTimer) clearTimeout(totalTimer);
+    opts.signal?.removeEventListener('abort', onAbort);
+    try { reader.releaseLock(); } catch { /* 忽略 */ }
   }
+
+  if (abortedBySignal || opts.signal?.aborted) throw createAbortError();
+  if (idleTimedOut) throw new Error(opts.idleMessage);
+  if (totalTimedOut) throw new Error(opts.totalMessage || 'timeout: AI流式请求超时');
+  if (!sawTerminal) throw new Error('连接中断：上游响应未收到结束标记');
 }
 
 function buildOpenAIMessages(systemPrompt: string, userPrompt: string): Array<{ role: string; content: string }> {
@@ -517,18 +763,24 @@ export class AIClient {
   }
 
   getCurrentConfig(): ModelConfig {
-    return getModelConfigs()[currentModelName];
+    return resolveKnownConfig(resolveModelName());
   }
 
-  getAvailableModels(): Array<{ name: string; displayName: string; provider: AIProvider; brand: string; model: string; configured: boolean }> {
+  getAvailableModels(): Array<{ name: string; displayName: string; provider: AIProvider; brand: string; model: string; configured: boolean; unavailableReason?: string }> {
     return Object.values(getModelConfigs()).map(c => ({
-      name: c.name, displayName: c.displayName, provider: c.provider, brand: brandOfModel(c.name),
-      model: c.model, configured: Boolean(c.apiKey),
+      name: c.name, displayName: displayNameFor(c), provider: c.provider, brand: brandOfModel(c.name),
+      model: c.model, configured: isModelConfigComplete(c),
+      unavailableReason: modelUnavailableReason(c) ?? undefined,
     }));
   }
 
   getCurrentModelName(): string {
-    return currentModelName;
+    return resolveModelName();
+  }
+
+  /** 按注册名检查模型是否完整配置（供路由校验显式指定的模型） */
+  isModelConfigured(modelName: string): boolean {
+    return isModelConfigComplete(getModelConfigs()[modelName]);
   }
 
   switchModel(modelName: string): boolean {
@@ -537,9 +789,9 @@ export class AIClient {
       logger.error(`未知模型: ${modelName}`, new Error(`Unknown model: ${modelName}`), { method: 'switchModel' });
       return false;
     }
-    // 无 API Key 的模型不可切换——防止"切换成功但所有生成 401"的假可用状态
-    if (!configs[modelName].apiKey) {
-      logger.error(`模型未配置 API Key: ${modelName}`, new Error(`Model not configured: ${modelName}`), { method: 'switchModel' });
+    // 未完整配置的模型不可切换——防止"切换成功但所有生成失败"的假可用状态
+    if (!isModelConfigComplete(configs[modelName])) {
+      logger.error(`模型未完整配置: ${modelName}`, new Error(`Model not configured: ${modelName}`), { method: 'switchModel' });
       return false;
     }
     currentModelName = modelName;
@@ -549,23 +801,25 @@ export class AIClient {
     return true;
   }
 
+  /**
+   * 测试指定（或当前）模型连通性。
+   * 直接按目标配置发请求，不修改全局模型选择、不持久化；
+   * 与并发的合法切换互不影响。
+   */
   async testModel(modelName?: string): Promise<{ success: boolean; message: string; latency?: number }> {
     const configs = getModelConfigs();
-    const targetModel = modelName || currentModelName;
+    const targetModel = modelName || resolveModelName();
     const config = configs[targetModel];
 
     if (!config) {
       return { success: false, message: `未知模型: ${targetModel}` };
     }
-    if (!config.apiKey) {
-      return { success: false, message: `${config.displayName} 未配置 API 密钥` };
+    const unavailable = modelUnavailableReason(config);
+    if (unavailable) {
+      return { success: false, message: `${displayNameFor(config)} ${unavailable}` };
     }
 
     const startTime = Date.now();
-    const originalModel = currentModelName;
-    if (modelName && modelName !== currentModelName) {
-      currentModelName = targetModel;
-    }
 
     try {
       let success: boolean;
@@ -574,11 +828,11 @@ export class AIClient {
       if (config.provider === 'openai') {
         const result = await this.testOpenAIConnection(config);
         success = result.success;
-        message = result.success ? `${config.displayName} 连接正常` : result.message;
+        message = result.success ? `${displayNameFor(config)} 连接正常` : result.message;
       } else {
-        const response = await this.generate('', '请回复"OK"两个字母。', 50);
-        success = response.length > 0;
-        message = success ? `${config.displayName} 连接正常` : '模型返回空响应';
+        const result = await this.testClaudeConnection(config);
+        success = result.success;
+        message = result.success ? `${displayNameFor(config)} 连接正常` : result.message;
       }
 
       return { success, message, ...(success ? { latency: Date.now() - startTime } : {}) };
@@ -586,16 +840,12 @@ export class AIClient {
       const err = error as Error;
       logger.error(`测试模型失败: ${targetModel}`, err, { method: 'testModel' });
       return { success: false, message: `连接失败: ${err.message.slice(0, 100)}` };
-    } finally {
-      if (modelName && modelName !== originalModel) {
-        currentModelName = originalModel;
-      }
     }
   }
 
   private async testOpenAIConnection(config: ModelConfig): Promise<{ success: boolean; message: string }> {
     try {
-      const response = await fetchWithTimeout(
+      const { ok, status, json } = await fetchJsonWithTimeout(
         `${config.baseUrl}/chat/completions`,
         {
           method: 'POST',
@@ -609,9 +859,9 @@ export class AIClient {
         TIMEOUT_TEST, '连接超时'
       );
 
-      if (!response.ok) return { success: false, message: `API错误: ${response.status}` };
+      if (!ok) return { success: false, message: `API错误: ${status}` };
 
-      const data = await response.json() as Record<string, unknown>;
+      const data = json as Record<string, unknown>;
       return hasOpenAIResponseContent(data)
         ? { success: true, message: '连接正常' }
         : { success: false, message: '模型返回空响应' };
@@ -620,14 +870,47 @@ export class AIClient {
     }
   }
 
-  async withRetry<T>(fn: () => Promise<T>, operationName: string = 'AI调用'): Promise<T> {
+  private async testClaudeConnection(config: ModelConfig): Promise<{ success: boolean; message: string }> {
+    try {
+      const { ok, status, json } = await fetchJsonWithTimeout(
+        `${config.baseUrl}/v1/messages`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': config.apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify({
+            model: config.model,
+            max_tokens: 50,
+            messages: [{ role: 'user', content: '请直接回复"OK"两个字母。' }],
+          }),
+        },
+        TIMEOUT_TEST, '连接超时'
+      );
+
+      if (!ok) return { success: false, message: `API错误: ${status}` };
+
+      const data = json as { content?: Array<{ type: string; text?: string }> };
+      const hasText = !!data?.content?.find(block => block.type === 'text' && block.text);
+      return hasText
+        ? { success: true, message: '连接正常' }
+        : { success: false, message: '模型返回空响应' };
+    } catch (error) {
+      return { success: false, message: (error as Error).message };
+    }
+  }
+
+  async withRetry<T>(fn: () => Promise<T>, operationName: string = 'AI调用', signal?: AbortSignal): Promise<T> {
     let lastError: Error = new Error('Unknown error');
 
     for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+      if (signal?.aborted) throw createAbortError();
       try {
         return await fn();
       } catch (error) {
-        lastError = error as Error;
+        lastError = normalizeError(error);
         const rateLimit = isRateLimitError(lastError);
 
         if (attempt === RETRY_CONFIG.maxRetries || !isRetryableError(lastError)) {
@@ -645,7 +928,7 @@ export class AIClient {
           尝试: `${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}`,
           错误: getDetailedErrorMessage(lastError),
         });
-        await sleep(delay);
+        await sleep(delay, signal);
       }
     }
     throw lastError;
@@ -674,191 +957,283 @@ export class AIClient {
     systemPrompt: string,
     userPrompt: string,
     callbacks: AIStreamCallbacks,
-    maxTokens?: number
+    maxTokens?: number,
+    signal?: AbortSignal
   ): Promise<string> {
+    signal = signal ?? currentRequestSignal();
+    if (signal?.aborted) { const e = createAbortError(); callbacks.onError?.(e); throw e; }
+    // 在调用开始时固定模型配置：其他并发切换不影响本次生成（含重试）
     const config = this.getCurrentConfig();
-    if (config.provider === 'openai') {
-      return this.generateStreamOpenAI(systemPrompt, userPrompt, callbacks, maxTokens);
+    const unavailable = modelUnavailableReason(config);
+    if (unavailable) {
+      const err = new Error(`当前模型 ${displayNameFor(config)} ${unavailable}，请先配置或切换模型`);
+      callbacks.onError?.(err);
+      throw err;
     }
-    return this.generateStreamClaude(systemPrompt, userPrompt, callbacks, maxTokens);
+    if (config.provider === 'openai') {
+      return this.generateStreamOpenAI(systemPrompt, userPrompt, callbacks, maxTokens, config, signal);
+    }
+    return this.generateStreamClaude(systemPrompt, userPrompt, callbacks, maxTokens, config, signal);
   }
 
   private async generateStreamClaude(
     systemPrompt: string,
     userPrompt: string,
     callbacks: AIStreamCallbacks,
-    maxTokens?: number
+    maxTokens: number | undefined,
+    config: ModelConfig,
+    signal?: AbortSignal
   ): Promise<string> {
-    return this.withRetry(async () => {
-      let fullText = '';
-      const effectiveMaxTokens = maxTokens || TOKEN_CONFIG.DEFAULT;
-      const config = this.getCurrentConfig();
+    try {
+      const fullText = await this.withRetry(async () => {
+        let fullText = '';
+        let emitted = false;
+        const emit = (text: string) => { emitted = true; callbacks.onChunk?.(text); };
+        const effectiveMaxTokens = maxTokens || TOKEN_CONFIG.DEFAULT;
 
-      logger.info(`[Claude] 开始流式生成`, { 模型: config.model, MaxTokens: effectiveMaxTokens });
+        logger.info(`[Claude] 开始流式生成`, { 模型: config.model, MaxTokens: effectiveMaxTokens });
 
-      const response = await fetchWithTimeout(
-        `${config.baseUrl}/v1/messages`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': config.apiKey,
-            'anthropic-version': '2023-06-01',
+        const { response, release, abort } = await fetchWithTimeout(
+          `${config.baseUrl}/v1/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': config.apiKey,
+              'anthropic-version': '2023-06-01',
+            },
+            body: JSON.stringify({
+              model: config.model,
+              max_tokens: effectiveMaxTokens,
+              stream: true,
+              messages: [{ role: 'user', content: buildClaudePrompt(systemPrompt, userPrompt) }],
+            }),
           },
-          body: JSON.stringify({
-            model: config.model,
-            max_tokens: effectiveMaxTokens,
-            stream: true,
-            messages: [{ role: 'user', content: buildClaudePrompt(systemPrompt, userPrompt) }],
-          }),
-        },
-        TIMEOUT_STREAM, 'timeout: AI流式请求超时（30分钟）'
-      );
+          TIMEOUT_STREAM, 'timeout: AI流式请求超时（30分钟）', signal
+        );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`${response.status} ${errorText}`);
-      }
+        try {
+        if (!response.ok) {
+          // 有界错误体：30s 截止或用户中止都会解除读取
+          let errorText = '';
+          const dl = setTimeout(() => abort(), ERROR_BODY_READ_TIMEOUT);
+          try { errorText = await response.text(); } catch { /* 中止/超时 */ }
+          clearTimeout(dl);
+          release();
+          throw new Error(`${response.status} ${errorText}`);
+        }
 
-      try {
-        await readSSEStream(response, (data) => {
-          try {
-            const parsed = JSON.parse(data);
+        try {
+          await readSSEStream(response, (data) => {
+            const parsed = JSON.parse(data); // 解析失败向上传播（重试/失败语义统一）
+            if (parsed.type === 'error') {
+              const msg = parsed.error?.message || parsed.message || '上游流式响应返回错误';
+              throw new Error(String(msg));
+            }
+            if (parsed.type === 'message_stop') return 'terminal';
+            if (parsed.type === 'message_delta' && parsed.delta?.stop_reason === 'max_tokens') {
+              const err = new Error('生成内容达到长度上限被截断');
+              markNonRetryable(err);
+              throw err;
+            }
             if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
               fullText += parsed.delta.text;
-              callbacks.onChunk?.(parsed.delta.text);
+              emit(parsed.delta.text);
             }
-          } catch { /* ignore malformed SSE */ }
-        }, TIMEOUT_STREAM, 'timeout: AI流式请求超时（30分钟）');
-      } catch (error) {
-        callbacks.onError?.(error as Error);
-        throw error;
-      }
+          }, {
+            idleTimeoutMs: TIMEOUT_STREAM_IDLE,
+            totalTimeoutMs: TIMEOUT_STREAM,
+            idleMessage: 'AI 流式响应超时（120秒无数据）',
+            totalMessage: 'timeout: AI流式请求超时（30分钟）',
+            signal,
+          });
+        } catch (error) {
+          const norm = normalizeError(error);
+          if (emitted) markNonRetryable(norm);
+          throw norm;
+        }
 
-      callbacks.onComplete?.(fullText);
+        if (!fullText.trim()) {
+          const err = new Error('模型未返回有效内容（空响应或仅思考过程）');
+          markNonRetryable(err);
+          throw err;
+        }
+        } finally {
+          release(); // 流读毕/失败均解除 signal 联动
+        }
+
+        return fullText;
+      }, 'Claude流式生成', signal);
+      // 完成回调在重试循环外：回调失败不触发提供者重试/重复分块
+      await callbacks.onComplete?.(fullText);
       return fullText;
-    }, 'Claude流式生成');
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      callbacks.onError?.(err);
+      throw err;
+    }
   }
 
   private async generateStreamOpenAI(
     systemPrompt: string,
     userPrompt: string,
     callbacks: AIStreamCallbacks,
-    maxTokens?: number
+    maxTokens: number | undefined,
+    config: ModelConfig,
+    signal?: AbortSignal
   ): Promise<string> {
-    return this.withRetry(async () => {
-      let fullText = '';
-      let reasoningText = '';
-      let contentStarted = false;
-      let pendingContent = '';
-      const effectiveMaxTokens = maxTokens || TOKEN_CONFIG.DEFAULT;
-      const config = this.getCurrentConfig();
+    try {
+      const fullText = await this.withRetry(async () => {
+        let fullText = '';
+        let reasoningText = '';
+        let contentStarted = false;
+        let pendingContent = '';
+        let emitted = false;
+        const emit = (text: string) => { emitted = true; callbacks.onChunk?.(text); };
+        const effectiveMaxTokens = maxTokens || TOKEN_CONFIG.DEFAULT;
 
-      logger.info(`[OpenAI] 开始流式生成`, { 模型: config.model, MaxTokens: effectiveMaxTokens });
+        logger.info(`[OpenAI] 开始流式生成`, { 模型: config.model, MaxTokens: effectiveMaxTokens });
 
-      const response = await fetchWithTimeout(
-        `${config.baseUrl}/chat/completions`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.apiKey}`,
+        const { response, release, abort } = await fetchWithTimeout(
+          `${config.baseUrl}/chat/completions`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${config.apiKey}`,
+            },
+            body: JSON.stringify({
+              model: config.model,
+              max_tokens: effectiveMaxTokens,
+              stream: true,
+              messages: buildOpenAIMessages(systemPrompt, userPrompt),
+              ...(config.extraBody || {}),
+            }),
           },
-          body: JSON.stringify({
-            model: config.model,
-            max_tokens: effectiveMaxTokens,
-            stream: true,
-            messages: buildOpenAIMessages(systemPrompt, userPrompt),
-            ...(config.extraBody || {}),
-          }),
-        },
-        TIMEOUT_STREAM, 'timeout: AI流式请求超时（30分钟）'
-      );
+          TIMEOUT_STREAM, 'timeout: AI流式请求超时（30分钟）', signal
+        );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`${response.status} ${errorText}`);
-      }
+        try {
+        if (!response.ok) {
+          // 有界错误体：30s 截止或用户中止都会解除读取
+          let errorText = '';
+          const dl = setTimeout(() => abort(), ERROR_BODY_READ_TIMEOUT);
+          try { errorText = await response.text(); } catch { /* 中止/超时 */ }
+          clearTimeout(dl);
+          release();
+          throw new Error(`${response.status} ${errorText}`);
+        }
 
-      try {
-        await readSSEStream(response, (data) => {
-          try {
+        try {
+          await readSSEStream(response, (data) => {
             const parsed = JSON.parse(data);
-            const delta = parsed.choices?.[0]?.delta;
+            if (parsed.error) {
+              const errObj = parsed.error as { message?: string; type?: string };
+              throw new Error(errObj?.message || '上游流式响应返回错误');
+            }
+            const choice = parsed.choices?.[0];
+            if (choice?.finish_reason === 'length') {
+              const err = new Error('生成内容达到长度上限被截断');
+              markNonRetryable(err);
+              throw err;
+            }
+            const delta = choice?.delta;
 
             if (delta?.reasoning_content) {
               reasoningText += delta.reasoning_content;
-              return;
+              return choice?.finish_reason ? 'terminal' : undefined;
             }
 
             const content = delta?.content;
-            if (!content) return;
-
-            if (contentStarted) {
-              fullText += content;
-              callbacks.onChunk?.(content);
-              return;
+            if (content) {
+              if (contentStarted) {
+                fullText += content;
+                emit(content);
+              } else {
+                pendingContent += content;
+                if (pendingContent.length >= 20 || pendingContent.includes('\n')) {
+                  if (isRealContent(pendingContent)) {
+                    contentStarted = true;
+                    fullText += pendingContent;
+                    emit(pendingContent);
+                    pendingContent = '';
+                  } else if (isThinkingPattern(pendingContent)) {
+                    reasoningText += pendingContent;
+                    pendingContent = '';
+                  }
+                }
+              }
             }
-
-            pendingContent += content;
-            if (pendingContent.length < 20 && !pendingContent.includes('\n')) return;
-
-            if (isRealContent(pendingContent)) {
-              contentStarted = true;
-              fullText += pendingContent;
-              callbacks.onChunk?.(pendingContent);
-              pendingContent = '';
-            } else if (isThinkingPattern(pendingContent)) {
-              reasoningText += pendingContent;
-              pendingContent = '';
-            }
-          } catch { /* ignore */ }
-        }, TIMEOUT_STREAM, 'timeout: AI流式请求超时（30分钟）');
-      } catch (error) {
-        callbacks.onError?.(error as Error);
-        throw error;
-      }
-
-      // 处理剩余的缓冲内容
-      if (pendingContent) {
-        if (!isThinkingPattern(pendingContent)) {
-          fullText += pendingContent;
-          callbacks.onChunk?.(pendingContent);
-        } else {
-          reasoningText += pendingContent;
+            return choice?.finish_reason ? 'terminal' : undefined;
+          }, {
+            idleTimeoutMs: TIMEOUT_STREAM_IDLE,
+            totalTimeoutMs: TIMEOUT_STREAM,
+            idleMessage: 'AI 流式响应超时（120秒无数据）',
+            totalMessage: 'timeout: AI流式请求超时（30分钟）',
+            signal,
+          });
+        } catch (error) {
+          const norm = normalizeError(error);
+          if (emitted) markNonRetryable(norm);
+          throw norm;
         }
-      }
 
-      if (!fullText && reasoningText) {
-        logger.warn(`[OpenAI] 流式生成只有思考过程，没有最终内容`, {
+        // 处理剩余的缓冲内容
+        if (pendingContent) {
+          if (!isThinkingPattern(pendingContent)) {
+            fullText += pendingContent;
+            emit(pendingContent);
+          } else {
+            reasoningText += pendingContent;
+          }
+        }
+
+        if (!fullText.trim()) {
+          logger.warn(`[OpenAI] 流式生成只有思考过程或空内容`, { reasoningLength: reasoningText.length });
+          const err = new Error('模型未返回有效内容（空响应或仅思考过程）');
+          markNonRetryable(err);
+          throw err;
+        }
+
+        logger.info(`[OpenAI] 流式生成完成`, {
+          contentLength: fullText.length,
           reasoningLength: reasoningText.length
         });
-      }
+        } finally {
+          release(); // 流读毕/失败均解除 signal 联动
+        }
 
-      logger.info(`[OpenAI] 流式生成完成`, {
-        contentLength: fullText.length,
-        reasoningLength: reasoningText.length
-      });
-
-      callbacks.onComplete?.(fullText);
+        return fullText;
+      }, 'OpenAI流式生成', signal);
+      await callbacks.onComplete?.(fullText);
       return fullText;
-    }, 'OpenAI流式生成');
-  }
-
-  async generate(systemPrompt: string, userPrompt: string, maxTokens?: number): Promise<string> {
-    const config = this.getCurrentConfig();
-    if (config.provider === 'openai') {
-      return this.generateOpenAI(systemPrompt, userPrompt, maxTokens);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      callbacks.onError?.(err);
+      throw err;
     }
-    return this.generateClaude(systemPrompt, userPrompt, maxTokens);
   }
 
-  private async generateClaude(systemPrompt: string, userPrompt: string, maxTokens?: number): Promise<string> {
+  async generate(systemPrompt: string, userPrompt: string, maxTokens?: number, signal?: AbortSignal): Promise<string> {
+    signal = signal ?? currentRequestSignal();
+    if (signal?.aborted) throw createAbortError();
+    // 在调用开始时固定模型配置（含重试）
+    const config = this.getCurrentConfig();
+    const unavailable = modelUnavailableReason(config);
+    if (unavailable) {
+      throw new Error(`当前模型 ${displayNameFor(config)} ${unavailable}，请先配置或切换模型`);
+    }
+    if (config.provider === 'openai') {
+      return this.generateOpenAI(systemPrompt, userPrompt, maxTokens, config, signal);
+    }
+    return this.generateClaude(systemPrompt, userPrompt, maxTokens, config, signal);
+  }
+
+  private async generateClaude(systemPrompt: string, userPrompt: string, maxTokens: number | undefined, config: ModelConfig, signal?: AbortSignal): Promise<string> {
     return this.withRetry(async () => {
       const effectiveMaxTokens = maxTokens || TOKEN_CONFIG.DEFAULT;
-      const config = this.getCurrentConfig();
 
-      const response = await fetchWithTimeout(
+      const { ok, status, json, text: errorText } = await fetchJsonWithTimeout(
         `${config.baseUrl}/v1/messages`,
         {
           method: 'POST',
@@ -873,30 +1248,36 @@ export class AIClient {
             messages: [{ role: 'user', content: buildClaudePrompt(systemPrompt, userPrompt) }],
           }),
         },
-        TIMEOUT_STREAM, 'timeout: AI请求超时（30分钟）'
+        TIMEOUT_NORMAL, 'timeout: AI请求超时（3分钟）', signal
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`${response.status} ${errorText}`);
-      }
+      if (!ok) throw new Error(`${status} ${errorText}`);
 
-      const data = await response.json() as { content?: Array<{ type: string; text?: string }> };
+      const data = json as { content?: Array<{ type: string; text?: string; stop_reason?: string }>; stop_reason?: string };
+      if (data.stop_reason === 'max_tokens') {
+        const err = new Error('生成内容达到长度上限被截断');
+        markNonRetryable(err);
+        throw err;
+      }
       const textBlock = data.content?.find((block: { type: string }) => block.type === 'text');
-      return textBlock?.text || '';
-    }, 'Claude非流式生成');
+      if (!textBlock?.text?.trim()) {
+        const err = new Error('模型未返回有效内容（空响应或仅思考过程）');
+        markNonRetryable(err);
+        throw err;
+      }
+      return textBlock.text;
+    }, 'Claude非流式生成', signal);
   }
 
-  private async generateOpenAI(systemPrompt: string, userPrompt: string, maxTokens?: number): Promise<string> {
+  private async generateOpenAI(systemPrompt: string, userPrompt: string, maxTokens: number | undefined, config: ModelConfig, signal?: AbortSignal): Promise<string> {
     return this.withRetry(async () => {
       const effectiveMaxTokens = maxTokens || TOKEN_CONFIG.DEFAULT;
-      const config = this.getCurrentConfig();
 
       logger.info(`[OpenAI] 开始非流式生成`, {
         模型: config.model, baseUrl: config.baseUrl, MaxTokens: effectiveMaxTokens
       });
 
-      const response = await fetchWithTimeout(
+      const { ok, status, json, text: errorText } = await fetchJsonWithTimeout(
         `${config.baseUrl}/chat/completions`,
         {
           method: 'POST',
@@ -911,30 +1292,38 @@ export class AIClient {
             ...(config.extraBody || {}),
           }),
         },
-        TIMEOUT_NORMAL, 'timeout: AI请求超时（3分钟）'
+        TIMEOUT_NORMAL, 'timeout: AI请求超时（3分钟）', signal
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        logger.error(`[OpenAI] API 响应错误`, new Error(`${response.status}`), {
+      if (!ok) {
+        logger.error(`[OpenAI] API 响应错误`, new Error(`${status}`), {
           method: 'generateOpenAI',
-          additionalInfo: { status: response.status, errorText: safeStringify(errorText, 500) },
+          additionalInfo: { status, errorText: safeStringify(errorText, 500) },
         });
-        throw new Error(`${response.status} ${errorText}`);
+        throw new Error(`${status} ${errorText}`);
       }
 
-      const data = await response.json() as Record<string, unknown>;
+      const data = json as Record<string, unknown>;
       logger.info(`[OpenAI] 原始响应`, { data: safeStringify(data, 500) });
 
+      const finishReason = (data?.choices as Array<{ finish_reason?: string }> | undefined)?.[0]?.finish_reason;
+      if (finishReason === 'length') {
+        const err = new Error('生成内容达到长度上限被截断');
+        markNonRetryable(err);
+        throw err;
+      }
+
       const content = extractOpenAIContent(data);
-      if (content) {
+      if (content && content.trim()) {
         logger.info(`[OpenAI] 非流式生成完成`, { 长度: content.length });
         return content;
       }
 
       logger.warn(`[OpenAI] 无法解析响应内容`, { data: safeStringify(data, 500) });
-      return '';
-    }, 'OpenAI非流式生成');
+      const err = new Error('模型未返回有效内容（空响应或仅思考过程）');
+      markNonRetryable(err);
+      throw err;
+    }, 'OpenAI非流式生成', signal);
   }
 
   async generateSingleEpisodeWithRetry(

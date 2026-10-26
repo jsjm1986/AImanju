@@ -13,12 +13,27 @@ interface RhythmItemDecision {
 export class SSEHandler {
   private res: Response;
   private closed = false;
+  /** 正常结束（sendDone/sendError/close）后为 true，此时 res 'close' 不算中断 */
+  private gracefulClose = false;
   private heartbeatTimer?: NodeJS.Timeout;
+  private unexpectedCloseCallbacks: Array<() => void> = [];
 
   constructor(res: Response) {
     this.res = res;
     this.setupHeaders();
     this.startHeartbeat();
+    // 无论何种结束方式都必须清理心跳定时器；
+    // 仅在"未走正常关闭流程"的连接断开时通知 onClose 回调
+    this.res.on('close', () => {
+      const unexpected = !this.gracefulClose;
+      this.closed = true;
+      this.stopHeartbeat();
+      if (unexpected) {
+        for (const cb of this.unexpectedCloseCallbacks.splice(0)) {
+          try { cb(); } catch { /* 回调异常不影响清理 */ }
+        }
+      }
+    });
   }
 
   private setupHeaders() {
@@ -44,7 +59,7 @@ export class SSEHandler {
   }
 
   send(event: string, data: unknown) {
-    if (this.closed) return;
+    if (this.closed || this.res.writableEnded || this.res.destroyed) return;
     const payload = typeof data === 'object' && data !== null
       ? { type: event, ...data as object }
       : { type: event, data };
@@ -294,6 +309,7 @@ export class SSEHandler {
   close() {
     if (this.closed) return;
     this.closed = true;
+    this.gracefulClose = true;
     this.stopHeartbeat();
     this.res.end();
   }
@@ -302,11 +318,11 @@ export class SSEHandler {
     return this.closed;
   }
 
+  /**
+   * 注册"意外断开"回调：仅在客户端/传输层中断（非 sendDone/sendError/close 的正常结束）时触发。
+   * 正常完成关闭不会误报为中断。
+   */
   onClose(callback: () => void) {
-    this.res.on('close', () => {
-      this.closed = true;
-      this.stopHeartbeat();
-      callback();
-    });
+    this.unexpectedCloseCallbacks.push(callback);
   }
 }

@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { batchTaskApi } from '@/services/batchTaskApi';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8333/api';
+import { API_BASE, CREATOR_TOKEN_KEY } from '@/services/apiConfig';
 
 export interface Task {
     _id: string;
@@ -76,7 +75,7 @@ export const useTaskManagerStore = defineStore('taskManager', () => {
             return;
         }
 
-        const token = localStorage.getItem('comic-script-creator-token');
+        const token = localStorage.getItem(CREATOR_TOKEN_KEY);
         if (!token) {
             console.warn('[TaskStore] No auth token, skipping SSE connection');
             return;

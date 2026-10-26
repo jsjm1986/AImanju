@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/projectStore';
 import { useEpisodeStore } from '@/stores/episodeStore';
@@ -16,6 +16,10 @@ const authStore = useAuthStore();
 const taskStore = useTaskManagerStore();
 
 const projectId = computed(() => route.params.id as string);
+const projectLoaded = ref(false);
+const projectAuthorized = ref(false);
+const projectLoadError = ref('');
+let projectLoadVersion = 0;
 
 // 侧边栏折叠状态
 const isSidebarCollapsed = ref(true);
@@ -100,25 +104,32 @@ const navItems = computed(() => [
   { path: 'tasks', icon: '⚡', label: '任务', badge: taskStore.runningCount > 0 ? taskStore.runningCount : undefined },
 ]);
 
-onMounted(async () => {
-  if (!currentProject.value) {
-    await projectStore.fetchProjects();
-  }
-  if (currentProject.value) {
+async function loadProject() {
+  const version = ++projectLoadVersion;
+  projectLoaded.value = false;
+  projectAuthorized.value = false;
+  projectLoadError.value = '';
+  const refreshed = await projectStore.fetchProjects();
+  if (version !== projectLoadVersion) return;
+  if (!refreshed) {
+    projectLoadError.value = projectStore.error || '项目加载失败，请重试';
+  } else if (!currentProject.value) {
+    projectLoadError.value = '项目不存在，或当前账号无权访问';
+    projectStore.setCurrentProject(null);
+    episodeStore.clearEpisodes();
+  } else {
     projectStore.setCurrentProject(currentProject.value);
-    await episodeStore.fetchEpisodes(currentProject.value._id);
+    const episodesLoaded = await episodeStore.fetchEpisodes(currentProject.value._id);
+    if (version !== projectLoadVersion) return;
+    if (episodesLoaded) projectAuthorized.value = true;
+    else projectLoadError.value = episodeStore.error || '剧集加载失败，请重试';
   }
-});
+  projectLoaded.value = true;
+}
 
-watch(projectId, async () => {
-  if (!currentProject.value) {
-    await projectStore.fetchProjects();
-  }
-  if (currentProject.value) {
-    projectStore.setCurrentProject(currentProject.value);
-    await episodeStore.fetchEpisodes(currentProject.value._id);
-  }
-});
+onMounted(loadProject);
+watch(projectId, loadProject);
+onBeforeUnmount(() => { projectLoadVersion++; });
 
 const goBack = () => {
   router.push('/');
@@ -143,13 +154,13 @@ const getStatusLabel = (status: string) => {
         <button class="back-btn" @click="goBack" title="返回项目列表">
           <span class="back-icon">←</span>
         </button>
-        <div class="project-info" v-if="currentProject">
+        <div class="project-info" v-if="projectAuthorized && currentProject">
           <h1 class="project-name">{{ currentProject.name }}</h1>
         </div>
       </div>
-      <div class="header-right" v-if="currentProject">
+      <div class="header-right" v-if="projectAuthorized && currentProject">
         <ThemeToggle />
-        <ModelSelector />
+        <ModelSelector class="header-model-selector" />
         <span class="tag">{{ currentProject.genre }}</span>
         <span class="progress">{{ progressText }}</span>
         <span class="status" :class="dynamicStatusClass">{{ dynamicStatusLabel }}</span>
@@ -192,7 +203,18 @@ const getStatusLabel = (status: string) => {
 
       <!-- 内容区 -->
       <main class="content">
-        <router-view />
+        <router-view v-if="projectLoaded && projectAuthorized" :key="projectId" />
+        <div v-else class="project-access-state" role="status" aria-live="polite">
+          <template v-if="!projectLoaded">正在加载项目…</template>
+          <template v-else>
+            <h2>无法打开项目</h2>
+            <p>{{ projectLoadError }}</p>
+            <div class="project-access-actions">
+              <button type="button" @click="loadProject">重试</button>
+              <button type="button" @click="goBack">返回项目列表</button>
+            </div>
+          </template>
+        </div>
       </main>
     </div>
   </div>
@@ -222,7 +244,10 @@ const getStatusLabel = (status: string) => {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  min-width: 0;
 }
+
+.project-info { min-width: 0; }
 
 .back-btn {
   display: flex;
@@ -236,6 +261,7 @@ const getStatusLabel = (status: string) => {
   cursor: pointer;
   color: var(--text-secondary);
   transition: all var(--transition-fast);
+  flex-shrink: 0;
 }
 
 .back-btn:hover {
@@ -253,6 +279,9 @@ const getStatusLabel = (status: string) => {
   font-size: var(--text-lg);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .header-right {
@@ -462,5 +491,38 @@ const getStatusLabel = (status: string) => {
   background: var(--bg-base);
   display: flex;
   flex-direction: column;
+  min-width: 0;
+}
+
+.project-access-state {
+  margin: auto;
+  padding: var(--space-5);
+  text-align: center;
+  color: var(--text-secondary);
+}
+.project-access-state h2 { color: var(--text-primary); }
+.project-access-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); }
+.project-access-actions button {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+@media (max-width: 640px) {
+  .project-header {
+    height: auto;
+    min-height: var(--header-height);
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+  .header-right { flex-wrap: wrap; gap: var(--space-2); }
+  .header-model-selector { min-width: 0; }
+  .header-right .tag, .header-right .progress, .header-right .status { white-space: nowrap; }
+  .sidebar { width: 48px; }
 }
 </style>

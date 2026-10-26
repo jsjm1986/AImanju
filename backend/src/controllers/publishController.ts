@@ -1,8 +1,10 @@
 import { Router, Request, Response } from 'express';
 import { ProjectPublish } from '../models/ProjectPublish';
 import { Project } from '../models/Project';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router);
 
 /**
  * 获取项目发布配置

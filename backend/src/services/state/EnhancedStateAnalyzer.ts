@@ -3,6 +3,7 @@
  * 与 WorldStateManager 集成，输出完整的 JSON 分析结果
  */
 
+import { throwIfContextAborted } from '../ai/AIClient';
 import { Character } from '../../models/Character';
 import { GrowthEventType } from '../../models/CharacterEnhancement';
 import { RelationshipEventType, RelationshipImpact, RelationshipLevel } from '../../models/CharacterRelationship';
@@ -80,6 +81,7 @@ export class EnhancedStateAnalyzer {
     const MAX_RETRIES = 2;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      throwIfContextAborted();
       try {
         console.log(`${LOG_PREFIX} AI 分析尝试 ${attempt}/${MAX_RETRIES}...`);
         const response = await this.aiClient.generate('', prompt, TOKEN_LIMIT);
@@ -104,14 +106,18 @@ export class EnhancedStateAnalyzer {
         console.log(`  - 新埋伏笔: ${analysis.foreshadowingPlanted?.length || 0}个`);
         break;
       } catch (error) {
+        // 中止错误不可作为可恢复 JSON/AI 失败处理：直接向上传播
+        if ((error as Error)?.name === 'AbortError' || (error as Error)?.message === '请求已取消') throw error;
         console.error(`${LOG_PREFIX} 第${episode}集分析失败 (尝试 ${attempt}):`, error);
         if (attempt < MAX_RETRIES) { await delay(1000); }
       }
     }
+    throwIfContextAborted();
 
     analysis = this.sanitizeAnalysisResult(analysis);
 
     if (autoUpdate) {
+      throwIfContextAborted(); // 中止后不再写入状态
       await this.applyUpdates(episode, analysis);
     }
 

@@ -7,6 +7,7 @@ interface ProjectState {
   currentProject: Project | null;
   loading: boolean;
   error: string | null;
+  fetchVersion: number;
 }
 
 export const useProjectStore = defineStore('project', {
@@ -15,6 +16,7 @@ export const useProjectStore = defineStore('project', {
     currentProject: null,
     loading: false,
     error: null,
+    fetchVersion: 0,
   }),
 
   getters: {
@@ -25,14 +27,20 @@ export const useProjectStore = defineStore('project', {
 
   actions: {
     async fetchProjects() {
+      const version = ++this.fetchVersion;
       this.loading = true;
       this.error = null;
       try {
         const { data } = await projectApi.getAll();
+        if (version !== this.fetchVersion) return false;
         if (data.success && data.data) {
           this.projects = data.data;
+          return true;
         }
+        this.error = data.error || '获取项目失败';
+        return false;
       } catch (error: any) {
+        if (version !== this.fetchVersion) return false;
         const status = error.response?.status;
         if (status === 401) {
           // Token 无效，API 拦截器会处理跳转
@@ -45,8 +53,9 @@ export const useProjectStore = defineStore('project', {
         } else {
           this.error = error.friendlyMessage || error.response?.data?.error || error.message || '获取项目失败';
         }
+        return false;
       } finally {
-        this.loading = false;
+        if (version === this.fetchVersion) this.loading = false;
       }
     },
 

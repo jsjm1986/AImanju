@@ -2,8 +2,12 @@ import { Request, Response, Router } from 'express';
 import mongoose from 'mongoose';
 import { ValidationReport } from '../models/ValidationReport';
 import { ValidationIssue as BackendIssue, ScriptValidator } from '../services/validation/ScriptValidator';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: { id: (id) => ValidationReport.findById(id).select('projectId').exec() },
+});
 
 interface FrontendIssue {
   type: 'error' | 'warning' | 'info';

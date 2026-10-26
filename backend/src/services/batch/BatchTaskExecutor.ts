@@ -1,5 +1,7 @@
 import axios from 'axios';
 import { BatchTask, IBatchTask, IFailedEpisode, ITaskStats } from '../../models/BatchTask';
+import { Project } from '../../models/Project';
+import { generateCreatorToken } from '../../middleware/creatorMiddleware';
 import { SSECallbackAdapter } from './SSECallbackAdapter';
 import { broadcastTaskLog, broadcastTaskUpdate } from '../../controllers/taskManagerController';
 
@@ -17,7 +19,7 @@ export class BatchTaskExecutor {
 
     private pausedTasks: Set<string> = new Set();
     private activeTaskLocks: Map<string, number> = new Map();
-    private currentAbortController: AbortController | null = null;
+    private abortControllers: Map<string, AbortController> = new Map();
     private taskCreatorMap: Map<string, string> = new Map();
 
     private constructor() { }
@@ -304,14 +306,16 @@ export class BatchTaskExecutor {
         projectId: string,
         episodeNumber: number
     ): Promise<void> {
-        this.currentAbortController = new AbortController();
+        // 每任务独立 AbortController：并发任务的超时/清理互不影响
+        const controller = new AbortController();
+        this.abortControllers.set(taskId, controller);
         const timeoutId = setTimeout(() => {
             console.log(`[BatchTaskExecutor] Episode ${episodeNumber} timeout, aborting request...`);
-            this.currentAbortController?.abort();
+            controller.abort();
         }, this.EPISODE_TIMEOUT);
 
         try {
-            await this.callGenerationAPI(taskId, projectId, episodeNumber, this.currentAbortController.signal);
+            await this.callGenerationAPI(taskId, projectId, episodeNumber, controller.signal);
         } catch (error: any) {
             if (error.name === 'CanceledError' || error.message?.includes('aborted')) {
                 throw new Error('TIMEOUT');
@@ -319,8 +323,20 @@ export class BatchTaskExecutor {
             throw error;
         } finally {
             clearTimeout(timeoutId);
-            this.currentAbortController = null;
+            if (this.abortControllers.get(taskId) === controller) {
+                this.abortControllers.delete(taskId);
+            }
         }
+    }
+
+    /** 解析任务归属创建者：内存映射优先，回退到项目存储的 creatorId（兼容恢复的旧任务） */
+    private async resolveTaskCreator(taskId: string, projectId: string): Promise<string | null> {
+        const mapped = this.taskCreatorMap.get(taskId);
+        if (mapped) return mapped;
+        const project = await Project.findById(projectId);
+        const owner = project?.creatorId?.toString() || null;
+        if (owner) this.taskCreatorMap.set(taskId, owner);
+        return owner;
     }
 
     /**
@@ -337,8 +353,20 @@ export class BatchTaskExecutor {
         });
 
         const port = process.env.PORT || 8333;
-        const host = process.env.HOST || 'localhost';
-        const url = `http://${host}:${port}/api/world-state/generate-script-enhanced`;
+        // 创作者令牌只发往本地回环地址（即使 HOST 配置为非本地，令牌绝不离开本机）
+        const url = `http://127.0.0.1:${port}/api/world-state/generate-script-enhanced`;
+
+        // 生成接口要求创作者认证：以任务归属创建者签发令牌，仅发往本机后端；
+        // 无法确定归属的任务显式失败，绝不匿名调用
+        const creatorId = await this.resolveTaskCreator(taskId, projectId);
+        if (!creatorId) {
+            throw new Error(`任务 ${taskId} 缺少创建者信息，无法调用生成接口`);
+        }
+
+        // 任务记录的模型随请求传递（服务端校验并做请求级快照，不全局切换）
+        const task = await BatchTask.findById(taskId).select('modelName');
+        const modelName = task?.modelName;
+
         console.log(`[BatchTaskExecutor] Calling generation API: ${url}`);
 
         return new Promise((resolve, reject) => {
@@ -354,12 +382,15 @@ export class BatchTaskExecutor {
 
             axios.post(
                 url,
-                { projectId, episodeNumber, useWorldState: true },
+                { projectId, episodeNumber, useWorldState: true, modelName },
                 {
                     responseType: 'stream',
                     timeout: this.EPISODE_TIMEOUT,
                     signal,
-                    headers: { 'Accept': 'text/event-stream' }
+                    headers: {
+                        'Accept': 'text/event-stream',
+                        'Authorization': `Bearer ${generateCreatorToken(creatorId)}`,
+                    }
                 }
             ).then(response => {
                 let buffer = '';

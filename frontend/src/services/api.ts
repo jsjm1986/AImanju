@@ -32,11 +32,10 @@ import type {
   ValidationResult
 } from '@/types';
 import axios from 'axios';
+import { API_BASE, apiUrl, CREATOR_TOKEN_KEY as TOKEN_KEY } from './apiConfig';
+import { postSSE } from './sseClient';
 
 export type { ICharacterCharm, ICharacterVoice } from '@/types';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8333/api';
-const TOKEN_KEY = 'comic-script-creator-token';
 
 const http = axios.create({
   baseURL: API_BASE,
@@ -166,7 +165,7 @@ export function createSSEConnection(url: string, callbacks: {
   onError?: (error: Error) => void;
   onDone?: () => void;
 }) {
-  const eventSource = new EventSource(`${API_BASE}${url}`);
+  const eventSource = new EventSource(apiUrl(url));
 
   eventSource.onmessage = (e) => {
     try {
@@ -189,68 +188,18 @@ export function createSSEConnection(url: string, callbacks: {
   return eventSource;
 }
 
-async function parseSSEStream(
-  response: Response,
-  onBlock: (eventType: string, data: unknown) => void,
-  onError?: (error: Error) => void
-): Promise<void> {
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error('无法读取响应流');
-
-  const decoder = new TextDecoder();
-  let buffer = '';
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-      if (buffer.trim()) {
-        processBlock(buffer);
-      }
-      break;
-    }
-
-    buffer += decoder.decode(value, { stream: true });
-    const blocks = buffer.split('\n\n');
-    buffer = blocks.pop() || '';
-
-    for (const block of blocks) {
-      if (!block.trim()) continue;
-      processBlock(block);
-    }
-  }
-
-  function processBlock(block: string) {
-    const lines = block.split('\n');
-    let eventType = '';
-    const dataLines: string[] = [];
-
-    for (const line of lines) {
-      if (line.startsWith('event: ')) {
-        eventType = line.slice(7).trim();
-      } else if (line.startsWith('data: ')) {
-        dataLines.push(line.slice(6).trim());
-      }
-    }
-
-    const dataContent = dataLines.join('\n');
-    if (!dataContent) return;
-
-    try {
-      const data = JSON.parse(dataContent);
-      onBlock(data.type || eventType, data);
-    } catch (e) {
-      console.error('[SSE] 解析数据失败:', e, dataContent);
-      onError?.(e as Error);
-    }
-  }
-}
-
+/**
+ * 统一 POST-SSE 连接（共享底层消费器）。
+ * - terminalEvents 按调用方约定终止事件；默认 'done'（SSEHandler 端点）
+ * - EOF 无终止 => '连接中断，未收到完成确认，可重试'；error 事件仅触发一次 onError
+ * - options.signal 主动取消静默；onComplete 被 await
+ */
 export async function createPostSSEConnection(
   url: string,
   body: Record<string, unknown>,
   callbacks: {
     onChunk?: (text: string) => void;
-    onProgress?: (data: { current: number; total: number; status: string }) => void;
+    onProgress?: (data: any) => void;
     onLog?: (data: { message: string; level: string; timestamp: number }) => void;
     onContext?: (data: unknown) => void;
     onAnalysis?: (data: unknown) => void;
@@ -259,34 +208,26 @@ export async function createPostSSEConnection(
     onConstraintValidation?: (data: any) => void;
     onRetryNotification?: (data: any) => void;
     onAIConstraintDecision?: (data: any) => void;
-    onComplete?: (data: unknown) => void;
+    onComplete?: (data: unknown) => void | Promise<void>;
     onError?: (error: Error) => void;
-  }
+  },
+  options?: { signal?: AbortSignal; terminalEvents?: readonly string[] }
 ): Promise<void> {
-  try {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-    const response = await fetch(`${API_BASE}${url}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    await parseSSEStream(response, (type, data) => {
+  const progressLike = new Set([
+    'start', 'progress', 'episode_start', 'episode_complete', 'episode_chunk',
+    'episode_failed', 'batch_progress', 'step_start', 'step_done', 'checkpoint',
+    'budgetAllocation', 'preparing', 'all_complete', 'window_start',
+    'window_progress', 'init', 'multiple', 'fix', 'complete', 'done', 'result',
+  ]);
+  await postSSE(url, body, {
+    terminalEvents: options?.terminalEvents || ['done'],
+    signal: options?.signal,
+    onError: (e) => callbacks.onError?.(e),
+    onTerminal: async (_type, data) => { await callbacks.onComplete?.(data); },
+    onEvent: (type, data) => {
       switch (type) {
         case 'chunk':
-          callbacks.onChunk?.((data as any).content || (data as any).text || '');
-          break;
-        case 'start':
-        case 'progress':
-        case 'episode_start':
-        case 'episode_complete':
-          callbacks.onProgress?.(data as any);
+          callbacks.onChunk?.((data as any).content ?? (data as any).chunk ?? (data as any).text ?? '');
           break;
         case 'log':
           callbacks.onLog?.(data as any);
@@ -312,21 +253,15 @@ export async function createPostSSEConnection(
         case 'aiConstraintDecision':
           callbacks.onAIConstraintDecision?.(data);
           break;
-        case 'done':
-        case 'complete':
-        case 'result':
-          callbacks.onComplete?.(data);
-          break;
-        case 'error':
-          callbacks.onError?.(new Error((data as any).message || (data as any).error || '未知错误'));
-          break;
         default:
-          console.log('[SSE] 未知消息类型:', type, data);
+          if (progressLike.has(type)) {
+            callbacks.onProgress?.(data as any);
+          } else {
+            console.log('[SSE] 未知消息类型:', type, data);
+          }
       }
-    }, callbacks.onError);
-  } catch (error) {
-    callbacks.onError?.(error as Error);
-  }
+    },
+  });
 }
 
 export const foreshadowingApi = {
@@ -432,7 +367,7 @@ export const validationApi = {
       const report = d.report as Record<string, unknown> | undefined;
 
       if (report) {
-        callbacks.onComplete?.({
+        return callbacks.onComplete?.({
           success: (d.success as boolean) || false,
           issues: (report.issues as ValidationIssue[]) || [],
           summary: (report.summary as { errors: number; warnings: number; info: number }) || { errors: 0, warnings: 0, info: 0 },
@@ -446,11 +381,11 @@ export const validationApi = {
           },
         });
       } else {
-        callbacks.onComplete?.(data as ValidationResult);
+        return callbacks.onComplete?.(data as ValidationResult);
       }
     },
     onError: callbacks.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   validateRange: (
     projectId: string,
@@ -466,14 +401,14 @@ export const validationApi = {
     onProgress: (data) => parseValidationProgress(data as Record<string, unknown>, callbacks),
     onComplete: (data) => {
       const d = data as Record<string, unknown>;
-      callbacks.onComplete?.({
+      return callbacks.onComplete?.({
         success: (d.success as boolean) || false,
         issues: (d.issues as ValidationIssue[]) || [],
         summary: (d.summary as { errors: number; warnings: number; info: number }) || { errors: 0, warnings: 0, info: 0 },
       });
     },
     onError: callbacks.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   getWindows: (projectId: string) =>
     http.get<{ windows: Array<{ start: number; end: number }> }>(`/validation/windows/${projectId}`),
@@ -557,7 +492,7 @@ export const rewriteApi = {
     onChunk: callbacks.onChunk,
     onComplete: (data) => callbacks.onComplete?.(data as RewriteResult),
     onError: callbacks.onError,
-  }),
+  }, { terminalEvents: ['result'] }),
 
   apply: (historyId: string, projectId: string) =>
     http.post<{ success: boolean }>(`/rewrite/apply/${historyId}`, { projectId }),
@@ -621,7 +556,7 @@ export const rewriteApi = {
     },
     onComplete: (data) => callbacks.onComplete?.((data as { results: RewriteResult[] }).results),
     onError: callbacks.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 };
 
 export const stateApi = {
@@ -675,7 +610,7 @@ export const stateApi = {
     },
     onComplete: (data) => callbacks.onComplete?.((data as { results: StateAnalysisResult[] }).results),
     onError: callbacks.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   deleteAfterEpisode: (projectId: string, episodeNumber: number) =>
     http.delete<{ success: boolean; deletedCount: number }>(`/state/after/${episodeNumber}`, {
@@ -760,9 +695,10 @@ export const worldStateApi = {
       onConstraintValidation?: (data: unknown) => void;
       onRetryNotification?: (data: unknown) => void;
       onAIConstraintDecision?: (data: unknown) => void;
-      onComplete?: (data: { projectId: string; episodeNumber: number; wordCount: number; validationInfo?: { satisfactionRate: number; attempts: number; criticalViolations: number; importantViolations: number } }) => void;
+      onComplete?: (data: { projectId: string; episodeNumber: number; wordCount: number; validationInfo?: { satisfactionRate: number; attempts: number; criticalViolations: number; importantViolations: number } }) => void | Promise<void>;
       onError?: (error: Error) => void;
-    }
+    },
+    options?: { signal?: AbortSignal }
   ) =>
     createPostSSEConnection(
       '/world-state/generate-script-enhanced',
@@ -778,11 +714,10 @@ export const worldStateApi = {
         onConstraintValidation: callbacks.onConstraintValidation,
         onRetryNotification: callbacks.onRetryNotification,
         onAIConstraintDecision: callbacks.onAIConstraintDecision,
-        onComplete: (data) => {
-          callbacks.onComplete?.(data as { projectId: string; episodeNumber: number; wordCount: number; validationInfo?: { satisfactionRate: number; attempts: number; criticalViolations: number; importantViolations: number } });
-        },
+        onComplete: (data) => callbacks.onComplete?.(data as { projectId: string; episodeNumber: number; wordCount: number; validationInfo?: { satisfactionRate: number; attempts: number; criticalViolations: number; importantViolations: number } }),
         onError: callbacks.onError,
-      }
+      },
+      { signal: options?.signal }
     ),
 };
 
@@ -946,34 +881,16 @@ export const batchRewriteApi = {
       onError?: (error: Error) => void;
     }
   ): Promise<void> => {
-    try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      const response = await fetch(`${API_BASE}/batch-rewrite/plan`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(params),
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      await parseSSEStream(response, (type, data: any) => {
-        if (type === 'progress') {
-          callbacks.onProgress?.(data.stage, data.detail);
-        } else if (type === 'chunk') {
-          callbacks.onChunk?.(data.content);
-        } else if (type === 'complete' || type === 'done') {
-          if (data.plan) callbacks.onComplete?.(data.plan);
-        } else if (type === 'error') {
-          callbacks.onError?.(new Error(data.error || '未知错误'));
-        }
-      }, callbacks.onError);
-    } catch (error) {
-      callbacks.onError?.(error as Error);
-    }
+    await createPostSSEConnection('/batch-rewrite/plan', params as unknown as Record<string, unknown>, {
+      onProgress: (data: any) => {
+        if (data.type === 'progress') callbacks.onProgress?.(data.stage, data.detail);
+      },
+      onChunk: (text) => callbacks.onChunk?.(text),
+      onComplete: (data: any) => {
+        if (data.plan) return callbacks.onComplete?.(data.plan);
+      },
+      onError: callbacks.onError,
+    }, { terminalEvents: ['done'] });
   },
 
   execute: async (
@@ -989,49 +906,22 @@ export const batchRewriteApi = {
       onError?: (error: Error) => void;
     }
   ): Promise<void> => {
-    try {
-      const token = localStorage.getItem(TOKEN_KEY);
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-      const response = await fetch(`${API_BASE}/batch-rewrite/execute`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ projectId, plan }),
-      });
-
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      await parseSSEStream(response, (type, data: any) => {
-        switch (type) {
-          case 'preparing':
-            callbacks.onPreparing?.(data.message);
-            break;
-          case 'episode_start':
-            callbacks.onEpisodeStart?.(data.episodeNumber, data.total);
-            break;
-          case 'episode_chunk':
-            callbacks.onEpisodeChunk?.(data.episodeNumber, data.chunk);
-            break;
-          case 'episode_complete':
-            callbacks.onEpisodeComplete?.(data.result);
-            break;
-          case 'episode_failed':
-            callbacks.onEpisodeFailed?.(data.episodeNumber, data.error);
-            break;
-          case 'all_complete':
-          case 'done':
-            if (data.result) callbacks.onAllComplete?.(data.result);
-            break;
-          case 'error':
-            callbacks.onError?.(new Error(data.error || '未知错误'));
-            break;
+    await createPostSSEConnection('/batch-rewrite/execute', { projectId, plan } as unknown as Record<string, unknown>, {
+      onProgress: (data: any) => {
+        switch (data.type) {
+          case 'preparing': callbacks.onPreparing?.(data.message); break;
+          case 'episode_start': callbacks.onEpisodeStart?.(data.episodeNumber, data.total); break;
+          case 'episode_chunk': callbacks.onEpisodeChunk?.(data.episodeNumber, data.chunk); break;
+          case 'episode_complete': callbacks.onEpisodeComplete?.(data.result); break;
+          case 'episode_failed': callbacks.onEpisodeFailed?.(data.episodeNumber, data.error); break;
+          // 注：all_complete 为服务端中间事件，最终完成仅由终止事件 done 触发一次
         }
-      }, callbacks.onError);
-    } catch (error) {
-      callbacks.onError?.(error as Error);
-    }
+      },
+      onComplete: (data: any) => {
+        if (data.result) return callbacks.onAllComplete?.(data.result);
+      },
+      onError: callbacks.onError,
+    }, { terminalEvents: ['done'] });
   },
 
   apply: (params: {
@@ -1276,7 +1166,7 @@ export const fixApi = {
     },
     onComplete: (data) => {
       const d = data as Record<string, unknown>;
-      callbacks?.onComplete?.({
+      return callbacks?.onComplete?.({
         success: (d.success as boolean) || false,
         analysis: (d.analysis as string) || '',
         affectedEpisodes: (d.affectedEpisodes as number[]) || undefined,
@@ -1284,7 +1174,7 @@ export const fixApi = {
       });
     },
     onError: callbacks?.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   execute: (
     projectId: string,
@@ -1315,7 +1205,7 @@ export const fixApi = {
       const d = data as Record<string, unknown>;
       if (d.type === 'complete' && d.result) {
         const result = d.result as Record<string, unknown>;
-        callbacks?.onComplete?.({
+        return callbacks?.onComplete?.({
           originalContent: (result.originalContent as string) || '',
           fixedContent: (result.fixedContent as string) || '',
           wordCountDiff: (result.wordCountDiff as number) || 0,
@@ -1323,7 +1213,7 @@ export const fixApi = {
       }
     },
     onError: callbacks?.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   apply: (data: {
     projectId: string;
@@ -1361,11 +1251,11 @@ export const fixApi = {
     onComplete: (data) => {
       const d = data as Record<string, unknown>;
       if (d.results) {
-        callbacks?.onComplete?.(d.results as Array<{ analysis: string; plans: FixPlan[] }>);
+        return callbacks?.onComplete?.(d.results as Array<{ analysis: string; plans: FixPlan[] }>);
       }
     },
     onError: callbacks?.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   getHistory: (projectId: string) =>
     http.get<{ history: FixHistory[]; stats: FixHistoryStats }>(`/fix/history/${projectId}`),
@@ -1387,7 +1277,7 @@ export const fixApi = {
     },
     onComplete: (data) => {
       const d = data as Record<string, unknown>;
-      callbacks?.onComplete?.({
+      return callbacks?.onComplete?.({
         success: (d.success as boolean) || false,
         analysis: (d.analysis as string) || '',
         affectedEpisodes: (d.affectedEpisodes as AffectedEpisode[]) || [],
@@ -1396,7 +1286,7 @@ export const fixApi = {
       });
     },
     onError: callbacks?.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   executeCrossEpisode: (
     projectId: string,
@@ -1438,10 +1328,10 @@ export const fixApi = {
     },
     onComplete: (data) => {
       const d = data as Record<string, unknown>;
-      callbacks?.onComplete?.((d.results as MultiEpisodeFixResult[]) || []);
+      return callbacks?.onComplete?.((d.results as MultiEpisodeFixResult[]) || []);
     },
     onError: callbacks?.onError,
-  }),
+  }, { terminalEvents: ['complete'] }),
 
   applyCrossEpisode: (data: {
     projectId: string;
@@ -1499,6 +1389,7 @@ export interface AIModel {
   brand: string;
   model: string;
   configured: boolean;
+  unavailableReason?: string;
 }
 
 export interface CurrentModelInfo {
@@ -1519,7 +1410,7 @@ export const aiModelApi = {
     http.post<{ success: boolean; currentModel: CurrentModelInfo }>('/ai/models/switch', { modelName }),
 
   testModel: (modelName?: string) =>
-    http.post<{ success: boolean; message: string; latency?: number }>('/ai/models/test', { modelName }),
+    http.post<{ success: boolean; message: string; latency?: number }>('/ai/models/test', { modelName }, { timeout: 45000 }),
 };
 
 export default http;

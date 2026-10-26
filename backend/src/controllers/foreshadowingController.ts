@@ -7,8 +7,13 @@ import { Router, Request, Response } from 'express';
 import { foreshadowingRepository } from '../repositories/ForeshadowingRepository';
 import { PlotThreadValidator } from '../services/foreshadowing/PlotThreadValidator';
 import { ForeshadowingManager, ForeshadowingContext } from '../services/foreshadowing/ForeshadowingManager';
+import { Foreshadowing } from '../models/Foreshadowing';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: { id: (id) => Foreshadowing.findById(id).select('projectId').exec() },
+});
 
 // ==================== 基础 CRUD ====================
 

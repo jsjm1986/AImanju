@@ -4,7 +4,8 @@
  * 支持状态持久化，切换页面后保留生成记录
  */
 
-import { worldStateApi } from '@/services/api';
+import { episodeApi, worldStateApi } from '@/services/api';
+import { humanizeError } from '@/services/apiConfig';
 import type {
   IContextPreview,
   IGenerationProgress,
@@ -12,11 +13,6 @@ import type {
 import { defineStore } from 'pinia';
 import { computed, ref, watch, onScopeDispose } from 'vue';
 
-declare global {
-  interface Window {
-    sseAbortController?: AbortController;
-  }
-}
 
 // 日志条目类型
 interface ILogEntry {
@@ -504,16 +500,27 @@ export const useGenerationStore = defineStore('generation', () => {
       contextPreview.value = data;
       return data;
     } catch (e) {
-      error.value = (e as Error).message;
+      error.value = (e as { friendlyMessage?: string })?.friendlyMessage || humanizeError(e);
       return null;
     }
   }
 
-  // 开始生成
-  async function startGeneration(projectId: string, episodeNumber: number) {
+  // 私有的连接控制（不再使用 window 全局）与运行标识：旧回调不会写入新运行
+  let abortController: AbortController | null = null;
+  let runSeq = 0;
+
+  // 开始生成；返回 true 表示收到服务端 done（终态成功），停止/失败返回 false
+  async function startGeneration(projectId: string, episodeNumber: number): Promise<boolean> {
+    if (isGenerating.value) {
+      addLog('⚠️ 已有正在进行的生成，忽略重复启动', 'warn');
+      return false;
+    }
     // 重置状态
     resetGenerationState();
     isGenerating.value = true;
+    const myRun = ++runSeq;
+    abortController = new AbortController();
+    let doneOk = false;
     // 保存当前生成的项目和集数信息
     currentProjectId.value = projectId;
     currentEpisodeNumber.value = episodeNumber;
@@ -524,6 +531,7 @@ export const useGenerationStore = defineStore('generation', () => {
     try {
       await worldStateApi.generateEnhanced(projectId, episodeNumber, {
         onProgress: (data) => {
+          if (myRun !== runSeq) return;
           progress.value = {
             current: data.current,
             total: data.total,
@@ -532,9 +540,11 @@ export const useGenerationStore = defineStore('generation', () => {
           };
         },
         onLog: (data) => {
+          if (myRun !== runSeq) return;
           addLog(data.message, data.level as 'info' | 'warn' | 'error');
         },
         onContext: (data: any) => {
+          if (myRun !== runSeq) return;
           context.value = data;
           const charCount = data.relevantCharacters?.length || 0;
           const foreCount = data.relevantForeshadowings?.length || 0;
@@ -544,10 +554,12 @@ export const useGenerationStore = defineStore('generation', () => {
           }
         },
         onAnalysis: (data: any) => {
+          if (myRun !== runSeq) return;
           analysis.value = data;
           addLog(`📊 分析完成：${data.characterUpdates}个角色更新, ${data.foreshadowingPlanted.length}个新伏笔`);
         },
         onMultiHeadAnalysis: (data: any) => {
+          if (myRun !== runSeq) return;
           multiHeadAnalysis.value = data;
           addLog(`🧠 多头注意力分析完成：${data.enabledHeads.length}个注意力头`);
           if (data.crossDimensionInsights.length > 0) {
@@ -558,6 +570,7 @@ export const useGenerationStore = defineStore('generation', () => {
           }
         },
         onCharacterLifecycle: (data: any) => {
+          if (myRun !== runSeq) return;
           characterLifecycle.value = data;
           if (data.tierChanges.length > 0) {
             addLog(`👤 角色层级变化: ${data.tierChanges.length}个`);
@@ -570,6 +583,7 @@ export const useGenerationStore = defineStore('generation', () => {
           }
         },
         onConstraintValidation: (data: any) => {
+          if (myRun !== runSeq) return;
           constraintValidation.value = data;
           const rate = (data.satisfactionRate * 100).toFixed(1);
           addLog(`🔍 约束验证完成：满足率 ${rate}%`);
@@ -587,6 +601,7 @@ export const useGenerationStore = defineStore('generation', () => {
           }
         },
         onAIConstraintDecision: (data: any) => {
+          if (myRun !== runSeq) return;
           aiConstraintDecision.value = data;
           addLog(`🤖 AI 约束决策完成：${data.stats.totalConstraints}个约束`);
           addLog(`  - 可验证: ${data.stats.verifiableCount}, 指导性: ${data.stats.guidanceCount}`);
@@ -610,6 +625,7 @@ export const useGenerationStore = defineStore('generation', () => {
         //   }
         // },
         onRetryNotification: (data: any) => {
+          if (myRun !== runSeq) return;
           retryNotifications.value.push(data);
           addLog(`🔄 重试通知：第${data.attemptNumber}次尝试（共${data.maxAttempts}次）`, 'warn');
           addLog(`  原因: ${data.reason}`);
@@ -618,36 +634,65 @@ export const useGenerationStore = defineStore('generation', () => {
           }
         },
         onChunk: (text) => {
+          if (myRun !== runSeq) return; // 旧运行回调不得写入新运行
           generatedContent.value += text;
           wordCount.value = generatedContent.value.length;
         },
-        onComplete: (data: { wordCount?: number; validationInfo?: { satisfactionRate: number; attempts: number; criticalViolations: number; importantViolations: number } }) => {
-          progress.value = {
-            current: 100,
-            total: 100,
-            step: '完成',
-            message: `生成完成，共 ${data.wordCount || wordCount.value} 字`,
-          };
-          if (data.wordCount) {
-            wordCount.value = data.wordCount;
-          }
-          addLog(`✅ 生成完成，共 ${data.wordCount || wordCount.value} 字`);
+        onComplete: async (data: { wordCount?: number; validationInfo?: { satisfactionRate: number; attempts: number; criticalViolations: number; importantViolations: number } }) => {
+          if (myRun !== runSeq) return;
           if (data.validationInfo) {
             const rate = (data.validationInfo.satisfactionRate * 100).toFixed(1);
             addLog(`📊 验证统计：满足率 ${rate}%，尝试 ${data.validationInfo.attempts} 次`);
           }
-          isGenerating.value = false;
+          // 以服务端持久化的最终选定版本为准（而非流式拼接内容）；
+          // 读取失败不得用拼接内容冒充成功；成功提示仅在持久化读取验证后
+          try {
+            const resp = await episodeApi.getByNumber(projectId, episodeNumber);
+            if (myRun !== runSeq) return; // await 后先校验运行身份再写状态
+            const saved = (resp.data as { data?: { content?: string; wordCount?: number } })?.data;
+            if (saved?.content) {
+              generatedContent.value = saved.content;
+              wordCount.value = saved.wordCount ?? saved.content.length;
+            } else {
+              throw new Error('已保存剧本为空');
+            }
+          } catch (e) {
+            if (myRun !== runSeq) return;
+            error.value = `生成已完成但读取已保存剧本失败: ${(e as { friendlyMessage?: string })?.friendlyMessage || humanizeError(e)}`;
+            addLog(`❌ ${error.value}`, 'error');
+            return;
+          }
+          if (myRun !== runSeq) return;
+          progress.value = {
+            current: 100,
+            total: 100,
+            step: '完成',
+            message: `生成完成，共 ${wordCount.value} 字`,
+          };
+          addLog(`✅ 生成完成，共 ${wordCount.value} 字`);
+          doneOk = true;
         },
         onError: (err) => {
+          if (myRun !== runSeq) return;
           error.value = err.message;
           addLog(`❌ 错误: ${err.message}`, 'error');
           isGenerating.value = false;
         },
-      });
+      }, { signal: abortController.signal });
+      if (myRun === runSeq) isGenerating.value = false;
+      return doneOk && myRun === runSeq;
     } catch (e) {
-      error.value = (e as Error).message;
-      addLog(`❌ 生成失败: ${(e as Error).message}`, 'error');
+      if (myRun !== runSeq) return false;
+      if ((e as Error)?.name === 'AbortError') {
+        isGenerating.value = false;
+        return false;
+      }
+      error.value = (e as { friendlyMessage?: string })?.friendlyMessage || humanizeError(e);
+      addLog(`❌ 生成失败: ${error.value}`, 'error');
       isGenerating.value = false;
+      return false;
+    } finally {
+      if (myRun === runSeq) abortController = null;
     }
   }
 
@@ -670,18 +715,20 @@ export const useGenerationStore = defineStore('generation', () => {
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  // 停止生成
+  // 停止生成：真正中断底层连接
   function stopGeneration() {
-    if (window.sseAbortController) {
-      window.sseAbortController.abort();
-      window.sseAbortController = undefined;
+    runSeq++; // 使在途回调失效
+    if (abortController) {
+      abortController.abort();
+      abortController = null;
     }
     isGenerating.value = false;
     addLog('⚠️ 生成已停止', 'warn');
   }
 
-  // 完全重置
+  // 完全重置：先中止在途运行
   function reset() {
+    if (isGenerating.value || abortController) stopGeneration();
     resetGenerationState();
     isGenerating.value = false;
     contextPreview.value = null;

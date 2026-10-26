@@ -6,6 +6,7 @@ import cors from 'cors';
 import express from 'express';
 import mongoose from 'mongoose';
 import { creatorAuth } from './middleware/creatorMiddleware';
+import { requestLogger } from './middleware/requestLogger';
 
 // 路由
 import aiController from './controllers/aiController';
@@ -40,8 +41,9 @@ const HOST = process.env.HOST || '0.0.0.0';  // 默认监听所有网卡
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/comic-script';
 
 // 中间件
-app.use(cors());
+app.use(cors({ exposedHeaders: ['X-Request-ID'] }));
 app.use(express.json({ limit: '10mb' }));
+app.use(requestLogger);
 
 // API 路由
 app.use('/api/projects', projectController);
@@ -89,10 +91,17 @@ app.get('/api/docs', getDocsList);                    // 获取文档列表
 app.get('/api/docs/:docId', getDocContent);           // 获取指定文档
 app.get('/api/docs/engineering', getEngineeringDoc);  // 兼容旧API
 
-// 健康检查
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// 健康检查（含数据库连通性）
+const healthHandler = (req: express.Request, res: express.Response) => {
+  const dbReady = mongoose.connection.readyState === 1;
+  res.status(dbReady ? 200 : 503).json({
+    status: dbReady ? 'ok' : 'degraded',
+    db: dbReady ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+  });
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // 连接 MongoDB 并启动服务器
 async function start() {

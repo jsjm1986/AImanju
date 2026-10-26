@@ -335,16 +335,21 @@ const handleGenerate = async () => {
 };
 
 const executeGeneration = async () => {
+  const targetProjectId = projectId.value;
+  const targetEpisode = currentEpisodeNumber.value;
   scriptContent.value = '';
   openDrawer('progress');
   showConfigConfirmationModal.value = false;
-  await generationStore.startGeneration(projectId.value, currentEpisodeNumber.value);
+  const ok = await generationStore.startGeneration(targetProjectId, targetEpisode);
+  if (!ok) return; // 停止或失败：不弹成功提示，保留已流式内容
+  // 路由/集数已变化则不回写、不提示
+  if (projectId.value !== targetProjectId || currentEpisodeNumber.value !== targetEpisode) return;
+  // generatedContent 已是服务端持久化的最终选定版本
   scriptContent.value = generationStore.generatedContent;
-  if (!generationStore.error) {
-    await episodeStore.fetchEpisodes(projectId.value);
-    await worldStateStore.fetchWorldState(projectId.value, currentEpisodeNumber.value);
-    toast.success(`第${currentEpisodeNumber.value}集生成完成`);
-  }
+  await episodeStore.fetchEpisodes(targetProjectId);
+  await worldStateStore.fetchWorldState(targetProjectId, targetEpisode);
+  if (projectId.value !== targetProjectId || currentEpisodeNumber.value !== targetEpisode) return;
+  toast.success(`第${targetEpisode}集生成完成`);
 };
 
 const handleBatchGenerate = async () => {

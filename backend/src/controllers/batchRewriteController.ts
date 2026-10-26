@@ -4,8 +4,14 @@
 
 import { Request, Response, Router } from 'express';
 import { BatchCoherentRewriteService } from '../services/rewrite/BatchCoherentRewriteService';
+import { BatchRewriteHistory } from '../models/BatchRewriteHistory';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: { id: (id) => BatchRewriteHistory.findById(id).select('projectId').exec() },
+  references: { historyId: (id) => BatchRewriteHistory.findById(id).select('projectId').exec() },
+});
 
 /**
  * POST /batch-rewrite/plan

@@ -7,8 +7,20 @@ import mongoose from 'mongoose';
 import { RewriteHistory } from '../models/RewriteHistory';
 import { episodeRepository } from '../repositories/EpisodeRepository';
 import { RewriteService } from '../services/rewrite/RewriteService';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  references: {
+    episodeId: (id) => episodeRepository.findById(id).then(d => d ? { projectId: (d as unknown as { projectId?: unknown }).projectId } : null),
+    historyId: (id) => RewriteHistory.findById(id).select('projectId').exec(),
+    masterHistoryId: (id) => RewriteHistory.findById(id).select('projectId').exec(),
+  },
+  arrays: {
+    updates: { idField: 'foreshadowingId', load: async (id) => { const { Foreshadowing } = await import('../models/Foreshadowing'); return Foreshadowing.findById(id).select('projectId').exec(); } },
+    fixResults: { idField: 'episodeId', load: (id) => episodeRepository.findById(id).then(d => d ? { projectId: (d as unknown as { projectId?: unknown }).projectId } : null) },
+  },
+});
 
 console.log('[FixController] 路由模块已加载');
 

@@ -1,12 +1,21 @@
 import { Router, Request, Response } from 'express';
 import { characterRepository } from '../repositories';
+import { Character } from '../models/Character';
+import { protectProjectRouter, isAdminRequest, buildSafePatch } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: { id: (id) => Character.findById(id).select('projectId').exec() },
+});
 
 // 获取所有角色（可选按项目筛选）
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { projectId } = req.query;
+    // 无 projectId 的全局列表仅 admin；普通用户必须使用项目级端点
+    if (!projectId && !isAdminRequest(req)) {
+      return res.status(403).json({ error: '无权访问全局角色列表' });
+    }
     if (projectId) {
       const characters = await characterRepository.findByProject(projectId as string);
       res.json({ success: true, data: characters });
@@ -73,7 +82,10 @@ router.post('/', async (req: Request, res: Response) => {
 // 更新角色
 router.put('/:id', async (req: Request, res: Response) => {
   try {
-    const character = await characterRepository.update(req.params.id, req.body);
+    // 拒绝操作符/点键/原型键；_id/projectId 不得改写（路由资源为准）
+    const patch = buildSafePatch(req.body, ['_id', 'projectId']);
+    if (!patch) return res.status(400).json({ success: false, error: '非法的更新载荷' });
+    const character = await characterRepository.update(req.params.id, patch);
     if (!character) {
       return res.status(404).json({ success: false, error: '角色不存在' });
     }

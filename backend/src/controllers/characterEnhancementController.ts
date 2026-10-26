@@ -14,8 +14,16 @@ import { characterVoiceProfiler } from '../services/character/CharacterVoiceProf
 import { relationshipTracker } from '../services/character/RelationshipTracker';
 import { SSEHandler } from '../services/sse/SSEHandler';
 import { createLogger } from '../utils/errorLogger';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: { characterId: (id) => Character.findById(id).select('projectId').exec() },
+  references: {
+    charAId: (id) => Character.findById(id).select('projectId').exec(),
+    charBId: (id) => Character.findById(id).select('projectId').exec(),
+  },
+});
 const logger = createLogger('CharacterEnhancementController');
 
 function toObjectId(id: string): mongoose.Types.ObjectId {

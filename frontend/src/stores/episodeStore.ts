@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { episodeApi } from '@/services/api';
+import { humanizeError } from '@/services/apiConfig';
 import type { Episode } from '@/types';
 
 interface EpisodeState {
@@ -7,6 +8,8 @@ interface EpisodeState {
   currentEpisode: Episode | null;
   loading: boolean;
   error: string | null;
+  projectId: string | null;
+  fetchVersion: number;
 }
 
 export const useEpisodeStore = defineStore('episode', {
@@ -15,6 +18,8 @@ export const useEpisodeStore = defineStore('episode', {
     currentEpisode: null,
     loading: false,
     error: null,
+    projectId: null,
+    fetchVersion: 0,
   }),
 
   getters: {
@@ -34,24 +39,44 @@ export const useEpisodeStore = defineStore('episode', {
 
   actions: {
     async fetchEpisodes(projectId: string) {
+      const version = ++this.fetchVersion;
+      if (this.projectId !== projectId) {
+        this.episodes = [];
+        this.currentEpisode = null;
+      }
+      this.projectId = projectId;
       this.loading = true;
       this.error = null;
       try {
         const { data } = await episodeApi.getByProject(projectId);
+        if (version !== this.fetchVersion) return false;
         if (data.success && data.data) {
           this.episodes = data.data;
+          return true;
         }
+        this.error = data.error || '获取剧集失败';
+        return false;
       } catch (error) {
-        this.error = (error as Error).message;
+        if (version !== this.fetchVersion) return false;
+        this.error = (error as { friendlyMessage?: string })?.friendlyMessage || humanizeError(error);
+        return false;
       } finally {
-        this.loading = false;
+        if (version === this.fetchVersion) this.loading = false;
       }
     },
 
     async fetchEpisodeByNumber(projectId: string, episodeNumber: number) {
+      const version = ++this.fetchVersion;
+      if (this.projectId !== projectId) {
+        this.episodes = [];
+        this.currentEpisode = null;
+      }
+      this.projectId = projectId;
       this.loading = true;
+      this.error = null;
       try {
         const { data } = await episodeApi.getByNumber(projectId, episodeNumber);
+        if (version !== this.fetchVersion) return null;
         if (data.success && data.data) {
           this.currentEpisode = data.data;
           // 更新列表中的对应项
@@ -65,16 +90,17 @@ export const useEpisodeStore = defineStore('episode', {
         }
         return null;
       } catch (error: unknown) {
+        if (version !== this.fetchVersion) return null;
         // 404 表示剧集不存在，这是正常情况，不报错
         const axiosError = error as { response?: { status?: number } };
         if (axiosError.response?.status === 404) {
           this.currentEpisode = null;
           return null;
         }
-        this.error = (error as Error).message;
+        this.error = (error as { friendlyMessage?: string })?.friendlyMessage || humanizeError(error);
         return null;
       } finally {
-        this.loading = false;
+        if (version === this.fetchVersion) this.loading = false;
       }
     },
 
@@ -93,7 +119,7 @@ export const useEpisodeStore = defineStore('episode', {
           return data.data;
         }
       } catch (error) {
-        this.error = (error as Error).message;
+        this.error = (error as { friendlyMessage?: string })?.friendlyMessage || humanizeError(error);
         throw error;
       } finally {
         this.loading = false;
@@ -105,8 +131,12 @@ export const useEpisodeStore = defineStore('episode', {
     },
 
     clearEpisodes() {
+      this.fetchVersion++;
+      this.projectId = null;
       this.episodes = [];
       this.currentEpisode = null;
+      this.loading = false;
+      this.error = null;
     },
   },
 });

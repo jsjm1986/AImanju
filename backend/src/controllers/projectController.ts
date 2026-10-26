@@ -45,6 +45,11 @@ function asyncHandler(fn: RouteHandler): RouteHandler {
 }
 
 async function findProjectOrFail(req: Request, res: Response): Promise<any | null> {
+  // 路径 ID 必须是精确 24 位 hex：拒绝数组/对象/操作符/空白
+  if (typeof req.params.id !== 'string' || !/^[0-9a-fA-F]{24}$/.test(req.params.id)) {
+    res.status(400).json({ success: false, error: '无效的项目ID' });
+    return null;
+  }
   const project = await projectRepository.findById(req.params.id);
   if (!project) {
     res.status(404).json({ success: false, error: '项目不存在' });
@@ -157,6 +162,27 @@ router.post('/', creatorAuth, checkProjectQuota, asyncHandler(async (req, res) =
 router.put('/:id', creatorAuth, asyncHandler(async (req, res) => {
   const ownership = await checkProjectOwnership(req, res);
   if (!ownership) return;
+  const actual = ownership.project;
+  // 不可变字段：_id 必须为路由 id；creatorId 必须等于实际归属（admin 编辑他人项目且不改属主也允许）
+  const bodyKeys = ['_id', 'creatorId', 'outlineDraft', 'createdAt', 'updatedAt'];
+  const actualOwnerId = actual.creatorId ? String(actual.creatorId._id ?? actual.creatorId) : null;
+  for (const k of ['_id', 'creatorId']) {
+    if (req.body[k] !== undefined) {
+      const v = typeof req.body[k] === 'object' ? req.body[k]?._id ?? req.body[k] : req.body[k];
+      const expected = k === '_id' ? req.params.id : actualOwnerId;
+      if (expected === null || String(v) !== String(expected)) {
+        res.status(400).json({ success: false, error: `禁止修改${k}` });
+        return;
+      }
+    }
+  }
+  for (const k of bodyKeys) delete req.body[k];
+  for (const k of Object.keys(req.body)) {
+    if (k.startsWith('$') || k.includes('.') || k === '__proto__' || k === 'constructor' || k === 'prototype') {
+      res.status(400).json({ success: false, error: '非法的更新载荷' });
+      return;
+    }
+  }
   const project = await projectRepository.update(req.params.id, req.body);
   res.json({ success: true, data: project });
 }));

@@ -1,6 +1,5 @@
 import axios from 'axios';
-
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8333/api';
+import { API_BASE } from './apiConfig';
 const AGENT_TOKEN_KEY = 'comic-script-agent-token';
 
 const agentHttp = axios.create({

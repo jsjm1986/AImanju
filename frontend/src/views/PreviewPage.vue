@@ -118,7 +118,10 @@ const escapeHtml = (text: string) => text
   .replace(/</g, '&lt;')
   .replace(/>/g, '&gt;');
 
-const outlineSections: { key: keyof ProjectOutline; label: string }[] = [
+type OutlineTextKey = 'characterCards' | 'synopsis' | 'episodeSummaries' | 'storyCore' | 'characterFunctions';
+const outlineSections: { key: OutlineTextKey; label: string }[] = [
+  { key: 'storyCore', label: '故事内核' },
+  { key: 'characterFunctions', label: '角色功能' },
   { key: 'characterCards', label: '人物卡' },
   { key: 'synopsis', label: '剧情梗概' },
   { key: 'episodeSummaries', label: '分集摘要' },
@@ -128,7 +131,7 @@ const getOutlineSections = (outline: ProjectOutline | string): { label: string; 
   if (typeof outline === 'string') return [{ label: '大纲', text: outline }];
   const sections = outlineSections
     .filter(s => outline[s.key])
-    .map(s => ({ label: s.label, text: outline[s.key] }));
+    .map(s => ({ label: s.label, text: outline[s.key] || '' }));
   if (sections.length === 0 && outline.raw) return [{ label: '大纲', text: outline.raw }];
   return sections;
 };

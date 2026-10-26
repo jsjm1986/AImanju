@@ -144,7 +144,7 @@ router.get('/:id', async (req: Request, res: Response) => {
         }
 
         // 权限校验
-        if (!isAdmin(req) && task.creatorId && task.creatorId !== req.creatorId) {
+        if (!isAdmin(req) && (!task.creatorId || String(task.creatorId) !== req.creatorId)) {
             return res.status(403).json({ error: '无权查看此任务' });
         }
 
@@ -169,7 +169,7 @@ router.post('/:id/pause', async (req: Request, res: Response) => {
         }
 
         // 权限校验
-        if (!isAdmin(req) && task.creatorId && task.creatorId !== req.creatorId) {
+        if (!isAdmin(req) && (!task.creatorId || String(task.creatorId) !== req.creatorId)) {
             return res.status(403).json({ error: '无权操作此任务' });
         }
 
@@ -213,7 +213,7 @@ router.post('/:id/resume', async (req: Request, res: Response) => {
         }
 
         // 权限校验
-        if (!isAdmin(req) && task.creatorId && task.creatorId !== req.creatorId) {
+        if (!isAdmin(req) && (!task.creatorId || String(task.creatorId) !== req.creatorId)) {
             return res.status(403).json({ error: '无权操作此任务' });
         }
 
@@ -262,7 +262,7 @@ router.post('/:id/stop', async (req: Request, res: Response) => {
         }
 
         // 权限校验
-        if (!isAdmin(req) && task.creatorId && task.creatorId !== req.creatorId) {
+        if (!isAdmin(req) && (!task.creatorId || String(task.creatorId) !== req.creatorId)) {
             return res.status(403).json({ error: '无权操作此任务' });
         }
 
@@ -302,7 +302,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
         }
 
         // 权限校验
-        if (!isAdmin(req) && task.creatorId && task.creatorId !== req.creatorId) {
+        if (!isAdmin(req) && (!task.creatorId || String(task.creatorId) !== req.creatorId)) {
             return res.status(403).json({ error: '无权操作此任务' });
         }
 

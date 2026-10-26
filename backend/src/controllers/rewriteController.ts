@@ -4,8 +4,24 @@
 
 import { Request, Response, Router } from 'express';
 import { RewriteService, RewriteType } from '../services/rewrite/RewriteService';
+import { Episode } from '../models/Episode';
+import { RewriteHistory } from '../models/RewriteHistory';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: {
+    historyId: (id) => RewriteHistory.findById(id).select('projectId').exec(),
+    episodeId: (id) => Episode.findById(id).select('projectId').exec(),
+  },
+  references: {
+    episodeId: (id) => Episode.findById(id).select('projectId').exec(),
+    historyId: (id) => RewriteHistory.findById(id).select('projectId').exec(),
+  },
+  arrays: {
+    episodeIds: { load: (id) => Episode.findById(id).select('projectId').exec() },
+  },
+});
 
 /**
  * POST /rewrite

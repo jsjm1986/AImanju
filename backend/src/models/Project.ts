@@ -18,6 +18,43 @@ export interface IOutline {
   };
 }
 
+// 大纲生成草稿（断点续传检查点）
+// 与已完成的 outline 分离：重新生成/失败绝不破坏已有成功大纲
+export interface IOutlineDraftEpisodeBatch {
+  startEpisode: number;
+  endEpisode: number;
+  content: string;
+}
+
+export interface IOutlineDraft {
+  generationId: string;          // 本次生成唯一ID（防止旧运行的晚到写覆盖新运行）
+  inputKey: string;              // 规范输入 + 模型的 sha256（resume 一致性校验）
+  mode: 'standard' | 'enhanced';
+  modelName: string;             // 注册模型键
+  model: string;                 // 实际上游模型名
+  status: 'running' | 'interrupted' | 'failed' | 'completed';
+  completedSteps: number[];      // 已完成步骤（1-based）
+  result: {
+    raw: string;
+    characterCards: string;
+    synopsis: string;
+    episodeSummaries: string;
+    storyCore?: string;
+    characterFunctions?: string;
+  };
+  episodeBatches: IOutlineDraftEpisodeBatch[]; // 已完成的分集梗概批次
+  error?: string;
+  updatedAt: string;             // ISO 时间戳
+  // 重试所需输入快照（不改已有成功 outline）
+  concept?: string;
+  requirements?: string;
+  generationConfig?: {
+    storyMode?: StoryMode;
+    pacing?: PacingStyle;
+    previousSeasonId?: string;
+  };
+}
+
 // 注意力头配置
 export interface IAttentionHeadConfig {
   mode: 'auto' | 'custom';           // auto=根据类型自动选择, custom=用户自定义
@@ -83,6 +120,7 @@ export interface IProject extends Document {
   totalEpisodes: number;
   status: 'draft' | 'outline_done' | 'generating' | 'completed';
   outline?: IOutline | string;  // 支持对象或字符串格式
+  outlineDraft?: IOutlineDraft; // 大纲生成草稿（断点续传检查点）
   concept?: string;             // 故事概念（生成大纲时的输入）
   requirements?: string;        // 特殊要求（生成大纲时的输入）
   tags: mongoose.Types.ObjectId[];
@@ -125,6 +163,7 @@ const ProjectSchema = new Schema<IProject>(
       default: 'draft',
     },
     outline: { type: Schema.Types.Mixed },  // 使用Mixed类型支持对象或字符串
+    outlineDraft: { type: Schema.Types.Mixed },  // 大纲生成草稿（断点续传检查点）
     concept: { type: String },              // 故事概念
     requirements: { type: String },         // 特殊要求
     tags: [{ type: Schema.Types.ObjectId, ref: 'CreatorTag' }],

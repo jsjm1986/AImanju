@@ -5,8 +5,13 @@
 import { Router, Request, Response } from 'express';
 import { characterStateRepository } from '../repositories/CharacterStateRepository';
 import { StateAnalyzer } from '../services/state/StateAnalyzer';
+import { Character } from '../models/Character';
+import { protectProjectRouter } from '../middleware/projectAccess';
 
 const router = Router();
+protectProjectRouter(router, {
+  params: { characterId: (id) => Character.findById(id).select('projectId').exec() },
+});
 
 /**
  * GET /state/character/:characterId
