@@ -1399,4 +1399,31 @@ watch(() => batchStore.currentTask?.status, async (status) => {
   font-size: var(--text-sm);
   color: var(--text-secondary);
 }
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+  .header-actions {
+    flex-wrap: wrap;
+  }
+  .header-actions button {
+    white-space: nowrap;
+  }
+  .episode-grid-section {
+    padding: var(--space-3);
+  }
+  .bottom-toolbar {
+    justify-content: flex-start;
+    overflow-x: auto;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+  }
+  .toolbar-btn {
+    flex-shrink: 0;
+  }
+}
 </style>

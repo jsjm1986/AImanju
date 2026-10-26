@@ -3,7 +3,7 @@
     <div class="modal-container fix-plan-modal">
       <div class="modal-header">
         <h3>🔧 修复方案</h3>
-        <button class="close-btn" @click="handleClose">×</button>
+        <button class="close-btn" @click="handleClose" aria-label="关闭">×</button>
       </div>
 
       <div class="issue-info">

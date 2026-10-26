@@ -261,3 +261,33 @@
 .progress-indeterminate {
   animation: progress-indeterminate 1.5s ease-in-out infinite;
 }
+
+/* ===== 减弱动效偏好：位移/缩放/震动类动画收敛为纯淡入淡出 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .slide-up-enter-from, .slide-up-leave-to,
+  .slide-down-enter-from, .slide-down-leave-to,
+  .slide-right-enter-from, .slide-right-leave-to,
+  .slide-left-enter-from, .slide-left-leave-to,
+  .scale-enter-from, .scale-leave-to,
+  .scale-up-enter-from, .scale-up-leave-to,
+  .toast-enter-from, .toast-leave-to,
+  .list-enter-from, .list-leave-to,
+  .modal-enter-from .modal-content, .modal-leave-to .modal-content {
+    transform: none;
+  }
+
+  .list-move {
+    transition: none;
+  }
+
+  /* 震动/弹跳类反馈动画直接关闭 */
+  .animate-bounce, .animate-shake {
+    animation: none;
+  }
+
+  /* 兜底：所有持续动画（spin/pulse/blink/shimmer/进度条等，含组件内联）统一降频——
+     加载状态仍可见，但消除高频位移/闪烁 */
+  *, *::before, *::after {
+    animation-duration: 3s !important;
+  }
+}

@@ -54,7 +54,7 @@
         <div class="modal-container small">
           <div class="modal-header">
             <h4>{{ editingTag ? '编辑标签' : '新建标签' }}</h4>
-            <button class="close-btn" @click="closeModal">×</button>
+            <button class="close-btn" @click="closeModal" aria-label="关闭">×</button>
           </div>
           <div class="modal-body">
             <div class="form-group">

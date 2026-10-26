@@ -19,8 +19,8 @@
   /* 文字层级 (由亮到暗) */
   --text-primary: #FAFAFA;
   --text-secondary: #A1A1AA;
-  --text-tertiary: #71717A;
-  --text-muted: #52525B;
+  --text-tertiary: #8E8E96;
+  --text-muted: #83838C;
 
   /* 按钮/彩色背景上的文字（始终保持高对比度） */
   --text-on-primary: #FFFFFF;
@@ -34,12 +34,12 @@
   --border-hover: #3F3F46;
   --border-focus: #6366F1;
 
-  /* 主色 - Indigo */
-  --primary: #6366F1;
+  /* 主色 - Indigo（白字 5.3:1 满足 WCAG AA；hover 更亮、active 更暗） */
+  --primary: #5558E8;
   --primary-hover: #818CF8;
   --primary-active: #4F46E5;
-  --primary-muted: rgba(99, 102, 241, 0.15);
-  --primary-border: rgba(99, 102, 241, 0.3);
+  --primary-muted: rgba(85, 88, 232, 0.15);
+  --primary-border: rgba(85, 88, 232, 0.3);
 
   /* 语义色 */
   --success: #22C55E;

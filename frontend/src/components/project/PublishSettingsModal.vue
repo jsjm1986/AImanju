@@ -3,7 +3,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3>📤 发布设置</h3>
-        <button class="close-btn" @click="$emit('close')">×</button>
+        <button class="close-btn" @click="$emit('close')" aria-label="关闭">×</button>
       </div>
       
       <div v-if="loading" class="loading">加载中...</div>
@@ -283,12 +283,12 @@ function handleUnpublish() {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--border-color, #eee);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .modal-header h3 {
   margin: 0;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
 }
 
 .close-btn {
@@ -296,13 +296,13 @@ function handleUnpublish() {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
 }
 
 .loading {
   padding: 60px;
   text-align: center;
-  color: var(--text-secondary, #999);
+  color: var(--text-tertiary);
 }
 
 .modal-body {
@@ -316,13 +316,13 @@ function handleUnpublish() {
   font-size: 14px;
   font-weight: 500;
   margin-bottom: 20px;
-  background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-secondary, #666);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
 }
 
 .status-badge.published {
-  background: #d4edda;
-  color: #155724;
+  background: var(--success-muted);
+  color: var(--success);
 }
 
 .form-group {
@@ -333,36 +333,36 @@ function handleUnpublish() {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
 }
 
 .form-group input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid var(--border-color, #ddd);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   font-size: 14px;
   background: var(--input-bg, white);
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: var(--primary, #667eea);
+  border-color: var(--primary);
 }
 
 .hint {
   display: block;
   margin-top: 6px;
   font-size: 12px;
-  color: var(--text-secondary, #999);
+  color: var(--text-tertiary);
 }
 
 .modal-footer {
   display: flex;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid var(--border-color, #eee);
+  border-top: 1px solid var(--border-default);
 }
 
 .btn-secondary,
@@ -378,17 +378,17 @@ function handleUnpublish() {
 }
 
 .btn-secondary {
-  background: var(--bg-secondary, #f0f0f0);
-  color: var(--text-primary, #333);
+  background: var(--bg-elevated);
+  color: var(--text-primary);
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
   color: white;
 }
 
 .btn-danger {
-  background: #e74c3c;
+  background: var(--error);
   color: white;
 }
 
@@ -409,15 +409,15 @@ function handleUnpublish() {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: var(--bg-secondary, #f0f0f0);
+  background: var(--bg-elevated);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .radio-item:has(input:checked) {
-  background: var(--primary-light, #e8eaff);
-  box-shadow: 0 0 0 2px var(--primary, #667eea);
+  background: var(--primary-muted);
+  box-shadow: 0 0 0 2px var(--primary-border);
 }
 
 .radio-item input {
@@ -437,7 +437,7 @@ function handleUnpublish() {
 .tags-loading {
   padding: 20px;
   text-align: center;
-  color: var(--text-secondary, #999);
+  color: var(--text-tertiary);
 }
 
 .tag-item {
@@ -445,7 +445,7 @@ function handleUnpublish() {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  background: var(--bg-secondary, #f0f0f0);
+  background: var(--bg-elevated);
   border-radius: 20px;
   cursor: pointer;
   transition: all 0.2s;
@@ -457,17 +457,17 @@ function handleUnpublish() {
 }
 
 .tag-item.selected {
-  background: var(--tag-color, #667eea);
+  background: var(--primary);
   color: white;
 }
 
 .tag-item:not(.selected):hover {
-  background: var(--bg-tertiary, #e0e0e0);
+  background: var(--bg-hover);
 }
 
 .hint-inline {
   font-weight: normal;
-  color: var(--text-secondary, #999);
+  color: var(--text-tertiary);
   font-size: 12px;
 }
 
@@ -492,7 +492,7 @@ function handleUnpublish() {
 
 .rules-title {
   font-weight: 600;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
 }
 
 .rules-list {
@@ -506,7 +506,7 @@ function handleUnpublish() {
   align-items: center;
   gap: 12px;
   padding: 8px 12px;
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-elevated);
   border-radius: 8px;
 }
 
@@ -520,32 +520,32 @@ function handleUnpublish() {
 
 .rule-free .rule-badge {
   background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
+  color: var(--success);
 }
 
 .rule-points .rule-badge {
   background: rgba(99, 102, 241, 0.15);
-  color: #6366f1;
+  color: var(--primary);
 }
 
 .rule-script .rule-badge {
   background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .rule-range {
   font-weight: 500;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
   min-width: 80px;
 }
 
 .rule-desc {
   font-size: 12px;
-  color: var(--text-secondary, #999);
+  color: var(--text-tertiary);
 }
 
 .section-card {
-  background: var(--bg-secondary, #f5f5f5);
+  background: var(--bg-elevated);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
@@ -570,7 +570,7 @@ function handleUnpublish() {
 .section-title {
   font-weight: 600;
   font-size: 14px;
-  color: var(--text-primary, #333);
+  color: var(--text-primary);
 }
 
 .input-with-unit {
@@ -585,7 +585,7 @@ function handleUnpublish() {
 
 .input-with-unit .unit {
   font-size: 13px;
-  color: var(--text-secondary, #999);
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 
@@ -594,19 +594,19 @@ function handleUnpublish() {
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  background: var(--bg-elevated, #fff);
+  background: var(--bg-elevated);
   border-radius: 8px;
   margin-top: 12px;
 }
 
 .contact-label {
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
 }
 
 .contact-value {
   font-size: 14px;
   font-weight: 600;
-  color: var(--primary, #667eea);
+  color: var(--primary);
 }
 </style>

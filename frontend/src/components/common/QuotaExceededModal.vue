@@ -103,7 +103,7 @@ const getContent = () => {
               <span class="brand-icon">🎬</span>
               <span class="brand-name">剧本生成系统</span>
             </div>
-            <button class="close-btn" @click="handleClose">×</button>
+            <button class="close-btn" @click="handleClose" aria-label="关闭">×</button>
           </div>
 
           <!-- 内容区 -->

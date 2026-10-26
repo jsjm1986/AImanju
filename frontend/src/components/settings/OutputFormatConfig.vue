@@ -99,7 +99,7 @@
         <div class="modal-content" @click.stop>
           <div class="modal-header">
             <h3>叙事科学方法论说明</h3>
-            <button class="modal-close" @click="showMethodologyInfo = false">×</button>
+            <button class="modal-close" @click="showMethodologyInfo = false" aria-label="关闭">×</button>
           </div>
           <div class="modal-body">
             <p>该方法论包含：</p>

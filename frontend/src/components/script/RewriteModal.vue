@@ -11,7 +11,7 @@
                 <span>?</span>
               </button>
             </div>
-            <button class="close-btn" @click="handleClose" :disabled="rewriteStore.loading">
+            <button class="close-btn" @click="handleClose" :disabled="rewriteStore.loading" aria-label="关闭">
               <span>×</span>
             </button>
           </div>
@@ -160,7 +160,7 @@
         <div class="help-modal">
           <div class="help-header">
             <h3>📖 改写模式说明</h3>
-            <button class="close-btn" @click="showHelp = false">×</button>
+            <button class="close-btn" @click="showHelp = false" aria-label="关闭">×</button>
           </div>
           <div class="help-content">
             <div class="help-item">

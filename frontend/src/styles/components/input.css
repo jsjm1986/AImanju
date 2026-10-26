@@ -24,6 +24,7 @@
 .input:focus {
   border-color: var(--border-focus);
   outline: none;
+  box-shadow: 0 0 0 3px var(--primary-muted);
 }
 
 .input::placeholder {
@@ -72,6 +73,7 @@
 .textarea:focus {
   border-color: var(--border-focus);
   outline: none;
+  box-shadow: 0 0 0 3px var(--primary-muted);
 }
 
 .textarea::placeholder {
@@ -110,6 +112,7 @@
 .select:focus {
   border-color: var(--border-focus);
   outline: none;
+  box-shadow: 0 0 0 3px var(--primary-muted);
 }
 
 .select:disabled {

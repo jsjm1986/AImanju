@@ -31,7 +31,7 @@
     <div v-if="activeTier && expandedCharacters.length > 0" class="character-list">
       <div class="list-header">
         <span>{{ getTierLabel(activeTier) }} 详情</span>
-        <button class="btn-close" @click="activeTier = null">✕</button>
+        <button class="btn-close" @click="activeTier = null" aria-label="关闭">✕</button>
       </div>
       <div class="character-cards">
         <div

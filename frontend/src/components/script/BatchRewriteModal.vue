@@ -8,7 +8,7 @@
               <span class="header-icon">📚</span>
               <h3>批量连贯改写</h3>
             </div>
-            <button class="close-btn" @click="handleClose" :disabled="isBusy">
+            <button class="close-btn" @click="handleClose" :disabled="isBusy" aria-label="关闭">
               <span>×</span>
             </button>
           </div>

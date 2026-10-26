@@ -6,7 +6,7 @@
           <span class="icon">🧠</span>
           注意力头配置
         </h2>
-        <button class="btn-close" @click="handleClose">×</button>
+        <button class="btn-close" @click="handleClose" aria-label="关闭">×</button>
       </div>
 
       <div class="modal-body">

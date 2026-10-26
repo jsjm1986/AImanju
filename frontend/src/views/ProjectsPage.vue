@@ -689,7 +689,7 @@ const handleClickOutside = (event: MouseEvent) => {
       >
         <div class="selector-header">
           <span>选择标签</span>
-          <button class="close-btn" @click="closeTagSelector">✕</button>
+          <button class="close-btn" @click="closeTagSelector" aria-label="关闭">✕</button>
         </div>
         <div class="selector-body">
           <div v-if="tagStore.tags.length === 0" class="no-tags">
@@ -1023,13 +1023,13 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .user-quota-status .tier-badge.trial {
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.2) 0%, rgba(234, 179, 8, 0.1) 100%);
-  color: #eab308;
+  background: var(--warning-muted);
+  color: var(--warning);
 }
 
 .user-quota-status .tier-badge.paid {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
-  color: #22c55e;
+  background: var(--success-muted);
+  color: var(--success);
 }
 
 .quota-info {
@@ -1133,7 +1133,7 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .tooltip-contact strong {
-  color: #22c55e;
+  color: var(--success);
 }
 
 .toolbar-center {
@@ -1309,7 +1309,7 @@ const handleClickOutside = (event: MouseEvent) => {
 .password-form input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  box-shadow: 0 0 0 3px var(--purple-muted);
 }
 
 .password-actions {
@@ -1336,19 +1336,19 @@ const handleClickOutside = (event: MouseEvent) => {
 .password-actions .btn-cancel {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #999;
+  color: var(--text-tertiary);
 }
 
 .password-actions .btn-cancel:hover {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.25);
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 .password-actions .btn-submit {
-  background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--purple) 100%);
   border: none;
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 .password-actions .btn-submit:hover {
@@ -1450,7 +1450,7 @@ const handleClickOutside = (event: MouseEvent) => {
   justify-content: center;
   background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
   border-radius: 6px;
-  color: #fff;
+  color: var(--text-on-primary);
   font-size: 11px;
   font-weight: 700;
 }
@@ -1470,13 +1470,13 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .creator-tier.trial {
-  background: rgba(234, 179, 8, 0.2);
-  color: #eab308;
+  background: var(--warning-muted);
+  color: var(--warning);
 }
 
 .creator-tier.paid {
-  background: rgba(34, 197, 94, 0.2);
-  color: #22c55e;
+  background: var(--success-muted);
+  color: var(--success);
 }
 
 .user-filter {
@@ -2097,7 +2097,7 @@ const handleClickOutside = (event: MouseEvent) => {
   height: 20px;
   min-width: 20px;
   background: var(--bg-surface);
-  border: 2px solid #666;
+  border: 2px solid var(--text-muted);
   border-radius: 5px;
   cursor: pointer;
   position: relative;
@@ -2106,8 +2106,8 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .publish-form .checkbox-label input[type="checkbox"]:checked {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
+  background: var(--purple);
+  border-color: var(--purple);
 }
 
 .publish-form .checkbox-label input[type="checkbox"]:checked::before {
@@ -2117,7 +2117,7 @@ const handleClickOutside = (event: MouseEvent) => {
   left: 6px;
   width: 5px;
   height: 10px;
-  border: solid #fff;
+  border: solid var(--text-on-primary);
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
@@ -2159,9 +2159,9 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .publish-actions .btn-submit {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  background: var(--success);
   border: none;
-  color: #fff;
+  color: var(--text-on-primary);
 }
 
 .publish-actions .btn-submit:hover {
@@ -2182,7 +2182,7 @@ const handleClickOutside = (event: MouseEvent) => {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(234, 179, 8, 0.1) 100%);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: 12px;
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid var(--error);
 }
 
 .rejection-header {
@@ -2199,7 +2199,7 @@ const handleClickOutside = (event: MouseEvent) => {
 .rejection-title {
   font-size: 14px;
   font-weight: 600;
-  color: #ef4444;
+  color: var(--error);
 }
 
 .rejection-content {
@@ -2223,7 +2223,7 @@ const handleClickOutside = (event: MouseEvent) => {
   background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%);
   border: 1px solid rgba(34, 197, 94, 0.3);
   border-radius: 6px;
-  color: #22c55e;
+  color: var(--success);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -2231,8 +2231,8 @@ const handleClickOutside = (event: MouseEvent) => {
 }
 
 .publish-btn:hover {
-  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-  color: #fff;
+  background: var(--success);
+  color: var(--text-on-primary);
   border-color: transparent;
 }
 
@@ -2267,19 +2267,19 @@ const handleClickOutside = (event: MouseEvent) => {
 .publish-status-badge.published {
   background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0.1) 100%);
   border: 1px solid rgba(34, 197, 94, 0.3);
-  color: #22c55e;
+  color: var(--success);
 }
 
 .publish-status-badge.pending {
   background: linear-gradient(135deg, rgba(234, 179, 8, 0.15) 0%, rgba(234, 179, 8, 0.1) 100%);
   border: 1px solid rgba(234, 179, 8, 0.3);
-  color: #eab308;
+  color: var(--warning);
 }
 
 .publish-status-badge.rejected {
   background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
   border: 1px solid rgba(239, 68, 68, 0.3);
-  color: #ef4444;
+  color: var(--error);
   cursor: pointer;
 }
 
@@ -2291,38 +2291,28 @@ const handleClickOutside = (event: MouseEvent) => {
   background: var(--bg-elevated);
   border: 1px solid var(--border-default);
   border-radius: 10px;
-  color: #1a1a1a;
+  color: var(--text-primary);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   appearance: none;
   -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%237E7E87' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
-}
-
-:root[data-theme="dark"] .publish-form .styled-select {
-  color: #f5f5f5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ccc' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
 }
 
 .publish-form .styled-select:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  box-shadow: 0 0 0 3px var(--purple-muted);
 }
 
 .publish-form .styled-select option {
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
   padding: 10px;
-}
-
-:root[data-theme="dark"] .publish-form .styled-select option {
-  background: #2a2a2a;
-  color: #f5f5f5;
 }
 
 .rewrite-toggle-section {
@@ -2391,7 +2381,7 @@ const handleClickOutside = (event: MouseEvent) => {
   width: 20px;
   left: 3px;
   bottom: 3px;
-  background: #fff;
+  background: var(--text-on-primary);
   border-radius: 50%;
   transition: all 0.3s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);

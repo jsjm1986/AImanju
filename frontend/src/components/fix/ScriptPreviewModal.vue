@@ -9,7 +9,7 @@
             {{ issue?.type === 'error' ? '错误' : issue?.type === 'warning' ? '警告' : '提示' }}
           </span>
         </div>
-        <button class="close-btn" @click="handleClose">×</button>
+        <button class="close-btn" @click="handleClose" aria-label="关闭">×</button>
       </div>
 
       <!-- 问题描述 -->

@@ -562,7 +562,7 @@
     <!-- 错误提示 -->
     <div v-if="validationStore.error" class="error-toast">
       <span>{{ validationStore.error }}</span>
-      <button @click="validationStore.error = null">×</button>
+      <button @click="validationStore.error = null" aria-label="关闭错误提示">×</button>
     </div>
   </div>
 </template>

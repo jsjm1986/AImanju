@@ -128,7 +128,7 @@ const getMomentTypeLabel = (type: ImpressiveMomentType) => {
       <div class="tag-list">
         <span v-for="(item, idx) in catchphrases" :key="idx" class="tag">
           "{{ item }}"
-          <button class="tag-remove" @click="removeItem(catchphrases, idx)">×</button>
+          <button class="tag-remove" @click="removeItem(catchphrases, idx)" aria-label="移除">×</button>
         </span>
         <div class="tag-input-wrapper">
           <input
@@ -138,7 +138,7 @@ const getMomentTypeLabel = (type: ImpressiveMomentType) => {
             placeholder="添加口头禅..."
             @keyup.enter="addItem(catchphrases, { value: newCatchphrase }, 'catchphrase'); newCatchphrase = ''"
           />
-          <button class="tag-add" @click="addItem(catchphrases, { value: newCatchphrase }, 'catchphrase'); newCatchphrase = ''">+</button>
+          <button class="tag-add" @click="addItem(catchphrases, { value: newCatchphrase }, 'catchphrase'); newCatchphrase = ''" aria-label="添加">+</button>
         </div>
       </div>
     </div>
@@ -152,7 +152,7 @@ const getMomentTypeLabel = (type: ImpressiveMomentType) => {
       <div class="tag-list">
         <span v-for="(item, idx) in quirks" :key="idx" class="tag">
           {{ item }}
-          <button class="tag-remove" @click="removeItem(quirks, idx)">×</button>
+          <button class="tag-remove" @click="removeItem(quirks, idx)" aria-label="移除">×</button>
         </span>
         <div class="tag-input-wrapper">
           <input
@@ -162,7 +162,7 @@ const getMomentTypeLabel = (type: ImpressiveMomentType) => {
             placeholder="添加小癖好..."
             @keyup.enter="addItem(quirks, { value: newQuirk }, 'quirk'); newQuirk = ''"
           />
-          <button class="tag-add" @click="addItem(quirks, { value: newQuirk }, 'quirk'); newQuirk = ''">+</button>
+          <button class="tag-add" @click="addItem(quirks, { value: newQuirk }, 'quirk'); newQuirk = ''" aria-label="添加">+</button>
         </div>
       </div>
     </div>
@@ -176,7 +176,7 @@ const getMomentTypeLabel = (type: ImpressiveMomentType) => {
       <div class="tag-list">
         <span v-for="(item, idx) in signatureMoves" :key="idx" class="tag">
           {{ item }}
-          <button class="tag-remove" @click="removeItem(signatureMoves, idx)">×</button>
+          <button class="tag-remove" @click="removeItem(signatureMoves, idx)" aria-label="移除">×</button>
         </span>
         <div class="tag-input-wrapper">
           <input
@@ -186,7 +186,7 @@ const getMomentTypeLabel = (type: ImpressiveMomentType) => {
             placeholder="添加标志性动作..."
             @keyup.enter="addItem(signatureMoves, { value: newSignatureMove }, 'signatureMove'); newSignatureMove = ''"
           />
-          <button class="tag-add" @click="addItem(signatureMoves, { value: newSignatureMove }, 'signatureMove'); newSignatureMove = ''">+</button>
+          <button class="tag-add" @click="addItem(signatureMoves, { value: newSignatureMove }, 'signatureMove'); newSignatureMove = ''" aria-label="添加">+</button>
         </div>
       </div>
     </div>

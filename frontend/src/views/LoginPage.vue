@@ -273,6 +273,7 @@ const handleSubmit = () => {
   outline: none;
   border-color: var(--primary);
   background: var(--bg-hover);
+  box-shadow: 0 0 0 3px var(--primary-muted);
 }
 
 .form-group input::placeholder {

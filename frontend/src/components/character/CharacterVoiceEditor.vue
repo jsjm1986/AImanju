@@ -180,7 +180,7 @@ const saveVoice = () => {
       <div class="tag-list">
         <span v-for="(word, idx) in formData.preferredWords" :key="idx" class="tag preferred">
           {{ word }}
-          <button class="tag-remove" @click="removeWord(formData.preferredWords, idx)">×</button>
+          <button class="tag-remove" @click="removeWord(formData.preferredWords, idx)" aria-label="移除">×</button>
         </span>
         <div class="tag-input-wrapper">
           <input
@@ -190,7 +190,7 @@ const saveVoice = () => {
             placeholder="添加偏好词..."
             @keyup.enter="addWord(formData.preferredWords, { value: newPreferredWord }); newPreferredWord = ''"
           />
-          <button class="tag-add" @click="addWord(formData.preferredWords, { value: newPreferredWord }); newPreferredWord = ''">+</button>
+          <button class="tag-add" @click="addWord(formData.preferredWords, { value: newPreferredWord }); newPreferredWord = ''" aria-label="添加">+</button>
         </div>
       </div>
     </div>
@@ -204,7 +204,7 @@ const saveVoice = () => {
       <div class="tag-list">
         <span v-for="(word, idx) in formData.avoidedWords" :key="idx" class="tag avoided">
           {{ word }}
-          <button class="tag-remove" @click="removeWord(formData.avoidedWords, idx)">×</button>
+          <button class="tag-remove" @click="removeWord(formData.avoidedWords, idx)" aria-label="移除">×</button>
         </span>
         <div class="tag-input-wrapper">
           <input
@@ -214,7 +214,7 @@ const saveVoice = () => {
             placeholder="添加避免词..."
             @keyup.enter="addWord(formData.avoidedWords, { value: newAvoidedWord }); newAvoidedWord = ''"
           />
-          <button class="tag-add avoided" @click="addWord(formData.avoidedWords, { value: newAvoidedWord }); newAvoidedWord = ''">+</button>
+          <button class="tag-add avoided" @click="addWord(formData.avoidedWords, { value: newAvoidedWord }); newAvoidedWord = ''" aria-label="添加">+</button>
         </div>
       </div>
     </div>

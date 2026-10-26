@@ -1484,7 +1484,7 @@ const exportOutline = () => {
   .project-tags { flex-wrap: wrap; }
   .output-section { flex: 1 0 360px; min-width: 0; }
   .tabs-header { flex-wrap: wrap; gap: var(--space-2); padding-inline: var(--space-3); }
-  .tabs-nav { flex: 1 0 100%; min-width: 0; overflow-x: auto; }
+  .tabs-nav { flex: 1 0 100%; min-width: 0; overflow-x: auto; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
   .tab-btn { flex-shrink: 0; white-space: nowrap; padding-inline: var(--space-3); }
   .tabs-actions { margin-left: auto; padding-bottom: var(--space-2); }
   .progress-steps { flex-wrap: wrap; }

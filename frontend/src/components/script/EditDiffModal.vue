@@ -8,7 +8,7 @@
               <span class="header-icon">📝</span>
               <h3>确认修改</h3>
             </div>
-            <button class="close-btn" @click="$emit('close')">×</button>
+            <button class="close-btn" @click="$emit('close')" aria-label="关闭">×</button>
           </div>
 
           <div class="diff-stats">

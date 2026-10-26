@@ -116,7 +116,7 @@
         <div class="modal-container">
           <div class="modal-header">
             <h4>新增伏笔</h4>
-            <button class="close-btn" @click="showCreateModal = false">×</button>
+            <button class="close-btn" @click="showCreateModal = false" aria-label="关闭">×</button>
           </div>
           <div class="modal-body">
             <div class="form-group">
@@ -163,7 +163,7 @@
         <div class="modal-container">
           <div class="modal-header">
             <h4>标记伏笔回收</h4>
-            <button class="close-btn" @click="showResolveModal = false">×</button>
+            <button class="close-btn" @click="showResolveModal = false" aria-label="关闭">×</button>
           </div>
           <div class="modal-body">
             <div class="form-group">

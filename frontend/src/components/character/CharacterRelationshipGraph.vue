@@ -288,7 +288,7 @@ const getSentimentDisplay = (sentiment: number) => {
       <div class="modal-content">
         <div class="modal-header">
           <span>添加关键事件</span>
-          <button class="modal-close" @click="showEventForm = false">×</button>
+          <button class="modal-close" @click="showEventForm = false" aria-label="关闭">×</button>
         </div>
         <div class="modal-body">
           <div class="form-row">

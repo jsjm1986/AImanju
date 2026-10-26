@@ -18,6 +18,7 @@
       v-if="showDropdown"
       id="model-menu"
       class="dropdown-menu"
+      :style="menuLeft === null ? undefined : { left: `${menuLeft}px`, right: 'auto' }"
       role="region"
       aria-label="模型选择"
       @click.stop
@@ -76,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { aiModelApi, type AIModel } from '@/services/api';
 import { humanizeError } from '@/services/apiConfig';
 
@@ -91,13 +92,14 @@ const testMessageType = ref<'success' | 'error' | ''>('');
 const loadError = ref('');
 const lastFailedModel = ref<AIModel | null>(null);
 const triggerRef = ref<HTMLButtonElement | null>(null);
+const menuLeft = ref<number | null>(null);
 let loadSeq = 0;
 let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
 const triggerLabel = computed(() => {
   const m = currentModel.value;
-  if (!m) return '选择模型';
-  return m.model ? `${m.displayName} (${m.model})` : m.displayName;
+  // 触发器只显示 displayName（菜单项内仍有完整模型 ID），避免头部截断
+  return m ? m.displayName : '选择模型';
 });
 
 async function loadModels() {
@@ -121,11 +123,27 @@ async function loadModels() {
 
 function toggleDropdown() {
   showDropdown.value = !showDropdown.value;
-  if (showDropdown.value) loadModels();
+  if (showDropdown.value) {
+    loadModels();
+    nextTick(clampMenuToViewport);
+  }
+}
+
+// 菜单锚定触发器右缘，但触发器变窄时右缘内收会使左缘溢出视口——做视口钳制
+function clampMenuToViewport() {
+  const trigger = triggerRef.value;
+  const selector = trigger?.parentElement;
+  if (!trigger || !selector) return;
+  const selRect = selector.getBoundingClientRect();
+  const trigRect = trigger.getBoundingClientRect();
+  const menuWidth = Math.min(360, window.innerWidth - 16);
+  const desired = Math.max(8, Math.min(trigRect.right - menuWidth, window.innerWidth - menuWidth - 8));
+  menuLeft.value = desired - selRect.left;
 }
 
 function closeMenu(refocus = false) {
   showDropdown.value = false;
+  menuLeft.value = null;
   if (refocus) triggerRef.value?.focus();
 }
 

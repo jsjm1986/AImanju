@@ -20,6 +20,8 @@ const isVisible = ref(false);
 // 位置状态
 const position = ref({ x: 20, y: 20 });
 const dragOffset = ref({ x: 0, y: 0 });
+const justDragged = ref(false);
+let dragMoved = false;
 
 // 存储键
 const POSITION_KEY = 'generation-widget-position';
@@ -35,6 +37,9 @@ function loadPosition() {
     const minimized = localStorage.getItem(MINIMIZED_KEY);
     if (minimized) {
       isMinimized.value = minimized === 'true';
+    } else if (window.innerWidth <= 640) {
+      // 移动端首次使用默认最小化，避免遮挡正文
+      isMinimized.value = true;
     }
   } catch (e) {
     console.warn('加载浮窗位置失败:', e);
@@ -70,23 +75,29 @@ const statusText = computed(() => {
   return '就绪';
 });
 
-// 拖拽开始
-function onDragStart(e: MouseEvent) {
+// 拖拽开始（Pointer Events 统一鼠标/触摸/手写笔）
+function onDragStart(e: PointerEvent) {
   if ((e.target as HTMLElement).closest('.widget-actions')) return;
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
   isDragging.value = true;
+  dragMoved = false;
   dragOffset.value = {
     x: e.clientX - position.value.x,
     y: e.clientY - position.value.y,
   };
-  document.addEventListener('mousemove', onDragMove);
-  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('pointermove', onDragMove);
+  document.addEventListener('pointerup', onDragEnd);
+  document.addEventListener('pointercancel', onDragEnd);
 }
 
 // 拖拽移动
-function onDragMove(e: MouseEvent) {
+function onDragMove(e: PointerEvent) {
   if (!isDragging.value) return;
   const newX = e.clientX - dragOffset.value.x;
   const newY = e.clientY - dragOffset.value.y;
+  if (!dragMoved && Math.abs(newX - position.value.x) + Math.abs(newY - position.value.y) > 4) {
+    dragMoved = true;
+  }
   // 限制在视口内
   const maxX = window.innerWidth - 200;
   const maxY = window.innerHeight - 80;
@@ -96,12 +107,18 @@ function onDragMove(e: MouseEvent) {
   };
 }
 
-// 拖拽结束
+// 拖拽结束/中断（pointercancel 也要清理拖拽态）
 function onDragEnd() {
+  if (!isDragging.value) return;
   isDragging.value = false;
-  savePosition();
-  document.removeEventListener('mousemove', onDragMove);
-  document.removeEventListener('mouseup', onDragEnd);
+  if (dragMoved) {
+    justDragged.value = true;
+    setTimeout(() => { justDragged.value = false; }, 0);
+    savePosition();
+  }
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragEnd);
+  document.removeEventListener('pointercancel', onDragEnd);
 }
 
 // 切换最小化
@@ -163,9 +180,21 @@ onMounted(() => {
   }
 });
 
+// 拖拽后抑制紧随的 click（拖动浮窗时松开手指/鼠标不应误触展开或跳转）
+function onMinimizedClick() {
+  if (justDragged.value) return;
+  toggleMinimize();
+}
+
+function onNavigateClick() {
+  if (justDragged.value) return;
+  navigateToScript();
+}
+
 onUnmounted(() => {
-  document.removeEventListener('mousemove', onDragMove);
-  document.removeEventListener('mouseup', onDragEnd);
+  document.removeEventListener('pointermove', onDragMove);
+  document.removeEventListener('pointerup', onDragEnd);
+  document.removeEventListener('pointercancel', onDragEnd);
 });
 </script>
 
@@ -177,10 +206,10 @@ onUnmounted(() => {
         class="generation-floating-widget"
         :class="{ 'is-minimized': isMinimized, 'is-dragging': isDragging }"
         :style="{ right: `${position.x}px`, bottom: `${position.y}px` }"
-        @mousedown="onDragStart"
+        @pointerdown="onDragStart"
       >
         <!-- 最小化状态 -->
-        <div v-if="isMinimized" class="widget-minimized" @click="toggleMinimize">
+        <div v-if="isMinimized" class="widget-minimized" @click="onMinimizedClick">
           <span class="status-icon">{{ statusIcon }}</span>
           <span v-if="isGenerating" class="mini-progress">{{ progressPercent }}%</span>
         </div>
@@ -208,7 +237,7 @@ onUnmounted(() => {
           </div>
 
           <div class="widget-footer">
-            <button class="nav-btn" @click="navigateToScript">
+            <button class="nav-btn" @click="onNavigateClick">
               查看详情 →
             </button>
           </div>
@@ -228,6 +257,7 @@ onUnmounted(() => {
   box-shadow: 0 8px 32px var(--overlay-bg);
   cursor: grab;
   user-select: none;
+  touch-action: none;
   transition: box-shadow 0.2s, transform 0.2s;
 }
 

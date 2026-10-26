@@ -4,7 +4,7 @@
       <!-- 头部 -->
       <div class="modal-header">
         <h3>🔧 批量修复 ({{ issues.length }} 个问题)</h3>
-        <button class="close-btn" @click="handleClose">×</button>
+        <button class="close-btn" @click="handleClose" aria-label="关闭">×</button>
       </div>
 
       <!-- 进度指示 -->
