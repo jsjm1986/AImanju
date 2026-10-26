@@ -2439,7 +2439,7 @@ const handleClickOutside = (event: MouseEvent) => {
   padding: 10px 24px;
   background: transparent;
   color: var(--text-secondary);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
@@ -2449,5 +2449,44 @@ const handleClickOutside = (event: MouseEvent) => {
 .btn-show-all:hover {
   border-color: var(--primary);
   color: var(--primary);
+}
+
+/* 移动端：工具栏三段折行，避免单排撑出横向滚动 */
+@media (max-width: 768px) {
+  .page-toolbar {
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    padding: var(--space-2) 0;
+  }
+  .toolbar-left {
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  .page-title { font-size: var(--text-lg); }
+  .user-quota-status { padding: 4px 10px; gap: 8px; }
+  .toolbar-center {
+    flex: 1 1 100%;
+    max-width: none;
+    order: 2;
+  }
+  .filter-select { min-width: 96px; flex-shrink: 0; }
+  .toolbar-right {
+    order: 3;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+  /* 帮助气泡右缘锚定，隐藏态不再撑出横向滚动 */
+  .help-tooltip {
+    left: auto;
+    right: 0;
+    transform: none;
+    width: min(320px, calc(100vw - 32px));
+  }
+  .help-tooltip::before {
+    left: auto;
+    right: 16px;
+    transform: none;
+  }
 }
 </style>

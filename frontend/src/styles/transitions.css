@@ -285,9 +285,10 @@
     animation: none;
   }
 
-  /* 兜底：所有持续动画（spin/pulse/blink/shimmer/进度条等，含组件内联）统一降频——
-     加载状态仍可见，但消除高频位移/闪烁 */
+  /* 兜底：所有动画（spin/pulse/blink/shimmer/进度条等，含组件内联）压为瞬时单帧——
+     持续动画是装饰，加载状态由文本标签（如"生成中 17%"）和静态样式表达 */
   *, *::before, *::after {
-    animation-duration: 3s !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

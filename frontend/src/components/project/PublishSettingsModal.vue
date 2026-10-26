@@ -271,7 +271,7 @@ function handleUnpublish() {
 }
 
 .modal-content {
-  background: var(--card-bg, white);
+  background: var(--bg-surface);
   border-radius: 12px;
   width: 90%;
   max-width: 450px;
@@ -342,7 +342,7 @@ function handleUnpublish() {
   border: 1px solid var(--border-default);
   border-radius: 8px;
   font-size: 14px;
-  background: var(--input-bg, white);
+  background: var(--bg-elevated);
   color: var(--text-primary);
 }
 

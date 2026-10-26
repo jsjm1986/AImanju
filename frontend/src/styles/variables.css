@@ -178,4 +178,25 @@
   --duration-fast: 150ms;
   --duration-normal: 250ms;
   --duration-slow: 350ms;
+
+  /* ========== 兼容别名：历史组件引用的旧命名，映射到正式 token ========== */
+
+  --danger: var(--error);
+  --bg-primary: var(--bg-base);
+  --bg-tertiary: var(--bg-elevated);
+  --bg-muted: var(--bg-hover);
+  --info-bg: var(--info-muted);
+  --warning-bg: var(--warning-muted);
+  --success-bg: var(--success-muted);
+  --error-bg: var(--error-muted);
+  --border: var(--border-default);
+  --border-subtle: var(--border-default);
+  --border-muted: var(--border-default);
+  --radius-xs: var(--radius-sm);
+  --radius-xl: var(--radius-lg);
+  --transition-normal: var(--transition-base);
+  --warning-dark: var(--warning);
+  --warning-hover: var(--warning);
+  --success-hover: var(--success);
+  --primary-rgb: 85, 88, 232; /* 与 --primary #5558E8 一致，供 rgba() 使用 */
 }
