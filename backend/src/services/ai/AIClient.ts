@@ -231,8 +231,19 @@ function persistModel(modelName: string): void {
 
 function initDefaultModel(): void {
   if (currentModelName) return;
-  currentModelName = loadPersistedModel()
+  const configs = getModelConfigs();
+  const preferred = loadPersistedModel()
     || (process.env.DEFAULT_AI_PROVIDER === 'glm' ? 'glm-night' : 'ds-qwen35-plus');
+  // 首选模型无 key 时兜底到第一个已配置模型——避免启动即处于无 key 状态导致全站生成失败
+  if (configs[preferred]?.apiKey) {
+    currentModelName = preferred;
+  } else {
+    const configured = Object.values(configs).find(c => c.apiKey);
+    currentModelName = configured?.name || preferred;
+    if (configured) {
+      console.warn(`[AI] 首选模型 ${preferred} 未配置 API Key，回退到 ${configured.displayName}`);
+    }
+  }
 }
 
 /** 品牌标签（前端徽章显示用，由模型 key 推导，保证列表接口单源） */
@@ -509,9 +520,10 @@ export class AIClient {
     return getModelConfigs()[currentModelName];
   }
 
-  getAvailableModels(): Array<{ name: string; displayName: string; provider: AIProvider; brand: string }> {
+  getAvailableModels(): Array<{ name: string; displayName: string; provider: AIProvider; brand: string; model: string; configured: boolean }> {
     return Object.values(getModelConfigs()).map(c => ({
       name: c.name, displayName: c.displayName, provider: c.provider, brand: brandOfModel(c.name),
+      model: c.model, configured: Boolean(c.apiKey),
     }));
   }
 
@@ -523,6 +535,11 @@ export class AIClient {
     const configs = getModelConfigs();
     if (!configs[modelName]) {
       logger.error(`未知模型: ${modelName}`, new Error(`Unknown model: ${modelName}`), { method: 'switchModel' });
+      return false;
+    }
+    // 无 API Key 的模型不可切换——防止"切换成功但所有生成 401"的假可用状态
+    if (!configs[modelName].apiKey) {
+      logger.error(`模型未配置 API Key: ${modelName}`, new Error(`Model not configured: ${modelName}`), { method: 'switchModel' });
       return false;
     }
     currentModelName = modelName;
@@ -539,6 +556,9 @@ export class AIClient {
 
     if (!config) {
       return { success: false, message: `未知模型: ${targetModel}` };
+    }
+    if (!config.apiKey) {
+      return { success: false, message: `${config.displayName} 未配置 API 密钥` };
     }
 
     const startTime = Date.now();

@@ -115,7 +115,11 @@ router.post('/models/switch', (req: Request, res: Response) => {
     if (!modelName) { errorJson(res, 400, '缺少模型名称'); return; }
 
     const success = aiClient.switchModel(modelName);
-    if (!success) { errorJson(res, 400, `未知模型: ${modelName}`); return; }
+    if (!success) {
+      const known = aiClient.getAvailableModels().find(m => m.name === modelName);
+      errorJson(res, 400, known ? `模型 ${modelName} 未配置 API 密钥` : `未知模型: ${modelName}`);
+      return;
+    }
 
     res.json({ success: true, currentModel: { ...getModelInfo(), name: modelName } });
   } catch (error) {

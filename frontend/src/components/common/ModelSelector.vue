@@ -14,7 +14,7 @@
         :class="{ 
           active: model.name === currentModel?.name,
           testing: testingModel === model.name,
-          disabled: testingModel !== null
+          disabled: testingModel !== null || model.configured === false
         }"
         @click="handleModelClick(model)"
       >
@@ -22,6 +22,7 @@
           {{ model.brand }}
         </span>
         <span class="model-display-name">{{ model.displayName }}</span>
+        <span v-if="model.configured === false" class="unconfigured-tag">未配置</span>
         
         <!-- 状态指示 -->
         <span v-if="testingModel === model.name" class="status-icon testing">⏳</span>
@@ -60,6 +61,13 @@ const testMessageType = ref<'success' | 'error' | ''>('');
 async function handleModelClick(model: ModelInfo) {
   // 如果正在测试，忽略点击
   if (testingModel.value !== null) return;
+  
+  // 未配置 API Key 的模型不可选——直接提示，不发起测试
+  if (model.configured === false) {
+    testMessage.value = `${model.displayName} 未配置 API 密钥，无法使用`;
+    testMessageType.value = 'error';
+    return;
+  }
   
   // 如果是当前模型，不需要切换
   if (model.name === currentModel.value?.name) {
@@ -272,6 +280,15 @@ onMounted(async () => {
   flex: 1;
   color: var(--text-primary);
   font-size: var(--text-sm);
+}
+
+.unconfigured-tag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--error-muted);
+  color: var(--error);
+  flex-shrink: 0;
 }
 
 .status-icon {
