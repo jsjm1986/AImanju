@@ -906,4 +906,19 @@ export const NARRATIVE_METHODOLOGY = `# 短剧叙事科学 Prompt vUltimate（�
 请根据我提供的题材创作；如果我未提供题材，则先自动生成一个最适合短剧爆款结构的题材，再开始创作。
 `;
 
+/**
+ * 方法论提纯版：剔除"输出格式要求/最终任务模板"两段（它们要求【场景】【人物】△动作格式
+ * 和"剧情基础设定+质检报告"包装，与系统的格式预设体系冲突），保留全部叙事与情绪工程理论。
+ * 供国内短剧类格式默认注入。
+ */
+const _s17 = NARRATIVE_METHODOLOGY.indexOf('# 十七、输出格式要求');
+const _s18 = NARRATIVE_METHODOLOGY.indexOf('# 十八、硬性禁止项');
+const _s19 = NARRATIVE_METHODOLOGY.indexOf('# 十九、最终任务模板');
+const _coreParts = [
+  _s17 === -1 ? NARRATIVE_METHODOLOGY : NARRATIVE_METHODOLOGY.slice(0, _s17),
+  _s18 !== -1 && _s19 !== -1 ? NARRATIVE_METHODOLOGY.slice(_s18, _s19) : '',
+];
+export const NARRATIVE_METHODOLOGY_CORE = _coreParts.join('\n').trimEnd() +
+  '\n\n> 注：本方法论只管叙事与情绪工程；剧本的具体输出格式以下方"输出格式要求"为准。\n';
+
 

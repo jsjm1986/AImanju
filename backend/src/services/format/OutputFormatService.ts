@@ -625,5 +625,55 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         });
     }
 
+    // ---- 双语名块：英文名块畸形 + 同一中文名对应多个不相关英文名 ----
+    // 实测缺陷样例：`Vera HALF- VOICE(Hands to mouth)`——情绪词被写进名字槽位
+    const NAME_BLOCK_RE = /^([^\s：:（(\[【]{1,12})\s+([A-Za-z][A-Za-z'’.\- ]*?)\s*(?:（[^）]{1,40}）|\([^)]{1,60}\))?[：:]/;
+    const malformedEnNames: string[] = [];
+    const cnToEn = new Map<string, Set<string>>();
+    for (const raw of lines) {
+        const t = raw.trim();
+        if (!t || NON_DIALOGUE_RE.test(t) || PROP_TEXT_RE.test(t) || SCENE_HEADER_RE.test(t) || !DIALOGUE_LINE_RE.test(t)) continue;
+        const m = t.match(NAME_BLOCK_RE);
+        if (!m) continue;
+        const cnName = m[1];
+        const enName = m[2].trim().toUpperCase();
+        if (/[-–—]\s|\s[-–—]|\d/.test(enName)) {
+            malformedEnNames.push(`${cnName} ${m[2].trim()}`);
+        }
+        if (!cnToEn.has(cnName)) cnToEn.set(cnName, new Set());
+        cnToEn.get(cnName)!.add(enName);
+    }
+    if (malformedEnNames.length > 0) {
+        violations.push({
+            content: '英文名块畸形：台词名块中的英文名含连字符断词或数字（情绪词被误写进名字槽位）',
+            evidence: `命中${malformedEnNames.length}处：${samples(malformedEnNames)}`,
+            severity: 'important',
+            suggestion: '英文名块写人物卡中的完整英文名（大写），情绪/动作写进括号内',
+        });
+    }
+    const nameConflicts: string[] = [];
+    // 称谓/角色描述词作首词时不是唯一身份（"Uncle Hale"/"Uncle Tom"共享首词），跳过防误报
+    const TITLE_PREFIXES = new Set(['Uncle','Aunt','Mr','Mrs','Miss','Ms','Dr','Sheriff','Professor','Father','Mother','Brother','Sister','Lady','Lord','Old','Young','Officer','Agent','Captain','Boss','King','Queen','Prince','Princess','Grandpa','Grandma','打手','保镖','女仆','管家','佣人','司机','医生','护士','手下','老大','老板','助理','秘书','仆人','侍从','卫兵','执事']);
+    for (const [cn, ens] of cnToEn) {
+        if (ens.size <= 1 || TITLE_PREFIXES.has(cn)) continue;
+        const arr = [...ens];
+        // 互为包含或共享任一词元（"VERA" vs "VERA HALE"）视为同一名的简繁写法，不算冲突；
+        // 昵称前缀（"GIO" vs "GIOVANNI"）按前缀包含放行，避免误报
+        const unrelated = arr.some(a => arr.some(b =>
+            a !== b &&
+            !a.split(/\s+/).some(tok => b.split(/\s+/).includes(tok)) &&
+            !a.startsWith(b) && !b.startsWith(a)
+        ));
+        if (unrelated) nameConflicts.push(`${cn}→${arr.join('/')}`);
+    }
+    if (nameConflicts.length > 0) {
+        violations.push({
+            content: '双语名块不一致：同一中文名对应多个互不相同的英文名',
+            evidence: `命中${nameConflicts.length}处：${samples(nameConflicts)}`,
+            severity: 'important',
+            suggestion: '全剧统一为人物卡中的英文名（大写），不得换用其他词',
+        });
+    }
+
     return violations;
 }

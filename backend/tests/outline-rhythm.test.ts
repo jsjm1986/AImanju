@@ -6,6 +6,7 @@ import {
   getOutlineSynopsisPrompt,
   getEnhancedSynopsisPrompt,
   getEpisodeRhythm,
+  getPaywallEpisodes,
   EnhancedOutlineParams,
 } from '../src/services/outline/outlinePrompts';
 import { getScriptAgentPrompt } from '../src/services/script/scriptPrompts';
@@ -128,6 +129,61 @@ describe('script agent prompt', () => {
     expect(p).toContain('**单集起伏**');
     expect(p).toContain('**第1集黄金开局**');
   });
+  it('梗概带卡点标注：注入付费卡点集规则', () => {
+    const p = getScriptAgentPrompt({ episodeNumber: 8, episodePlan: '（一卡）摊牌夜：霍太太当众……' });
+    expect(p).toContain('**付费卡点集**');
+    expect(p).toContain('半次释放');
+    const p2 = getScriptAgentPrompt({ episodeNumber: 5, episodePlan: '第5集：玛洛去旧货仓上班' });
+    expect(p2).not.toContain('**付费卡点集**');
+  });
+  it('非海外短剧预设：注入单集节拍硬要求', () => {
+    const p = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'standard' } });
+    expect(p).toContain('单集节拍硬要求');
+    expect(p).toContain('场钩');
+    const o = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'overseas_drama' } });
+    expect(o).not.toContain('单集节拍硬要求');
+  });
+  it('国内短剧预设：默认注入提纯版叙事方法论（无格式冲突段），开关可关', () => {
+    const p = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'standard' } });
+    expect(p).toContain('叙事科学方法论');
+    expect(p).toContain('硬性禁止项');
+    expect(p).not.toContain('质检报告');
+    expect(p).not.toContain('△动作');
+    const off = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'standard', enableNarrativeMethodology: false } });
+    expect(off).not.toContain('叙事科学方法论');
+    const overseas = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'overseas_drama' } });
+    expect(overseas).toContain('叙事科学方法论');
+  });
+});
+
+describe('付费卡点规划（国内海外通用）', () => {
+  it('getPaywallEpisodes：40集 → wall1=8(?)且 wall2>wall1', () => {
+    const { wall1, wall2 } = getPaywallEpisodes(40);
+    expect(wall1).toBeGreaterThanOrEqual(8);
+    expect(wall1).toBeLessThanOrEqual(12);
+    expect(wall2).not.toBeNull();
+    expect(wall2!).toBeGreaterThan(wall1);
+  });
+  it('getPaywallEpisodes：10集 → 无二卡', () => {
+    const { wall1, wall2 } = getPaywallEpisodes(10);
+    expect(wall1).toBeGreaterThanOrEqual(8);
+    expect(wall2).toBeNull();
+  });
+  it('国内分批梗概：含卡点设计与标注要求', () => {
+    const p = getOutlineEpisodesBatchPrompt('cards', 'syn', 1, 20, 40, '', undefined, false);
+    expect(p).toContain('【付费卡点设计】');
+    expect(p).toContain('卡点标注');
+    const pe = getEnhancedEpisodesBatchPrompt(domestic, 'core', 'cards', 'syn', 1, 20, 40);
+    expect(pe).toContain('【付费卡点设计】');
+    expect(pe).toContain('卡点标注');
+  });
+  it('含卡点集的批次：phaseHint 提示半次释放', () => {
+    const p = getOutlineEpisodesBatchPrompt('cards', 'syn', 1, 20, 40, '', undefined, false);
+    expect(p).toContain('本批次含卡点集');
+    const q = getOutlineEpisodesBatchPrompt('cards', 'syn', 21, 40, 40, '', undefined, false);
+    // 40集二卡≈14集在第2批? wall2=min(max(13,14),24)=14 → 21-40批不含卡点
+    expect(q).not.toContain('本批次含卡点集');
+  });
 });
 
 describe('buildEpisodeTensionConstraints', () => {
@@ -143,7 +199,18 @@ describe('buildEpisodeTensionConstraints', () => {
     }
     expect(t[1].content).toContain('第1集黄金开局');
   });
-  it('ep5：恰好1项', () => {
-    expect(buildEpisodeTensionConstraints(5)).toHaveLength(1);
+  it('ep5：tension-1 + tension-4（憋屈过载，ep>1触发）', () => {
+    const t = buildEpisodeTensionConstraints(5);
+    expect(t.map(c => c.id)).toEqual(['tension-1', 'tension-4']);
+  });
+  it('ep5 + 卡点标注梗概：追加 tension-3', () => {
+    const t = buildEpisodeTensionConstraints(8, { episodePlan: '（一卡）摊牌夜：霍太太当众……' });
+    expect(t.map(c => c.id)).toEqual(['tension-1', 'tension-3', 'tension-4']);
+    expect(t[1].content).toContain('付费卡点集');
+    expect(t[1].validationCriteria?.length).toBeGreaterThan(0);
+  });
+  it('ep5 + 无卡点标注：不追加 tension-3', () => {
+    const t = buildEpisodeTensionConstraints(8, { episodePlan: '第8集：玛洛去旧货仓上班' });
+    expect(t.map(c => c.id)).toEqual(['tension-1', 'tension-4']);
   });
 });

@@ -77,6 +77,31 @@ describe('新生产格式扫描', () => {
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('双语'))).toBeUndefined();
   });
+
+  it('英文名块畸形（情绪词进名字槽位）命中', () => {
+    const c = `第 1 集\n1-1 农场 日 外\n人物：Vera\n她绞着手帕。\nVera HALF- VOICE(Hands to mouth)：The paper— it is just crumbling.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('名块畸形'))).toBeTruthy();
+  });
+
+  it('同一中文名对应多个不相关英文名 命中', () => {
+    const c = `第 1 集\n1-1 农场 日 外\n人物：Vera\n她绞着手帕。\nVera VERA HALE(Quietly)：Stay.\nVera HALF VOICE(Loudly)：Run!`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('名块不一致'))).toBeTruthy();
+  });
+
+  it('同名简繁写法与昵称前缀不误报', () => {
+    const c = `第 1 集\n1-1 农场 日 外\n人物：Vera、Giovanni\n她绞着手帕。\nVera VERA(Quietly)：Stay.\nVera VERA HALE(Loudly)：Run!\nGiovanni GIOVANNI(Coldly)：Stop.\nGiovanni GIO(Softer)：Please.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
+    expect(vs.find(v => v.content.includes('名块畸形'))).toBeUndefined();
+  });
+
+  it('称谓首词不参与名块一致性检查', () => {
+    const c = `第 1 集\n1-1 农场 日 外\n人物：Uncle Hale、Uncle Tom\n两位叔叔站在门廊。\nUncle Hale UNCLE HALE(Stern)：Sit.\nUncle Tom UNCLE TOM(Cheerful)：Tea?`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
+  });
 });
 
 describe('新生产格式归一化', () => {

@@ -6,7 +6,7 @@
 
 import { IOutputFormatConfig } from '../../types/OutputFormat';
 import { outputFormatService } from '../format/OutputFormatService';
-import { NARRATIVE_METHODOLOGY } from './narrativeMethodology';
+import { NARRATIVE_METHODOLOGY_CORE } from './narrativeMethodology';
 import { OVERSEAS_METHODOLOGY } from './overseasMethodology';
 
 export interface ScriptContextParts {
@@ -136,10 +136,18 @@ export function getScriptAgentPrompt(contextParts: ScriptContextParts): string {
     episodeNumber
   } = contextParts;
 
-  // 制作方法论（情绪拉扯/黄金开局）：国内海外通用，不受方法论注入开关影响
-  const goldenOpeningRule = episodeNumber === 1
-    ? `\n7. **第1集黄金开局**：前3秒视觉或台词冲击，前10秒冲突爆发，前30秒观众知道主角要干什么；主角的金手指（核心能力/隐藏身份/关键证据或筹码）必须在本集亮相——本集梗概已安排的照梗概写，未安排的以异象、征兆或只让观众看见的方式露出一角，不得与后续剧情矛盾；按"打压→反转→再打压"走出起伏，集尾留必看下集的钩子`
-    : '';
+  // 制作方法论（情绪拉扯/黄金开局/卡点拉扯）：国内海外通用，不受方法论注入开关影响
+  const extraRules: Array<[string, string]> = [];
+  if (episodeNumber === 1) {
+    extraRules.push(['第1集黄金开局', '前3秒视觉或台词冲击，前10秒冲突爆发，前30秒观众知道主角要干什么；主角的金手指（核心能力/隐藏身份/关键证据或筹码）必须在本集亮相——本集梗概已安排的照梗概写，未安排的以异象、征兆或只让观众看见的方式露出一角，不得与后续剧情矛盾；按"打压→反转→再打压"走出起伏，集尾留必看下集的钩子']);
+  }
+  // 付费卡点集：梗概标注（一卡）/（二卡）/【付费卡点】时触发卡点拉扯专项
+  if (/[（(【](?:一卡|二卡|付费卡点)[）)】]/.test(episodePlan || '')) {
+    extraRules.push(['付费卡点集', '本集是付费卡点集——把误会推到最大、把身份压到最低、把危险逼到最近、把情感撕到最痛（至少兑现两项）；主角的翻盘只给半次释放（进行到一半被外力打断、反转或悬置），结尾钩子必须是全阶段最强悬念']);
+  }
+  const extraRulesText = extraRules
+    .map(([title, body], i) => `\n${7 + i}. **${title}**：${body}`)
+    .join('');
 
   // 获取专家身份和格式术语（必须在 writingStyleSection 之前）
   const resolvedConfig = outputFormatService.resolveConfig(contextParts.outputFormatConfig);
@@ -150,15 +158,30 @@ export function getScriptAgentPrompt(contextParts: ScriptContextParts): string {
   console.log(`[Prompt] 使用格式预设: ${resolvedConfig.sourcePreset || 'default'}`);
   console.log(`[Prompt] 专家身份: ${expertIdentity.slice(0, 50)}...`);
 
-  // 叙事科学方法论（海外格式默认启用、可在项目设置中关闭；其他格式按开关可选注入）
+  // 叙事科学方法论（海外格式默认启用、国内短剧类格式默认注入提纯版、均可在项目设置中关闭；文学类格式按开关可选）
   const isOverseasFormat = resolvedConfig.sourcePreset === 'overseas_drama';
+  const SHORT_DRAMA_PRESETS = new Set(['standard', 'short_video', 'live_action', 'ai_avatar']);
+  const isShortDramaPreset = SHORT_DRAMA_PRESETS.has(resolvedConfig.sourcePreset || '');
   const methodologyText = isOverseasFormat
     ? OVERSEAS_METHODOLOGY
-    : NARRATIVE_METHODOLOGY;
-  const methodologyEnabled = contextParts.outputFormatConfig?.enableNarrativeMethodology ?? isOverseasFormat;
+    : NARRATIVE_METHODOLOGY_CORE;
+  const methodologyEnabled = contextParts.outputFormatConfig?.enableNarrativeMethodology ?? (isOverseasFormat || isShortDramaPreset);
   const narrativeSection = methodologyEnabled
     ? `\n\n## 叙事科学方法论\n\n${methodologyText}\n`
     : '';
+
+  // 短剧节拍硬要求（制作方法论：场钩/功能密度/微奖励——海外格式已有完整规范，文学类格式不适用）
+  const shortDramaBeatSection = isShortDramaPreset ? `
+## 单集节拍硬要求（短剧节奏）
+- 开场首帧必须是动作或冲突性台词，严禁风景空镜；本集开篇直接承接上集结尾钩子，不另起铺垫
+- 场钩：每场结尾留一个小悬念或小反转，场景在"半释放"状态结束，答案带进下一场
+- 功能密度：每个场景至少占一项功能（推进冲突/揭示信息/转变关系/制造悬念），每句对白至少占一项功能（新信息/情绪动作/改变关系），无功能即删
+- 情绪绑定事件：主角的情绪必须挂在具体事件上（被夺走/被误解/被羞辱后的反应），不写无事件支撑的情绪
+- 微奖励密度：不许连续大段纯对话或纯过场，每隔一小段给一次小正反馈（俏皮话/意外信息/小动作）
+- 集尾张力>集内爽感：本集结尾钩子的悬念强度必须压过前面已兑现的释放——观众带着"更想看下一集"离开，而不是"这集爽完了"
+- 慢蓄力快反转：压制蓄力可以铺足，但反转爆发要快（一两场戏内完成打脸/亮证据/身份反转），不把反转拖成半集慢动作
+- 为弹幕而写：观众看到会刷"快进"的段落直接重写，会刷"爽""哈哈哈"的保留
+` : '';
 
   // 写作风格是强制要求
   const writingStyleSection = writingStyle ? `
@@ -183,8 +206,8 @@ ${narrativeSection}
 3. **角色一致性**：性格、外貌、说话方式、称呼、关系必须与设定一致
 4. **格式规范**：严格按照下方格式输出，不得自创格式
 5. **禁止元信息泄漏**：剧本正文（包括旁白、对白、动作描写）中绝对不能出现"第X集"、"上集"、"上一集"、"与上集X-X"等引用集数的元信息。下方提供的"前情提要"、"角色状态变化"、"伏笔"、"世界状态"等上下文仅供你理解剧情脉络，必须将其转化为自然的剧情内容，不得在正文中直接引用这些参考信息的原文或集数编号
-6. **单集起伏**：本集至少走完一轮"压→扬→新危机"——主角受压后要有一次观众看得见的反击、小胜或信息反转，释放后立刻接新的代价或危机；禁止整集只压不扬，也不要一集打满${goldenOpeningRule}
-${writingStyleSection}
+6. **单集起伏**：本集至少走完一轮"压→扬→新危机"——主角受压后要有一次观众看得见的反击、小胜或信息反转，释放后立刻接新的代价或危机；禁止整集只压不扬，也不要一集打满；若前情显示主角已被同一对象连续压制两集以上仍无转机，本集必须出现新转折、新能力或新变量打破压制格局${extraRulesText}
+${writingStyleSection}${shortDramaBeatSection}
 ## 建议遵循（提升质量）
 
 1. **剧情连贯**：承接前情，发展当前，铺垫后续

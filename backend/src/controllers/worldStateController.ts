@@ -18,6 +18,7 @@ import { characterCharmAnalyzer } from '../services/character/CharacterCharmAnal
 import { characterArcTracker } from '../services/character/CharacterArcTracker';
 import { characterVoiceProfiler } from '../services/character/CharacterVoiceProfiler';
 import { Constraint, ConstraintValidator, ValidationResponse } from '../services/constraint/ConstraintValidator';
+import { IOutputFormatConfig } from '../types/OutputFormat';
 import { UnifiedConstraintContext, UnifiedConstraintManager } from '../services/constraint/UnifiedConstraintManager';
 import { EnhanceContext, EpisodePlanEnhancer } from '../services/episode/EpisodePlanEnhancer';
 import { IRhythmControlParams, RHYTHM_PRESETS, RhythmConstraintResult, RhythmController, RhythmPresetType } from '../services/rhythm/RhythmControl';
@@ -428,7 +429,10 @@ function buildOverseasFormatAuditConstraints(wordLimitMax?: number): Constraint[
  * 单集起伏约束（制作方法论：情绪拉扯/黄金开局）——国内海外通用、不受方法论注入开关影响；
  * 由 harness 固定注入（轨道），交 AI 验证器对全文语义判定（判断）。主路径与回退路径共用。
  */
-export function buildEpisodeTensionConstraints(currentEpisode: number): Constraint[] {
+export function buildEpisodeTensionConstraints(
+  currentEpisode: number,
+  opts?: { episodePlan?: string; previousCliffhanger?: string | null }
+): Constraint[] {
   const list: Constraint[] = [{
     id: 'tension-1',
     type: 'rhythm',
@@ -456,7 +460,73 @@ export function buildEpisodeTensionConstraints(currentEpisode: number): Constrai
       ],
     });
   }
+  // 卡点集：梗概标注（一卡）/（二卡）/【付费卡点】时，验证卡点拉扯与半次释放
+  if (opts?.episodePlan && /[（(【](?:一卡|二卡|付费卡点)[）)】]/.test(opts.episodePlan)) {
+    list.push({
+      id: 'tension-3',
+      type: 'rhythm',
+      content: '付费卡点集：本集为付费卡点集，必须执行卡点拉扯——误会推到最大/身份压到最低/危险逼到最近/情感撕到最痛至少兑现两项；主角的翻盘只给半次释放（进行到一半被外力打断、反转或悬置），结尾钩子强度须为本阶段最强',
+      severity: 'important',
+      source: 'rhythm',
+      category: 'verifiable',
+      context: `本集梗概含卡点标注：${opts.episodePlan.slice(0, 60)}`,
+      validationCriteria: [
+        '本集冲突强度与情绪撕裂度明显高于普通集',
+        '主角的反击、真相揭示或关系突破只进行到一半即被打断、反转或悬置',
+        '结尾留下"必须看下一集"的强画面悬念',
+      ],
+    });
+  }
+  // 憋屈过载防线（跨集）：同一对象连续压制不超过2集——结合上下文让验证器判断
+  if (currentEpisode > 1) {
+    list.push({
+      id: 'tension-4',
+      type: 'rhythm',
+      content: '憋屈过载防线：结合上下文与本集梗概判断——若主角此前已被同一对象连续压制两集以上仍无转机，本集必须出现新转折、新能力或新变量打破压制格局；若压制格局刚开始（不超过两集）或本集已有有效反击/新变量，视为满足',
+      severity: 'important',
+      source: 'rhythm',
+      category: 'verifiable',
+      context: opts?.previousCliffhanger ? `上集结尾状态：${opts.previousCliffhanger.slice(0, 80)}` : undefined,
+      validationCriteria: [
+        '检查本集是否在此前持续压制格局中给出了转折性变量（新能力/新盟友/关键信息/局势反转）',
+        '本集不得是"同一压迫方式的第三次重复"且毫无新变量',
+      ],
+    });
+  }
   return list;
+}
+
+/** 国内短剧类格式默认注入方法论的格式预设集（与 scriptPrompts 保持一致） */
+const SHORT_DRAMA_PRESETS = new Set(['standard', 'short_video', 'live_action', 'ai_avatar']);
+
+/** 叙事方法论约束（对白/开场钩子/爽点密度）——国内短剧类格式默认启用，海外走格式审查集 */
+function buildNarrativeMethodologyConstraints(idStart: number): Constraint[] {
+  return [
+    {
+      id: `methodology-${idStart}`,
+      type: 'methodology',
+      content: '对白长度控制：每句对白不超过15字',
+      severity: 'normal',
+      source: 'narrativeMethodology',
+      category: 'verifiable',
+    },
+    {
+      id: `methodology-${idStart + 1}`,
+      type: 'methodology',
+      content: '开场钩子：前3秒必须出现明确冲突（威胁/羞辱/违和/危机）',
+      severity: 'important',
+      source: 'narrativeMethodology',
+      category: 'verifiable',
+    },
+    {
+      id: `methodology-${idStart + 2}`,
+      type: 'methodology',
+      content: '爽点密度：3分钟内必须包含4-6个有效回报点（信息/情绪/地位/证据/身份/反转）',
+      severity: 'important',
+      source: 'narrativeMethodology',
+      category: 'verifiable',
+    },
+  ];
 }
 
 /**
@@ -504,6 +574,7 @@ function collectAllConstraints(params: {
   previousCliffhanger: string | null;
   characterStateConstraints: Array<{ name: string; condition: string }>;
   currentEpisode: number;
+  episodePlan?: string;
   enableNarrativeMethodology?: boolean;
   outputFormatPreset?: string;
   outputFormatWordLimitMax?: number;
@@ -647,41 +718,22 @@ function collectAllConstraints(params: {
     });
   }
 
-  // 6.5 单集起伏约束（制作方法论：情绪拉扯/黄金开局）- 国内海外通用、不受方法论开关影响
-  constraints.push(...buildEpisodeTensionConstraints(params.currentEpisode));
+  // 6.5 单集起伏约束（制作方法论：情绪拉扯/黄金开局/卡点/憋屈过载）- 国内海外通用、不受方法论开关影响
+  constraints.push(...buildEpisodeTensionConstraints(params.currentEpisode, {
+    episodePlan: params.episodePlan,
+    previousCliffhanger: params.previousCliffhanger,
+  }));
 
-  // 7. 叙事科学方法论约束 - 可验证（海外格式默认启用、可在项目设置中关闭；其他格式按开关）
-  const methodologyEnabled = params.enableNarrativeMethodology ?? (params.outputFormatPreset === 'overseas_drama');
+  // 7. 叙事科学方法论约束 - 可验证（海外格式与国内短剧类格式默认启用、可在项目设置中关闭；其他格式按开关）
+  const methodologyEnabled = params.enableNarrativeMethodology ?? (
+    params.outputFormatPreset === 'overseas_drama' || SHORT_DRAMA_PRESETS.has(params.outputFormatPreset || '')
+  );
   if (methodologyEnabled) {
     if (params.outputFormatPreset === 'overseas_drama') {
       constraints.push(...buildOverseasFormatAuditConstraints(params.outputFormatWordLimitMax));
-    } else {
-      constraints.push({
-        id: `methodology-${idCounter++}`,
-        type: 'methodology',
-        content: '对白长度控制：每句对白不超过15字',
-        severity: 'normal',
-        source: 'narrativeMethodology',
-        category: 'verifiable',
-      });
-
-      constraints.push({
-        id: `methodology-${idCounter++}`,
-        type: 'methodology',
-        content: '开场钩子：前3秒必须出现明确冲突（威胁/羞辱/违和/危机）',
-        severity: 'important',
-        source: 'narrativeMethodology',
-        category: 'verifiable',
-      });
-
-      constraints.push({
-        id: `methodology-${idCounter++}`,
-        type: 'methodology',
-        content: '爽点密度：3分钟内必须包含4-6个有效回报点（信息/情绪/地位/证据/身份/反转）',
-        severity: 'important',
-        source: 'narrativeMethodology',
-        category: 'verifiable',
-      });
+    } else if (SHORT_DRAMA_PRESETS.has(params.outputFormatPreset || '') || params.enableNarrativeMethodology === true) {
+      constraints.push(...buildNarrativeMethodologyConstraints(idCounter));
+      idCounter += 3;
     }
   }
 
@@ -1552,19 +1604,31 @@ async function handleGenerateScriptEnhanced(
           sse.sendLog(`[多头约束] 合并 ${deduped.filter(c => c.category === 'verifiable').length} 个可验证约束到验证队列${dupCount > 0 ? `（去重剔除${dupCount}条重复）` : ''}`);
         }
 
-        // 🆕 海外格式：注入格式审查约束集，由 AI 验证器对全文语义判定（非机械正则）
+        // 🆕 格式审查/方法论约束集，由 AI 验证器对全文语义判定（非机械正则）
+        // 海外→格式审查集；国内短剧类→叙事方法论约束（对白/开场钩子/爽点密度）。均可在项目设置中关闭。
+        const ofCfg = project.outputFormat as IOutputFormatConfig | undefined;
+        const resolvedSourcePreset = ofCfg
+          ? (outputFormatService.resolveConfig(ofCfg).sourcePreset || ofCfg.preset)
+          : undefined;
         const methodologyAuditEnabled = project.outputFormat?.enableNarrativeMethodology
-          ?? (project.outputFormat?.preset === 'overseas_drama');
-        if (methodologyAuditEnabled && project.outputFormat?.preset === 'overseas_drama') {
+          ?? (resolvedSourcePreset === 'overseas_drama' || SHORT_DRAMA_PRESETS.has(resolvedSourcePreset || ''));
+        if (methodologyAuditEnabled && resolvedSourcePreset === 'overseas_drama') {
           const auditConstraints = buildOverseasFormatAuditConstraints(
             outputFormatService.resolveConfig(project.outputFormat).wordLimit?.max,
           );
           collectedConstraints = [...collectedConstraints, ...auditConstraints];
           sse.sendLog(`[格式审查] 注入 ${auditConstraints.length} 项 AI 审查约束（语义判定）`);
+        } else if (methodologyAuditEnabled && resolvedSourcePreset && resolvedSourcePreset !== 'overseas_drama') {
+          const nmConstraints = buildNarrativeMethodologyConstraints(90);
+          collectedConstraints = [...collectedConstraints, ...nmConstraints];
+          sse.sendLog(`[叙事方法论] 注入 ${nmConstraints.length} 项 AI 审查约束（语义判定）`);
         }
 
         // 单集起伏约束（国内海外通用，AI 语义判定）——与回退路径共用同一构造
-        const tensionConstraints = buildEpisodeTensionConstraints(episodeNumber);
+        const tensionConstraints = buildEpisodeTensionConstraints(episodeNumber, {
+          episodePlan: savedEpisodePlan,
+          previousCliffhanger: previousCliffhangerForValidation,
+        });
         collectedConstraints = [...collectedConstraints, ...tensionConstraints];
         sse.sendLog(`[单集起伏] 注入 ${tensionConstraints.length} 项 AI 审查约束（语义判定）`);
 
@@ -1680,8 +1744,12 @@ async function handleGenerateScriptEnhanced(
           previousCliffhanger: previousCliffhangerForValidation,
           characterStateConstraints,
           currentEpisode: episodeNumber,
+          episodePlan: savedEpisodePlan,
           enableNarrativeMethodology: project.outputFormat?.enableNarrativeMethodology,
-          outputFormatPreset: project.outputFormat?.preset,
+          outputFormatPreset: (() => {
+            const ofc = project.outputFormat as IOutputFormatConfig | undefined;
+            return ofc ? (outputFormatService.resolveConfig(ofc).sourcePreset || ofc.preset) : undefined;
+          })(),
           outputFormatWordLimitMax: project.outputFormat?.preset
             ? outputFormatService.resolveConfig(project.outputFormat).wordLimit?.max
             : undefined,

@@ -107,8 +107,14 @@ const SHUANGDIAN_PRINCIPLES = `## 爽点设计原则
 
 const EPISODE_TENSION_RULES = `【分集起伏铁律】（情绪拉扯：虐中带爽，爽前更虐，爽后留危；一直惨=麻木，一直爽=腻）
 - 单集拉扯模板：反派得势 → 主角隐忍 → 关键信息出现 → 反派反扑 → 主角小爆发 → 代价或新危机 → 结尾大钩子；每集梗概至少写出"一压一扬一新危机"，扬可以很小（一次反击、一个关键信息、一次小胜），但不能没有
-- 爽点不囤积：小燃点（小打脸/小逆袭/金手指小试）每3-5集至少一次，每10集一个中燃点，付费卡点集才是大燃点——不得把主角的反击全部留到卡点集
-- 爽后留危：每次释放后立刻接新压迫或代价
+- 强冲突公式：压迫者 + 受害者 + 倒计时 + 巨大代价 + 反转打脸；冲突不是吵架，要围绕利益/身份/情感/尊严/生死，可视化、可站队、可打脸
+- 爽点不囤积：小燃点（小打脸/小逆袭/金手指小试）每3-5集至少一次，每10集一个中燃点，付费卡点集才是大燃点——不得把主角的反击全部留到卡点集；爽点规格逐级加码，后一次释放的规格与代价必须高于前一次
+- 憋屈过载防线：主角被同一对象连续压制不得超过2集——第3集必须出现新转折、新能力或新变量打破压制格局，不能继续纯挨打
+- 爽后留危：每次释放后立刻接新压迫或代价（情绪峰值顶点即新危机起点）；集尾悬念的张力必须压过本集已兑现的爽感——观众是带着"更想知道后面"而不是"爽完了"离开每一集
+- 相位错峰：事业/情感/悬念多条线高潮互相错开，不在同一集双高峰；一条线高潮释放后，下一条线的钩子要提前1-2集埋下
+- 慢蓄力快反转：打压蓄力可以铺足，但反转爆发要快（一两场戏内完成打脸/亮证据/身份反转），不许把反转拖成半集慢动作
+- 情绪静默区：连续强刺激后安排缓冲段（亲情/甜宠/日常小胜）降温，防止观众心累弃剧
+- 第三集后节奏加快：冲突密度与信息投放提速，直到卡点集重点渲染
 - 冲突每3集升级一级：小冲突 → 关系冲突 → 身份冲突 → 生死冲突 → 终极对决`;
 
 const GOLDEN_OPENING_RULES = `【第1集黄金开局】（硬性要求，第1集定生死）
@@ -156,15 +162,21 @@ const OVERSEAS_CHARACTER_CARD_EXAMPLE = `**格式说明：** 第一行为"序号
 - 性格用顿号分隔3-5个关键词
 - 示例中的人名/身份/性格只是格式演示，必须按本项目题材重新设计，不得沿用示例设定`;
 
-function getOverseasPaywallPlan(totalEpisodes: number): string {
+/** 付费/留存卡点集位置（一卡约前13%、二卡约1/3-1/2处；总集数<20不设二卡） */
+export function getPaywallEpisodes(totalEpisodes: number): { wall1: number; wall2: number | null } {
   const wall1 = Math.min(Math.max(8, Math.round(totalEpisodes * 0.13)), 12);
-  const wall2 = Math.min(Math.max(Math.round(totalEpisodes * 0.33), wall1 + 6), Math.round(totalEpisodes * 0.6));
+  const wall2Raw = Math.min(Math.max(Math.round(totalEpisodes * 0.33), wall1 + 6), Math.round(totalEpisodes * 0.6));
+  return { wall1, wall2: totalEpisodes >= 20 && wall2Raw > wall1 ? wall2Raw : null };
+}
+
+function getPaywallPlan(totalEpisodes: number): string {
+  const { wall1, wall2 } = getPaywallEpisodes(totalEpisodes);
   return `【付费卡点设计】（必须规划，标注在对应集标题上）
-- 一卡：第${wall1}集（卡${wall1}付${wall1 + 1}）——第${wall1}集结尾必须是全剧第一情绪峰值+最强悬念，迫使付费
-- 二卡：第${wall2}集（卡${wall2}付${wall2 + 1}）——第二情绪峰值，身份揭露或关系决裂级钩子
-- 集数必须严格使用上述计算值（一卡=第${wall1}集、二卡=第${wall2}集），不得自行改为其他集数
+- 一卡：第${wall1}集（卡${wall1}付${wall1 + 1}）——第${wall1}集结尾必须是全剧第一情绪峰值+最强悬念，迫使付费/追看
+${wall2 !== null ? `- 二卡：第${wall2}集（卡${wall2}付${wall2 + 1}）——第二情绪峰值，身份揭露或关系决裂级钩子\n` : ''}- 集数必须严格使用上述计算值（一卡=第${wall1}集${wall2 !== null ? `、二卡=第${wall2}集` : '，不设二卡'}），不得自行改为其他集数
 - 卡点前2集开始蓄力加码，卡点集钩子必须"5秒内可理解的强画面悬念"
-- 集标题标注方式：第${wall1}集（一卡）：`;
+- 卡点集拉扯：把误会推到最大、把身份压到最低、把危险逼到最近、把情感撕到最痛（至少兑现两项），只给半次释放——主角的翻盘进行到一半被外力打断或反转，让观众必须看下一集
+- 集标题标注方式：第${wall1}集（一卡）：${wall2 !== null ? `；第${wall2}集（二卡）：` : ''}`;
 }
 
 const OVERSEAS_STRUCTURE = `【三幕七节点结构】（海外短剧标准结构）
@@ -218,13 +230,18 @@ ${ctx.unresolvedPlots.join('\\n- ')}
 }
 
 function getBatchPhaseHint(startEpisode: number, endEpisode: number, totalEpisodes: number): string {
+  const { wall1, wall2 } = getPaywallEpisodes(totalEpisodes);
+  const walls = [wall1, ...(wall2 !== null ? [wall2] : [])].filter(w => w >= startEpisode && w <= endEpisode);
+  const wallHint = walls.length > 0
+    ? `【本批次含卡点集：第${walls.join('、')}集】卡点集梗概只给半次释放、钩子必须是阶段最强；卡点集前1-2集蓄力加码。`
+    : '';
   if (startEpisode === 1) {
-    return '【本批次是开篇】第1集严格执行下方【第1集黄金开局】；前3集内主角至少完成一次看得见的小胜，建立主角形象、金手指和核心冲突。';
+    return '【本批次是开篇】第1集严格执行下方【第1集黄金开局】；前3集内主角至少完成一次看得见的小胜，建立主角形象、金手指和核心冲突。' + wallHint;
   }
   if (endEpisode >= totalEpisodes) {
-    return '【本批次是结尾】需要收束剧情，安排终极对决。';
+    return '【本批次是结尾】需要收束剧情，安排终极对决。' + wallHint;
   }
-  return '【本批次是中段】需要承上启下，安排小高潮和转折。';
+  return '【本批次是中段】需要承上启下，安排小高潮和转折。' + wallHint;
 }
 
 export function getEpisodeRhythm(totalEpisodes: number): string {
@@ -575,7 +592,7 @@ ${previousBatchSummary}
 `;
   }
 
-  const paywallSection = overseas ? `\n${getOverseasPaywallPlan(totalEpisodes)}\n` : '';
+  const paywallSection = `\n${getPaywallPlan(totalEpisodes)}\n`;
   const rhythmRules = `${startEpisode === 1 ? `${GOLDEN_OPENING_RULES}\n\n` : ''}${EPISODE_TENSION_RULES}`;
   const overseasRules = overseas ? `
 ## 海外分集硬要求
@@ -583,7 +600,9 @@ ${previousBatchSummary}
 - 第1集零铺垫直切冲突、亮出主角金手指并完成"压→扬→再压"起伏，埋主线钩子
 - 付费卡点集的集标题后追加标注"（一卡）/（二卡）"，该集梗概必须是全剧最强悬念峰值
 - 情绪线与信息线每集同时推进
-- 人物用英文原名` : '';
+- 人物用英文原名` : `
+## 卡点标注
+- 付费卡点集（见上方卡点设计）的集标题后追加标注"（一卡）/（二卡）"，该集梗概必须是阶段最强悬念峰值、只给半次释放`;
 
   return `${expertIdentity || '你是一位专业的动态漫剧策划编剧。'}
 
@@ -685,7 +704,7 @@ ${EPISODE_TENSION_RULES}
 ## 整体结构
 ${rhythm}
 
-${getOverseasPaywallPlan(totalEpisodes)}
+${getPaywallPlan(totalEpisodes)}
 
 ## 核心冲突
 用一句话描述主角的核心矛盾（外在对抗+内在情感冲突双线）`;
@@ -726,6 +745,8 @@ ${EPISODE_TENSION_RULES}
 
 ## 整体结构
 ${rhythm}
+
+${getPaywallPlan(totalEpisodes)}
 
 ## 核心冲突
 用一句话描述主角的核心矛盾
@@ -972,9 +993,12 @@ ${previousBatchSummary}
 梗概：100-150字
 人物：出场人物
 
-...连续输出到第${endEpisode}集...`;
+...连续输出到第${endEpisode}集...
 
-  const paywallSection = overseas ? `\n${getOverseasPaywallPlan(totalEpisodes)}\n` : '';
+## 卡点标注
+- 付费卡点集（见上方卡点设计）的集标题后追加标注"（一卡）/（二卡）"，该集梗概必须是阶段最强悬念峰值、只给半次释放`;
+
+  const paywallSection = `\n${getPaywallPlan(totalEpisodes)}\n`;
   const rhythmRules = `${startEpisode === 1 ? `${GOLDEN_OPENING_RULES}\n\n` : ''}${EPISODE_TENSION_RULES}`;
 
   return `${params.expertIdentity || '你是一位专业的动态漫剧策划编剧。'}
