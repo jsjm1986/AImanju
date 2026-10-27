@@ -297,6 +297,7 @@ ${params.referenceContent}
 
     const contextParts: ScriptContextParts = {
       ...baseContext,
+      episodeNumber: params.episodeNumber,
       episodePlan: params.episodePlan || `第${params.episodeNumber} 集`,
       writingStyle,
       sceneRhythm,
@@ -333,6 +334,7 @@ ${params.referenceContent}
   ): Promise<string> {
     const contextParts: ScriptContextParts = {
       ...this.buildBaseContext(params),
+      episodeNumber: params.startEpisode,
       episodePlan: params.episodePlan || `第${params.startEpisode}-${params.endEpisode}集`,
     };
 

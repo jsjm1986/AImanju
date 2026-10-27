@@ -10,6 +10,7 @@ import { NARRATIVE_METHODOLOGY } from './narrativeMethodology';
 import { OVERSEAS_METHODOLOGY } from './overseasMethodology';
 
 export interface ScriptContextParts {
+  episodeNumber?: number;  // 本次生成的起始集数（为1时启用第1集黄金开局要求）
   characterContext?: string;
   previousSummary?: string;
   synopsis?: string;
@@ -131,8 +132,14 @@ export function getScriptAgentPrompt(contextParts: ScriptContextParts): string {
     characterCharm,
     characterArc,
     characterRelationship,
-    characterVoice
+    characterVoice,
+    episodeNumber
   } = contextParts;
+
+  // 制作方法论（情绪拉扯/黄金开局）：国内海外通用，不受方法论注入开关影响
+  const goldenOpeningRule = episodeNumber === 1
+    ? `\n7. **第1集黄金开局**：前3秒视觉或台词冲击，前10秒冲突爆发，前30秒观众知道主角要干什么；主角的金手指（核心能力/隐藏身份/关键证据或筹码）必须在本集亮相——本集梗概已安排的照梗概写，未安排的以异象、征兆或只让观众看见的方式露出一角，不得与后续剧情矛盾；按"打压→反转→再打压"走出起伏，集尾留必看下集的钩子`
+    : '';
 
   // 获取专家身份和格式术语（必须在 writingStyleSection 之前）
   const resolvedConfig = outputFormatService.resolveConfig(contextParts.outputFormatConfig);
@@ -176,6 +183,7 @@ ${narrativeSection}
 3. **角色一致性**：性格、外貌、说话方式、称呼、关系必须与设定一致
 4. **格式规范**：严格按照下方格式输出，不得自创格式
 5. **禁止元信息泄漏**：剧本正文（包括旁白、对白、动作描写）中绝对不能出现"第X集"、"上集"、"上一集"、"与上集X-X"等引用集数的元信息。下方提供的"前情提要"、"角色状态变化"、"伏笔"、"世界状态"等上下文仅供你理解剧情脉络，必须将其转化为自然的剧情内容，不得在正文中直接引用这些参考信息的原文或集数编号
+6. **单集起伏**：本集至少走完一轮"压→扬→新危机"——主角受压后要有一次观众看得见的反击、小胜或信息反转，释放后立刻接新的代价或危机；禁止整集只压不扬，也不要一集打满${goldenOpeningRule}
 ${writingStyleSection}
 ## 建议遵循（提升质量）
 

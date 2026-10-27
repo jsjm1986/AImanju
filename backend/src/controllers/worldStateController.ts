@@ -8,6 +8,7 @@ import { IRhythmTracking, Project } from '../models/Project';
 import { CharacterTier } from '../models/WorldState';
 import { characterRepository, episodeRepository, generationLogRepository, projectRepository, worldStateRepository } from '../repositories';
 import { protectProjectRouter } from '../middleware/projectAccess';
+import { getEpisodePlanFromOutline } from '../utils/episodePlan';
 import { AIClient, aiClient, withModel, currentRequestSignal, throwIfContextAborted } from '../services/ai/AIClient';
 import { GenreType, IStructuredConstraint, ModularAttentionSystem } from '../services/attention/AttentionModules';
 import { isOverseasFemaleChannel, OVERSEAS_TYPES } from '../constants/overseas';
@@ -424,6 +425,41 @@ function buildOverseasFormatAuditConstraints(wordLimitMax?: number): Constraint[
 }
 
 /**
+ * 单集起伏约束（制作方法论：情绪拉扯/黄金开局）——国内海外通用、不受方法论注入开关影响；
+ * 由 harness 固定注入（轨道），交 AI 验证器对全文语义判定（判断）。主路径与回退路径共用。
+ */
+export function buildEpisodeTensionConstraints(currentEpisode: number): Constraint[] {
+  const list: Constraint[] = [{
+    id: 'tension-1',
+    type: 'rhythm',
+    content: '单集起伏：本集至少完成一轮"压→扬→新危机"——主角受压后有一次观众看得见的反击、小胜或信息反转，释放后立刻接新的代价或危机，不得整集只压不扬',
+    severity: 'important',
+    source: 'rhythm',
+    category: 'verifiable',
+    validationCriteria: [
+      '存在主角受压或受困的段落',
+      '存在主角主动完成的反击、小胜或信息反转',
+      '反转之后出现新的压迫、代价或危机，而非情绪落定收场',
+    ],
+  }];
+  if (currentEpisode === 1) {
+    list.push({
+      id: 'tension-2',
+      type: 'rhythm',
+      content: '第1集黄金开局：主角的金手指（核心能力/隐藏身份/关键证据或筹码）在本集以看得见的方式亮相或露出一角，并走出"打压→反转→再打压"的起伏',
+      severity: 'important',
+      source: 'rhythm',
+      category: 'verifiable',
+      validationCriteria: [
+        '主角的特殊能力、隐藏身份或翻盘筹码在本集有可见呈现（异象、征兆或只让观众看见均可）',
+        '本集情绪走向为打压→反转→再打压，而非一路打压',
+      ],
+    });
+  }
+  return list;
+}
+
+/**
  * 可验证约束预算控制：当约束总量过大时，全量喂给验证器会稀释注意力并加剧输出截断。
  * 保留全部 critical+important，normal 级优先保留格式审查约束，其余按顺序补足预算；
  * 被裁掉的 normal 约束仍参与生成指导，仅本次不参与评分。
@@ -610,6 +646,9 @@ function collectAllConstraints(params: {
       category: 'verifiable',  // 可验证
     });
   }
+
+  // 6.5 单集起伏约束（制作方法论：情绪拉扯/黄金开局）- 国内海外通用、不受方法论开关影响
+  constraints.push(...buildEpisodeTensionConstraints(params.currentEpisode));
 
   // 7. 叙事科学方法论约束 - 可验证（海外格式默认启用、可在项目设置中关闭；其他格式按开关）
   const methodologyEnabled = params.enableNarrativeMethodology ?? (params.outputFormatPreset === 'overseas_drama');
@@ -1523,6 +1562,11 @@ async function handleGenerateScriptEnhanced(
           collectedConstraints = [...collectedConstraints, ...auditConstraints];
           sse.sendLog(`[格式审查] 注入 ${auditConstraints.length} 项 AI 审查约束（语义判定）`);
         }
+
+        // 单集起伏约束（国内海外通用，AI 语义判定）——与回退路径共用同一构造
+        const tensionConstraints = buildEpisodeTensionConstraints(episodeNumber);
+        collectedConstraints = [...collectedConstraints, ...tensionConstraints];
+        sse.sendLog(`[单集起伏] 注入 ${tensionConstraints.length} 项 AI 审查约束（语义判定）`);
 
         // 同时更新 generationContext.constraints 用于剧本生成
         // 将 AI 决策的约束添加到生成上下文中
@@ -2970,108 +3014,6 @@ router.post('/preview-context', async (req: Request, res: Response) => {
     handleRouteError(res, error);
   }
 });
-
-/**
- * 从大纲中获取指定集的梗概
- * 支持两种格式：
- * 1. 字符串格式（实际存储格式）：
- *    第1集：
- *    梗概：100-150字本集详细剧情概括
- *    人物：本集出场人物
- * 2. JSON数组格式（备用）：
- *    { episodeSummaries: [{ episode: 1, summary: "..." }] }
- */
-function getEpisodePlanFromOutline(outline: unknown, episodeNumber: number): string {
-  if (!outline) {
-    return `第${episodeNumber}集`;
-  }
-
-  // 处理字符串类型（原始大纲文本）
-  if (typeof outline === 'string') {
-    return parseEpisodeSummaryFromText(outline, episodeNumber);
-  }
-
-  // 处理对象类型
-  if (typeof outline === 'object') {
-    const outlineObj = outline as {
-      episodeSummaries?: string | Array<{ episode?: number; summary?: string }>;
-      raw?: string;
-    };
-
-    // 优先使用 episodeSummaries 字段
-    if (outlineObj.episodeSummaries) {
-      // 如果是字符串格式（实际存储格式）
-      if (typeof outlineObj.episodeSummaries === 'string') {
-        return parseEpisodeSummaryFromText(outlineObj.episodeSummaries, episodeNumber);
-      }
-
-      // 如果是数组格式（备用）
-      if (Array.isArray(outlineObj.episodeSummaries)) {
-        const episodeSummary = outlineObj.episodeSummaries.find(
-          (s) => s.episode === episodeNumber
-        );
-        if (episodeSummary && episodeSummary.summary) {
-          return episodeSummary.summary;
-        }
-      }
-    }
-
-    // 尝试从 raw 字段解析
-    if (outlineObj.raw && typeof outlineObj.raw === 'string') {
-      const result = parseEpisodeSummaryFromText(outlineObj.raw, episodeNumber);
-      if (result !== `第${episodeNumber}集`) {
-        return result;
-      }
-    }
-  }
-
-  return `第${episodeNumber}集`;
-}
-
-/**
- * 从文本中解析指定集的梗概
- * 支持格式：
- * 第N集：
- * 梗概：xxx
- * 人物：xxx
- */
-function parseEpisodeSummaryFromText(text: string, episodeNumber: number): string {
-  // 集标题后允许出现可选的标注后缀（如"（一卡）""【付费卡点】"），不影响提取
-  const epTag = '(?:[（(【][^）)】]*[）)】])?';
-  // 尝试多种正则模式匹配
-  const patterns = [
-    // 格式1：第N集：\n梗概：xxx\n人物：xxx
-    new RegExp(
-      `第${episodeNumber}集${epTag}[：:]\\s*\\n?梗概[：:]\\s*([^\\n]+(?:\\n(?!第\\d+集|人物[：:]).*?)*)`,
-      'i'
-    ),
-    // 格式2：第N集：xxx（直接跟内容）
-    new RegExp(
-      `第${episodeNumber}集${epTag}[：:]\\s*([^第]+?)(?=第\\d+集|$)`,
-      'i'
-    ),
-    // 格式3：N. xxx 或 N、xxx
-    new RegExp(
-      `(?:^|\\n)${episodeNumber}[.、]\\s*([^\\n]+)`,
-      'im'
-    ),
-  ];
-
-  for (const pattern of patterns) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const summary = match[1]
-        .replace(/人物[：:].*/s, '')  // 移除人物行
-        .replace(/\n+/g, ' ')         // 换行替换为空格
-        .trim();
-      if (summary && summary.length > 5) {
-        return summary;
-      }
-    }
-  }
-
-  return `第${episodeNumber}集`;
-}
 
 /**
  * 获取项目的 WorldState
