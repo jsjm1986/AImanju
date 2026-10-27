@@ -147,8 +147,10 @@ describe('script agent prompt', () => {
     const p = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'standard' } });
     expect(p).toContain('叙事科学方法论');
     expect(p).toContain('硬性禁止项');
-    expect(p).not.toContain('质检报告');
+    // 被剔除的"输出格式/任务模板"段特征不得出现
+    expect(p).not.toContain('必须先给"剧情基础设定"');
     expect(p).not.toContain('△动作');
+    expect(p).not.toContain('输出以下内容：');
     const off = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'standard', enableNarrativeMethodology: false } });
     expect(off).not.toContain('叙事科学方法论');
     const overseas = getScriptAgentPrompt({ episodeNumber: 3, outputFormatConfig: { mode: 'preset', preset: 'overseas_drama' } });

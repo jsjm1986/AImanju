@@ -107,6 +107,7 @@ export class EpisodePlanEnhancer {
     sections.push('4. 调整后的梗概应该是连贯的叙述，不是列表');
     sections.push('5. enhancedPlan 必须是单行文本，不要包含换行符');
     sections.push('6. 如果梗概中包含对话，请务必使用单引号（\'）包裹对话内容，避免使用双引号破坏 JSON 结构');
+    sections.push('7. 原始梗概开头的结构性标注（如（一卡）、（二卡）、【付费卡点】）必须原样保留在 enhancedPlan 开头，不得删除或改写');
 
     return sections.join('\n');
   }

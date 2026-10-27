@@ -26,7 +26,7 @@ import { scriptService } from '../services/script/scriptService';
 import { SSEHandler } from '../services/sse/SSEHandler';
 import { EnhancedStateAnalyzer } from '../services/state/EnhancedStateAnalyzer';
 import { WorldStateManager } from '../services/world/WorldStateManager';
-import { normalizeOverseasScript, outputFormatService, scanOverseasScript, OverseasScanViolation } from '../services/format/OutputFormatService';
+import { normalizeOverseasScript, outputFormatService, scanMetaLeak, scanOverseasScript, OverseasScanViolation } from '../services/format/OutputFormatService';
 import { createLogger } from '../utils/errorLogger';
 import { getOutlineRaw } from '../utils/outline';
 import { WordCountService } from '../utils/wordCount';
@@ -951,6 +951,7 @@ async function handleGenerateScriptEnhanced(
 
     // 用于保存的上下文数据
     let savedEpisodePlan = '';
+    let originalEpisodePlanOuter = '';
     let savedMultiHeadAnalysis: Record<string, unknown> | undefined;
     let savedMultiHeadConstraints: IStructuredConstraint[] = [];  // 🆕 保存多头结构化约束
     let savedAnalysisResult: Record<string, unknown> | undefined;
@@ -1050,6 +1051,7 @@ async function handleGenerateScriptEnhanced(
 
         // 获取本集梗概
         const originalEpisodePlan = getEpisodePlanFromOutline(project.outline, episodeNumber);
+        originalEpisodePlanOuter = originalEpisodePlan;
         sse.sendLog(`[WorldState] 原始梗概: ${originalEpisodePlan.slice(0, 50)}...`);
         addLog(`获取原始梗概: ${originalEpisodePlan.slice(0, 50)}...`);
 
@@ -1133,7 +1135,7 @@ async function handleGenerateScriptEnhanced(
 
         generationContext = {
           formattedContext: context.formattedContext,
-          episodePlan: context.episodePlan,
+          episodePlan: [context.episodePlan, originalEpisodePlan].filter(Boolean).join('\n'),
           constraints: [
             ...context.constraints,
             ...rhythmConstraintsResult.verifiableConstraints,
@@ -1436,7 +1438,7 @@ async function handleGenerateScriptEnhanced(
           projectType: project.type || '未知',
           currentEpisode: episodeNumber,
           totalEpisodes: project.totalEpisodes,
-          episodePlan: savedEpisodePlan || `第${episodeNumber}集`,
+          episodePlan: [savedEpisodePlan, originalEpisodePlanOuter].filter(Boolean).join('\n') || `第${episodeNumber}集`,
           worldState: wsForConstraints,
           rhythmTracking: {
             lastFaceSlap: rhythmController.toJSON().tracking.lastFaceSlap,
@@ -1626,7 +1628,7 @@ async function handleGenerateScriptEnhanced(
 
         // 单集起伏约束（国内海外通用，AI 语义判定）——与回退路径共用同一构造
         const tensionConstraints = buildEpisodeTensionConstraints(episodeNumber, {
-          episodePlan: savedEpisodePlan,
+          episodePlan: [savedEpisodePlan, originalEpisodePlanOuter].filter(Boolean).join('\n'),
           previousCliffhanger: previousCliffhangerForValidation,
         });
         collectedConstraints = [...collectedConstraints, ...tensionConstraints];
@@ -1744,7 +1746,7 @@ async function handleGenerateScriptEnhanced(
           previousCliffhanger: previousCliffhangerForValidation,
           characterStateConstraints,
           currentEpisode: episodeNumber,
-          episodePlan: savedEpisodePlan,
+          episodePlan: [savedEpisodePlan, originalEpisodePlanOuter].filter(Boolean).join('\n'),
           enableNarrativeMethodology: project.outputFormat?.enableNarrativeMethodology,
           outputFormatPreset: (() => {
             const ofc = project.outputFormat as IOutputFormatConfig | undefined;
@@ -1985,8 +1987,8 @@ async function handleGenerateScriptEnhanced(
         // 验证对象与最终落库文本一致；命中 important 级违规即判本次 attempt 机械失败
         const content = isOverseasFmt ? normalizeOverseasScript(rawContent) : rawContent;
         lastMechViolations = isOverseasFmt
-          ? (() => { const f = outputFormatService.resolveConfig(project.outputFormat); return scanOverseasScript(content, f.wordLimit?.max, f.sceneLimit?.max); })()
-          : [];
+          ? (() => { const f = outputFormatService.resolveConfig(project.outputFormat); return [...scanOverseasScript(content, f.wordLimit?.max, f.sceneLimit?.max), ...scanMetaLeak(content)]; })()
+          : scanMetaLeak(content);
         const mech = mechScore(lastMechViolations);
         const mechFailed = mech.imp > 0;
         if (lastMechViolations.length > 0) {

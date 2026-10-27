@@ -739,7 +739,7 @@ export const NARRATIVE_METHODOLOGY = `# 短剧叙事科学 Prompt vUltimate（�
 
 # 十五、量化评分系统
 
-生成剧本后，先自检评分，再输出结果。
+生成剧本后，先按以下维度自检，不达标在内部修正后再输出。
 
 ## 1. 开场钩子评分（满分20）
 - 冲突强度 1-5
@@ -919,6 +919,6 @@ const _coreParts = [
   _s18 !== -1 && _s19 !== -1 ? NARRATIVE_METHODOLOGY.slice(_s18, _s19) : '',
 ];
 export const NARRATIVE_METHODOLOGY_CORE = _coreParts.join('\n').trimEnd() +
-  '\n\n> 注：本方法论只管叙事与情绪工程；剧本的具体输出格式以下方"输出格式要求"为准。\n';
+  '\n\n> 注：本方法论只管叙事与情绪工程；剧本的具体输出格式以下方"输出格式要求"为准。评分系统仅用于写作时的内部自检——禁止把【自检评分】/质检报告/评分表写入剧本正文。\n';
 
 
