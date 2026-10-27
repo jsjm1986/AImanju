@@ -422,6 +422,46 @@ export function scanMetaLeak(content: string): OverseasScanViolation[] {
     }];
 }
 
+/** 国内短剧台词行：「角色名（情绪）：台词」——名字≤12字、允许空括号 */
+const DOMESTIC_DIALOGUE_RE = /^[^\s△（(【{：:]{1,12}(?:（[^）]{0,20}）)?[：:](.+)$/;
+const DOMESTIC_NON_DIALOGUE_PREFIX = /^(人物|场景|字幕|黑屏|地点|时间|梗概|第\s*\d+\s*集|【|\{|\d+-\d+)/;
+const DIALOGUE_PUNCT_RE = /[\s，。！？…—、·：；！?,.:"'（）()【】「」]/g;
+
+/** 国内短剧对白长度确定性检测：对白应以≤15字短句为主，命中超长句/大面积超限即提示 */
+export function scanDomesticDialogue(content: string): OverseasScanViolation[] {
+    const violations: OverseasScanViolation[] = [];
+    const over15: string[] = [];
+    const over25: string[] = [];
+    let dialogueCount = 0;
+    for (const raw of content.split('\n')) {
+        const line = raw.trim();
+        if (!line || DOMESTIC_NON_DIALOGUE_PREFIX.test(line)) continue;
+        const m = line.match(DOMESTIC_DIALOGUE_RE);
+        if (!m) continue;
+        dialogueCount += 1;
+        const speechLen = m[1].replace(DIALOGUE_PUNCT_RE, '').length;
+        if (speechLen > 25) over25.push(`${speechLen}字|${line.slice(0, 30)}`);
+        else if (speechLen > 15) over15.push(`${speechLen}字|${line.slice(0, 30)}`);
+    }
+    if (over25.length > 0) {
+        violations.push({
+            content: '对白长句：存在25字以上单句对白，短剧台词须短平快',
+            evidence: `${over25.length}句：${over25.slice(0, 3).join('；')}`,
+            severity: 'normal',
+            suggestion: '拆拍：先一句短句定性，再用动作或短句补信息（如"资产保全，赵德海递的"△动作"案号三天就批"）',
+        });
+    }
+    if (dialogueCount >= 8 && (over15.length + over25.length) / dialogueCount > 0.35) {
+        violations.push({
+            content: '对白整体偏长：超过15字的台词占比过高，短剧应以15字内短句为主体',
+            evidence: `${dialogueCount}句对白中${over15.length + over25.length}句超15字（${Math.round((over15.length + over25.length) / dialogueCount * 100)}%）`,
+            severity: 'normal',
+            suggestion: '压缩台词长度，信息密集处拆成两拍：短句定性+动作/短句补充',
+        });
+    }
+    return violations;
+}
+
 /**
  * 海外短剧格式的确定性正则扫描（不依赖 AI 判断，命中即确凿违规）。
  * 对齐《批量剧制作流程》交付格式：合并双语台词、行业标准场记、场景级人物行、无内部标记。

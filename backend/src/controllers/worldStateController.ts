@@ -26,7 +26,7 @@ import { scriptService } from '../services/script/scriptService';
 import { SSEHandler } from '../services/sse/SSEHandler';
 import { EnhancedStateAnalyzer } from '../services/state/EnhancedStateAnalyzer';
 import { WorldStateManager } from '../services/world/WorldStateManager';
-import { normalizeOverseasScript, outputFormatService, scanMetaLeak, scanOverseasScript, OverseasScanViolation } from '../services/format/OutputFormatService';
+import { normalizeOverseasScript, outputFormatService, scanDomesticDialogue, scanMetaLeak, scanOverseasScript, OverseasScanViolation } from '../services/format/OutputFormatService';
 import { createLogger } from '../utils/errorLogger';
 import { getOutlineRaw } from '../utils/outline';
 import { WordCountService } from '../utils/wordCount';
@@ -505,7 +505,7 @@ function buildNarrativeMethodologyConstraints(idStart: number): Constraint[] {
     {
       id: `methodology-${idStart}`,
       type: 'methodology',
-      content: '对白长度控制：每句对白不超过15字',
+      content: '对白长度控制：对白以15字内短句为主体（约八成以上），信息密集的关键句允许偶发超过15字但不许出现整段25字以上长对白或连续长句',
       severity: 'normal',
       source: 'narrativeMethodology',
       category: 'verifiable',
@@ -1770,6 +1770,11 @@ async function handleGenerateScriptEnhanced(
 
     // 海外格式启用机械闸门（归一化+确定性扫描），重试反馈更精确，允许 3 次尝试；其他格式保持 2 次
     const isOverseasFmt = project.outputFormat?.preset === 'overseas_drama';
+    const isShortDramaFmt = (() => {
+      const ofc = project.outputFormat as IOutputFormatConfig | undefined;
+      const srcPreset = ofc ? (outputFormatService.resolveConfig(ofc).sourcePreset || ofc.preset) : undefined;
+      return SHORT_DRAMA_PRESETS.has(srcPreset || '');
+    })();
     const MAX_ATTEMPTS = isOverseasFmt ? 3 : 2;
     let currentAttempt = 1;
     let finalContent = '';
@@ -1988,7 +1993,7 @@ async function handleGenerateScriptEnhanced(
         const content = isOverseasFmt ? normalizeOverseasScript(rawContent) : rawContent;
         lastMechViolations = isOverseasFmt
           ? (() => { const f = outputFormatService.resolveConfig(project.outputFormat); return [...scanOverseasScript(content, f.wordLimit?.max, f.sceneLimit?.max), ...scanMetaLeak(content)]; })()
-          : scanMetaLeak(content);
+          : [...scanMetaLeak(content), ...(isShortDramaFmt ? scanDomesticDialogue(content) : [])];
         const mech = mechScore(lastMechViolations);
         const mechFailed = mech.imp > 0;
         if (lastMechViolations.length > 0) {

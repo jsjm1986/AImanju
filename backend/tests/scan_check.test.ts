@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scanOverseasScript, normalizeOverseasScript } from '../src/services/format/OutputFormatService';
+import { scanOverseasScript, normalizeOverseasScript, scanDomesticDialogue, scanMetaLeak } from '../src/services/format/OutputFormatService';
 
 // 新生产格式样例：合并双语台词 + 行业标准场景头 + 场景级人物行
 const OK_SCENE = `第 1 集
@@ -142,5 +142,40 @@ describe('新生产格式归一化', () => {
     expect(n).toContain('{特写}纸上写的是');
     expect(n).toContain('{慢镜头}他倒下');
     expect(n).toContain('【闪回】三年前的雨夜');
+  });
+});
+
+describe('国内短剧对白长度扫描', () => {
+  const shortLines = Array.from({ length: 10 }, (_, i) => `苏兰（对顾言舟）：短句${i}。`).join('\n');
+  it('短句为主体的剧本不产生违规', () => {
+    expect(scanDomesticDialogue(`场景1 日 内\n${shortLines}\n△她攥紧工牌。`)).toHaveLength(0);
+  });
+  it('单句超25字命中"对白长句"', () => {
+    const c = `场景1 日 内\n${shortLines}\n心腹（低声）：赵总，铁盒被第三方先取走了，B区3号柜门被撬，只剩张纸条，人已查。`;
+    const vs = scanDomesticDialogue(c);
+    expect(vs.some(v => v.content.includes('25字以上'))).toBe(true);
+    expect(vs.every(v => v.severity === 'normal')).toBe(true);
+  });
+  it('超15字占比>35%命中"对白整体偏长"', () => {
+    const longLines = Array.from({ length: 6 }, (_, i) => `周子墨（急报）：这一条信息量真的有点长超过十五个字${i}`).join('\n');
+    const c = `场景1 日 内\n${shortLines}\n${longLines}`;
+    const vs = scanDomesticDialogue(c);
+    expect(vs.some(v => v.content.includes('占比过高'))).toBe(true);
+  });
+  it('少量超15字（<=35%）不误报', () => {
+    const c = `场景1 日 内\n${shortLines}\n苏兰：TC-2003-007，从来没注销过。`;
+    expect(scanDomesticDialogue(c)).toHaveLength(0);
+  });
+});
+
+describe('元信息泄漏扫描', () => {
+  it('命中【自检评分】/质检报告段', () => {
+    const c = '场景1 日 内\n苏兰：你骗不了我。\n\n【自检评分】\n- 开场钩子：18/20';
+    const vs = scanMetaLeak(c);
+    expect(vs.length).toBeGreaterThan(0);
+    expect(vs[0].severity).toBe('important');
+  });
+  it('正常剧本不误报', () => {
+    expect(scanMetaLeak('场景1 日 内\n苏兰：你骗不了我。\n△她攥紧工牌。')).toHaveLength(0);
   });
 });

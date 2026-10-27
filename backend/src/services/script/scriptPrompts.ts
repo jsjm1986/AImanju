@@ -181,6 +181,9 @@ export function getScriptAgentPrompt(contextParts: ScriptContextParts): string {
 - 集尾张力>集内爽感：本集结尾钩子的悬念强度必须压过前面已兑现的释放——观众带着"更想看下一集"离开，而不是"这集爽完了"
 - 慢蓄力快反转：压制蓄力可以铺足，但反转爆发要快（一两场戏内完成打脸/亮证据/身份反转），不把反转拖成半集慢动作
 - 为弹幕而写：观众看到会刷"快进"的段落直接重写，会刷"爽""哈哈哈"的保留
+- 对白短句：单句对白控制在15字内。信息量大时必须拆拍——先一句短句定性，再用动作或短句补信息，不许一句说完
+  错误：周子墨（急报）：赵德海刚才已经向法院申请了对你全部资产的保全令而且案号三天内就能批下来
+  正确：周子墨（急报）：资产保全，赵德海递的。△他把手机怼到她眼前。周子墨：案号三天就批。
 ` : '';
 
   // 写作风格是强制要求
@@ -254,7 +257,15 @@ ${outputFormatService.buildFormatPromptSection(
     outputFormatService.resolveConfig(contextParts.outputFormatConfig),
     contextParts.outputFormatConfig?.customPrompt
   )}
-
+${isOverseasFormat ? `
+## 交付前预算自检（自检内容不得出现在剧本正文中）
+落笔时同步执行以下预算，写完逐条核对后再定稿——只输出剧本本身，不输出本清单：
+1. **场景预算**：本集场景数控制在 ${resolvedConfig.sceneLimit?.min ?? 4}-${resolvedConfig.sceneLimit?.max ?? 8} 场。同一地点的连续事件合并为一场；开场直接承接上集钩子，不为铺垫单独建场
+2. **字数预算**：全篇（场景头+动作+对白）不超过 ${resolvedConfig.wordLimit?.max ?? 2600} 字。写到 ${Math.round((resolvedConfig.wordLimit?.max ?? 2600) * 0.85)} 字左右就要收束剧情线，不许靠拉长动作描写灌水
+3. **台词三槽**：每一句台词必须是完整合并双语单行"中文名 英文名（英文情绪或动作）：英文台词"——群演/配角同样要有英文名槽位（如 镇民群像#2 TOWNSPERSON #2(Shouting)），不允许"中文名（英文情绪）：台词"这种缺名槽写法
+4. **英文台词纯度**：英文台词栏内不得混入中文字符（行业黑话也须英文化，如"灰石碱"→"greystone alkali"）
+5. **动作落点**：全文不得出现"动词+了一下/一拍/一声/两秒"式弱动作收笔——动作必须写到具体落点（错：手抖了一下 / 对：手指扣住杯沿，指节泛白）
+` : ''}
 现在请生成指定${terminology.unitName}的完整${terminology.contentType}。`;
 }
 
