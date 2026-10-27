@@ -102,6 +102,20 @@ describe('新生产格式扫描', () => {
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
   });
+
+  it('英文台词混入中文字符 命中（配音稿必须纯英文）', () => {
+    const c = `第 2 集\n2-1 宴会厅 夜 内\n人物：Noah、Uncle Hale\nNoah站起来。\nNoah NOAH(Raising the envelope)：Before we eat. This goes to the county in the morning. Fifty pages of灰石碱—\nUncle Hale UNCLE HALE(Beaming)：A toast!`;
+    const vs = scanOverseasScript(c, 9000);
+    const v = vs.find(v => v.content.includes('英文台词混入中文'));
+    expect(v).toBeTruthy();
+    expect(v!.severity).toBe('important');
+  });
+
+  it('纯英文台词不报混入', () => {
+    const c = `第 2 集\n2-1 宴会厅 夜 内\n人物：Noah\nNoah站起来。\nNoah NOAH(Raising the envelope)：Fifty pages of lab data — all of it falsified.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('英文台词混入中文'))).toBeUndefined();
+  });
 });
 
 describe('新生产格式归一化', () => {

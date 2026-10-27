@@ -404,8 +404,8 @@ const CAST_LINE_RE = /^人物[：:]/;
 const DIALOGUE_LINE_RE = /^[^\s：:（(\[【]{1,12}\s+[A-Za-z][A-Za-z'’.\- ]*\s*(?:（[^）]{1,40}）|\([^)]{1,60}\))?[：:](.+)$/;
 /** 台词行前的行型（非台词判定；字幕/黑屏允许带括号变体如"字幕（特写）："；{起始为镜头指令行） */
 const NON_DIALOGUE_RE = /^(人物|字幕|黑屏)(?:[（(][^）)]{0,20}[）)])?[：:]|^第\s*\d+\s*集|^【|^【闪出】|^\{/;
-/** 道具/画面文字行（"纸上写着：GHOST""收款人一栏：D. Ricci"等）——含冒号但非台词 */
-const PROP_TEXT_RE = /^[^\s：:（(【\[]{0,10}(?:写着|显示|备注|打字|刻着|标明|打印|字样|一栏|一行字)[：:]/;
+/** 道具/画面文字行（"纸上写着：GHOST""收款人一栏：D. Ricci""页眉一行黑体：许可证"等）——含冒号但非台词 */
+const PROP_TEXT_RE = /^[^\s：:（(【\[]{0,10}(?:写着|显示|备注|打字|刻着|标明|打印|字样|一栏|一行字|一行|页眉|封面|标题|落款|签名|红章|抬头|横幅|弹窗|推送|截图|弹幕|字幕条|提示|公告|新闻|头条|黑体|红字|大字|小字|粗体|斜体|英文|编号|日期|金额|姓名|账号|电话|地址)[：:]/;
 const ENGLISH_WORD_RE = /[A-Za-z]{2,}/;
 
 /**
@@ -578,6 +578,7 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
     // ---- 台词合规：冒号行必须是合并双语格式，且台词内容为英文 ----
     const badDialogue: string[] = [];
     const cnDialogue: string[] = [];
+    const mixedDialogue: string[] = [];
     const longDialogue: string[] = [];
     for (const raw of lines) {
         const t = raw.trim();
@@ -595,6 +596,8 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         const spoken = m[1].trim();
         if (!ENGLISH_WORD_RE.test(spoken)) {
             cnDialogue.push(t.slice(0, 34));
+        } else if (/[\u4e00-\u9fff]/.test(spoken)) {
+            mixedDialogue.push(t.slice(0, 40));
         }
         if (spoken.length > 110) {
             longDialogue.push(t.slice(0, 40));
@@ -614,6 +617,14 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             evidence: `命中${cnDialogue.length}行中文台词：${samples(cnDialogue)}`,
             severity: 'important',
             suggestion: '将台词正文改写为英文原声（中文名/情绪保留，台词用英文）',
+        });
+    }
+    if (mixedDialogue.length > 0) {
+        violations.push({
+            content: '英文台词混入中文字符：配音稿英文部分必须是纯英文（术语/名词需本地化翻译，不得留中文）',
+            evidence: `命中${mixedDialogue.length}行：${samples(mixedDialogue)}`,
+            severity: 'important',
+            suggestion: '把台词里的中文词改写为英文对应表达（如"灰石碱"→"grayscale alkali"）',
         });
     }
     if (longDialogue.length > 0) {
