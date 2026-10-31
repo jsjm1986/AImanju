@@ -1036,103 +1036,102 @@ Close-up. 主角的眼睛，瞳孔中倒映出远处的爆炸火光。
     },
     overseas_drama: {
     episodeHeader: {
-        format: "第 {ep} 集",
+        format: "第{ep}话",
         includeSummary: false,
         includeCharacters: false
     },
     scene: {
-        format: "{ep}-{scene} {location} {time} {inOut}",
+        format: "{ep}-{scene} {time}/{inOut} {location}",
         timeOptions: ["日", "夜", "清晨", "傍晚", "深夜", "黄昏", "凌晨"],
         inOutOptions: ["内", "外", "内/外", "外/内"]
     },
     dialogue: {
         style: 'colon',
-        normal: "{cnName} {ENNAME}：{content}",
-        withState: "{cnName} {ENNAME}({emotion})：{content}",
-        innerThought: "{cnName} {ENNAME}(V.O.)：{content}",
-        narrator: "{cnName} {ENNAME}(V.O.)：{content}",
-        systemPrompt: "字幕：{content}"
+        normal: "{cnName}（{cnEmotion}）：{cnContent}{EnName} ({enEmotion}): {enContent}",
+        withState: "{cnName}（{cnEmotion}）：{cnContent}{EnName} ({enEmotion}): {enContent}",
+        innerThought: "{cnName}（旁白）：{cnContent}{EnName} (V.O.): {enContent}",
+        narrator: "{cnName}（旁白）：{cnContent}{EnName} (V.O.): {enContent}",
+        systemPrompt: "【字幕：{content}】"
     },
-    action: { marker: "", style: "prefix", actionLabel: "动作" },
-    wordLimit: { min: 800, target: 1400, max: 2600, enforceStrict: false },
+    action: { marker: "▲", style: "prefix", actionLabel: "动作" },
+    wordLimit: { min: 1200, target: 2200, max: 3600, enforceStrict: false },
     sceneLimit: { min: 2, max: 8, recommended: 4 },
     episodeSeparator: "\n\n",
     guidelines: {
         avoidWatering: true,
         showDontTell: true,
         dialogueMaxLength: 80,
-        extraNaming: "英文名+身份（如：保镖Ryan、女仆Anna），群像可用描述性称呼（仆人们/守卫们）",
+        extraNaming: "英文名+身份（如：保镖Ryan、女仆Anna），群像可用描述性称呼（Noble A/Townsperson #2）",
         customRules: [
-            "台词为交付级中英双语合并单行：中文名 英文名（英文情绪/动作）：英文台词",
-            "英文台词为原声文案（美式口语），单词间正常空格；冒号是下游识别台词的唯一标记",
-            "场景头为行业标准格式：集-场 地点-子场景 时间 内/外（空格分隔，无括号无情绪标签）",
-            "每个场景头下一行必须有 人物：行，列出本场出场角色",
-            "动作行为纯中文可视化描写、独立成行、无△前缀；镜头指令用花括号{升格+特写}",
-            "角色名以人物卡为准（英文名必填，中文译名有则用），正文不出现内部标记（[HOOK]/【核心情绪】/△/出场人物）",
+            "台词为中英对照同行：中文名（中文情绪）：中文台词English Name (English Emotion): English line——中文在前、英文紧接其后同一行",
+            "英文名为首字母大写（Orian/Dark Realm Guard Commander/Noble A），英文情绪/动作用英文括号短语（Shocked and Furious/Via projection, Gritting teeth）",
+            "英文台词为原声文案（美式口语），不使用中文",
+            "场景头格式：集-场 时间/内（外） 地点·子场景（如 9-2 夜/内 王宫·杀阵中枢暗室）",
+            "场景头下一行写 人物：行，角色名用半角逗号分隔（人物：A, B）",
+            "动作行为以▲开头独立成行，纯中文可视化描写",
+            "允许交付标记：【卡点】强钩节拍行、【字幕：…】屏幕文字行",
+            "集标题用中文数字：第X话（第十话）",
+            "每个剧本元素行之间空一行",
+            "角色名以人物卡为准，正文不出现内部标记（[HOOK]/【核心情绪】/△/出场人物）",
             "海外内容红线：男主不得对女主施暴；不美化家暴/控制；无未成年成人情境；狼人标记须双方自愿"
         ]
     },
     promptTemplate: `## 输出格式（严格遵循——生产交付格式）
 
-按照**海外短剧生产剧本**格式输出（对齐批量剧制作交付规范，供下游分镜/资产/配音管线直接消费）。剧本正文只包含：集标题、场景头、人物行、动作描写、台词。**不得出现**任何内部标记（[HOOK]、【核心情绪】、△、出场人物）或剧情梗概/人名条等头件内容。
+按照**海外短剧生产剧本**格式输出（中英台词对照标准，供下游分镜/资产/配音管线直接消费）。剧本正文只包含：集标题、场景头、人物行、动作描写、台词。**不得出现**任何内部标记（[HOOK]、【核心情绪】、△、出场人物）或剧情梗概/人名条等头件内容。
 
 ### 集标题
-第 {ep} 集
-- 独立一行，集号与"集"之间空格（第 2 集 ✓），不写集名、不加任何 markdown 符号
-- 集与集之间空一行分隔，不使用 --- 分隔线
+第X话
+- 独立一行，集号用中文数字（第九话/第十话 ✓，第10集/EP10 ✗），不写集名、不加任何 markdown 符号
 
-### 场景头（行业标准格式）
-{集数}-{场序} {地点}-{子场景} {时间} {内/外}
-- 四段以空格分隔：1-5 农场-卧室 日 内（✓） 1-5农场-卧室（日内）【核心情绪：X】（✗）
+### 场景头
+{集数}-{场序} {时间}/{内或外} {地点·子场景}
+- 三段以空格分隔：阿拉伯数字集-场 + 空格 + 时间/内外（斜杠合并）+ 空格 + 地点（子场景用·连接）
+- 时间从"日/夜/清晨/凌晨/傍晚/黄昏/深夜"中选；内外为 内、外
 - 场景头内**不得出现**括号、情绪标签、markdown 符号
-- 时间从"日/夜/清晨/凌晨/傍晚/黄昏/深夜"中选；内外从"内、外、内/外、外/内"中选
-- 闪回场景：{集数}-{场序} 【闪回】{地点} {时间} {内/外}，闪回结束独立一行写【闪出】
+- 闪回场景在场景头后独立一行写【闪回】，结束独立一行写【闪出】
 示例：
-1-5 农场-卧室 日 内
-2-1 农场-马棚 日 内/外
-1-2 【闪回】旧宅-走廊 夜 内
+9-2 夜/内 王宫·杀阵中枢暗室
+10-1 日/外 王宫广场·册封大典现场
 
 ### 人物行（场景级，必填）
-- 每个场景头**紧接下一行**写：人物：角色A、角色B（顿号分隔，使用与台词中文名一致的角色名）
+- 每个场景头下一行写：人物：角色A, 角色B（**半角逗号+空格**分隔）
 - 仅列本场上场角色，不写不在场的角色
 示例：
-人物：Claudia、Giovanni、Ryan
+人物：奥瑞安王子, 暗域近卫统领
 
-### 动作描写（中文，无标记前缀）
-- 纯中文动作/画面描写，独立成行，**不带△、不带任何前缀标记**
-- 每条只写一个动作或画面，具体可视、可直接用于文生图/文生视频，一般不超过30字
-- 镜头/导演指令用花括号独立成行：{升格+特写}、{Giovanni主观视角}、{慢镜头}
-- 花括号内只写镜头类型/视角标签，**禁止写拍摄执行参数**（时长秒数、帧数、构图、机位、景别）——错误示例：{固定镜头-肩部以上构图-持续3秒}
+### 动作描写
+- 每条动作/画面描写以 **▲**（实心三角）开头，独立成行，纯中文、具体可视、可直接用于文生图/文生视频
+- 镜头/导演指令可用花括号独立成行：{升格+特写}、{慢镜头}；花括号内只写镜头类型/视角标签，禁止拍摄执行参数
 - 禁止"没有+动词"式负性描写（没抬头/没回答）；改为可拍的正向动作
 示例：
-雨点砸在铁皮屋顶上，Giovanni倒在溪边的泥水里，一动不动。
-{升格+特写}
-Claudia跪在他身边，双手按住他胸口的伤口，指缝渗出血。
+▲奥瑞安拔剑，魔力暴涨。
+▲暗域近卫统领抬手，黑雾瞬间缠住两名护卫的剑刃，一拧即碎。
 
-### 台词格式（中英双语合并单行——下游以冒号为唯一识别标记）
-中文名 英文名（英文情绪或动作描述）：英文台词
-- 中文名+空格+英文名（大写）+（英文情绪/动作，圆括号）+全角冒号：+英文台词
-- 英文台词为**英文原声文案**（美式口语、有潜台词），单词间正常空格，不使用中文
-- 情绪描述用**英文**写可表演的状态/动作：Smiling brightly、Urgently、Coldly、Gritting his teeth；禁止中文抽象语气词（低声/轻声/语气平静）
-- 英文台词每句约≤80字符（≈15词内），长对白拆行
-- 台词为**地道美式口语原声**（对标迪士尼影片台词质感），短句直接、有潜台词——说A意味着B；禁止中式英语直译和翻译腔书面语
+### 台词格式（中英对照同一行——核心规则）
+中文名（中文情绪）：中文台词English Name (English Emotion): English line
+- 结构：**中文角色名 + 全角括号中文情绪/动作 + 全角冒号 + 中文台词 + 英文名 + 半角括号英文情绪/动作 + 半角冒号 + 英文台词**，全部在同一行，中文台词结尾与英文名之间不加空格
+- 中文情绪：可表演的短词（惊怒/咬牙/冷声/假意忏悔/癫狂/喃喃/威严/歇斯底里），可加"影像,""画外音,"等位置说明
+- 英文名：**首字母大写**（Orian、Harlan、Kai、Dark Realm Guard Commander、Noble A），不用全大写
+- 英文情绪/动作：英文括号短语（Shocked and Furious、Via projection, Gritting teeth、Cold Voice、Fake remorse、Regal、Manic）
+- 英文台词为**英文原声文案**（美式口语、有潜台词），单词间正常空格，**不得混入中文字符**；每句约≤80字符，长对白拆成两行各自成对照行
+- 台词为**地道美式口语原声**，短句直接、有潜台词——说A意味着B；禁止中式英语直译和翻译腔书面语
 - 每个角色有声口指纹（词汇/句式/节奏五维），删掉名字仍能辨认谁在说话
+- 群演/配角同样必须配英文名槽位（镇民群像#2 Townsperson #2 / 贵族A Noble A）
 示例：
-Claudia CLAUDIA(Smiling brightly)：My name is Claudia. I'm the one who saved you!
-Giovanni GIOVANNI(Gasping)：You... you saved my life.
-Ryan RYAN(Coldly)：Get out. Now.
-- 内心独白/画外音：角色名 英文名(V.O.)：英文内容（V.O.仅用于情绪与潜台词，禁止交代剧情信息）
-- 字幕/屏幕文字：字幕：内容（中文）
-- 黑屏文字：黑屏：内容（用于开场介绍或结尾点题）
+奥瑞安（惊怒）：什么？！谁干的？！Orian (Shocked and Furious): What?! Who did this?!
+哈兰（影像，咬牙）：不知道。但明天大典之前，必须把中枢重置。Harlan (Via projection, Gritting teeth): Don't know. But before the ceremony tomorrow, you have to reset the core yourself.
+暗域近卫统领（冷声）：奥瑞安王子。我家大人让我带句话——你动过的手脚，他一样一样还给你。Dark Realm Guard Commander (Cold Voice): Prince Orian. My lord sent me with a message - every dirty trick you pulled, he's paying you back, one by one.
+伊索尔德（威严）：执刑队，拿下。Isolde (Regal): Execution squad, arrest them.
+- 内心独白/旁白：中文名（旁白）：中文内容。English Name (V.O.): English content（V.O.仅用于情绪与潜台词，禁止交代剧情信息）
 
-### 地域语体（第二语言感）
-- 母语非英语的角色，英文台词保留"第二语言感"：非母语语序痕迹、停顿、重复确认、简单句式（"You are from where?" 而非 "Where are you from?"）
-- 检测标准：删掉角色名和国籍后台词与母语角色完全无差别 → 缺乏地域特征，重写
+### 交付标记（允许的三类方括号行）
+- 【卡点】强钩节拍行：写在关键反转/悬念动作行之前作标记（如【卡点】哈兰捏碎魔导石，广场地面裂开黑紫色纹路……）
+- 【字幕：内容】屏幕/字幕文字行（如【字幕：册封大典当日】）
+- 【闪回】/【闪出】闪回起止行
 
 ### 间距规则
-- 场景之间空1行；同一场景内各行之间无空行
-- 场景头与人物行之间无空行；人物行与首个动作行之间无空行
-- 集标题与首个场景头之间无空行
+- **每个剧本元素行之间空一行**（集标题/场景头/人物行/动作/台词/标记行彼此之间都空一行）
 
 ### 场景开场
 - 新场景以动作描写开场（先建立画面再给台词），人物行后直接接台词的硬切仅限上一集钩子强回收的特例
@@ -1156,7 +1155,7 @@ Ryan RYAN(Coldly)：Get out. Now.
 - 删除"倒吸一口气""众人震惊"类无效反应与感官替身
 
 ### 创作规范
-- **字数要求**：每集 **{wordMin}-{wordMax}字**，目标 **{wordTarget}字**（含场景头/动作/对白）
+- **字数要求**：每集 **{wordMin}-{wordMax}字**（中文字+英文词口径），目标 **{wordTarget}字**（含场景头/动作/对白）
 - **场景数量**：每集 {sceneMin}-{sceneMax} 个场景，推荐 {sceneRecommended} 个
 - **核心人物**：每场2-4人，避免群像混乱
 - **情绪转换**：单集2-3次，不超过4次

@@ -1,110 +1,70 @@
 import { describe, it, expect } from 'vitest';
 import { scanOverseasScript, normalizeOverseasScript, scanDomesticDialogue, scanMetaLeak } from '../src/services/format/OutputFormatService';
 
-// 新生产格式样例：合并双语台词 + 行业标准场景头 + 场景级人物行
-const OK_SCENE = `第 1 集
-1-1 农场-溪边 日 外
-人物：Claudia、Giovanni
-雨点砸在铁皮屋顶上，Giovanni倒在溪边的泥水里，一动不动。
+// 中英台词对照标准样例：第X话标题 + 集-场 时间/内外 地点场景头 + 人物行 + ▲动作 + 中英对照同行台词
+const OK_SCENE = `第一话
+
+1-1 日/外 农场·溪边
+
+人物：克劳迪娅, 乔凡尼
+
+▲雨点砸在铁皮屋顶上，乔凡尼倒在溪边的泥水里，一动不动。
+
 {升格+特写}
-Claudia CLAUDIA(Urgently)：Wake up! Wake up!
-Giovanni GIOVANNI(Gasping)：You... you saved my life.
+
+克劳迪娅（急切）：快醒醒！快醒醒！Claudia (Urgently): Wake up! Wake up!
+
+乔凡尼（喘息）：你……你救了我一命。Giovanni (Gasping): You... you saved my life.
 `;
 
-describe('新生产格式扫描', () => {
-  it('合规剧本不产生格式违规（除可选节奏项外）', () => {
+describe('中英对照格式扫描', () => {
+  it('合规剧本不产生格式违规', () => {
     const vs = scanOverseasScript(OK_SCENE, 9000);
-    expect(vs.find(v => v.content.includes('双语'))).toBeUndefined();
+    expect(vs.find(v => v.content.includes('对照'))).toBeUndefined();
     expect(vs.find(v => v.content.includes('人物行缺失'))).toBeUndefined();
-    expect(vs.find(v => v.content.includes('英文台词缺失'))).toBeUndefined();
     expect(vs.find(v => v.content.includes('内部标记泄漏'))).toBeUndefined();
+    expect(vs.find(v => v.content.includes('缺▲'))).toBeUndefined();
+  });
+
+  it('群演编号名块（镇民群像#2 Townsperson #2）识别为合规对照行', () => {
+    const c = `第一话\n\n1-1 日/外 小镇广场\n\n人物：镇民群像\n\n▲人群骚动。\n\n镇民群像#2（惶恐）：天哪！Townsperson #2 (Horrified): Oh God!`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('对照'))).toBeUndefined();
+    expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
   });
 
   it('场景头缺人物行 命中', () => {
-    const c = `第 1 集\n1-1 医院 夜 内\n走廊空无一人，灯管闪烁。\nEmma EMMA(Coldly)：Get out.`;
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n▲走廊空无一人，灯管闪烁。\n\n艾玛（冷）：出去。Emma (Coldly): Get out.`;
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('人物行缺失'))).toBeTruthy();
   });
 
   it('人物行后直接接台词 判为硬切', () => {
-    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\nEmma EMMA(Coldly)：Get out.`;
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n艾玛（冷）：出去。Emma (Coldly): Get out.`;
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('硬切'))).toBeTruthy();
   });
 
-  it('中文台词（非双语合并行）命中两条违规', () => {
-    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\n她推门进来。\nEmma：你竟然还活着。\nRyan：闭嘴。`;
+  it('旧合并格式（Name EN(emo)：English）判为非对照台词', () => {
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她推门进来。\n\nEmma EMMA(Coldly)：Get out.`;
     const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('双语'))).toBeTruthy();
+    expect(vs.find(v => v.content.includes('对照'))).toBeTruthy();
   });
 
-  it('双语合并行但台词为中文 命中', () => {
-    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\n她推门进来。\nEmma EMMA(Shocked)：你竟然还活着`;
+  it('纯中文台词（无英文对照）命中', () => {
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她推门进来。\n\n艾玛（震惊）：你竟然还活着。`;
     const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('英文台词缺失'))).toBeTruthy();
+    expect(vs.find(v => v.content.includes('对照'))).toBeTruthy();
   });
 
-  it('内部标记泄漏：[HOOK]/【核心情绪】/△/出场人物/OS： 全部命中', () => {
-    const c = `第 1 集\n出场人物：A、B\n1-1 医院 夜 内【核心情绪：紧张】\n人物：A\n△开场画面。\nA A2OS：他说了什么。\n[HOOK]集尾钩子`;
+  it('英文情绪混入中文 命中', () => {
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她站着。\n\n艾玛（冷）：出去。Emma (冷冷地): Get out.`;
     const vs = scanOverseasScript(c, 9000);
-    const leak = vs.find(v => v.content.includes('内部标记泄漏'));
-    expect(leak).toBeTruthy();
-    expect(leak!.severity).toBe('important');
+    expect(vs.find(v => v.content.includes('英文情绪必须为英文'))).toBeTruthy();
   });
 
-  it('V.O. 密度超4条命中', () => {
-    const vo = 'Emma EMMA(V.O.)：I cannot let him go.';
-    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\n她站着。\n${vo}\n${vo}\n${vo}\n${vo}\n${vo}`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('V.O.边界'))).toBeTruthy();
-  });
-
-  it('弱动作句式仍命中', () => {
-    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\n她走过去把门关了一下。\nEmma EMMA：Stay.`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('弱动作'))).toBeTruthy();
-  });
-
-  it('超长英文台词命中', () => {
-    const long = 'A '.repeat(60).trim();
-    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\n她站着。\nEmma EMMA(Angry)：${long}`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('英文台词过长'))).toBeTruthy();
-  });
-
-  it('道具文字行不判为非双语台词（白名单）', () => {
-    const c = `第 1 集\n1-1 医院 夜 内\n人物：Emma\n她翻开卷宗。\n纸上写着：GHOST。\n收款人一栏：D. Ricci。\n{特写}封皮备注：CASE 11-04。\nEmma EMMA：Stay.`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('双语'))).toBeUndefined();
-  });
-
-  it('英文名块畸形（情绪词进名字槽位）命中', () => {
-    const c = `第 1 集\n1-1 农场 日 外\n人物：Vera\n她绞着手帕。\nVera HALF- VOICE(Hands to mouth)：The paper— it is just crumbling.`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('名块畸形'))).toBeTruthy();
-  });
-
-  it('同一中文名对应多个不相关英文名 命中', () => {
-    const c = `第 1 集\n1-1 农场 日 外\n人物：Vera\n她绞着手帕。\nVera VERA HALE(Quietly)：Stay.\nVera HALF VOICE(Loudly)：Run!`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('名块不一致'))).toBeTruthy();
-  });
-
-  it('同名简繁写法与昵称前缀不误报', () => {
-    const c = `第 1 集\n1-1 农场 日 外\n人物：Vera、Giovanni\n她绞着手帕。\nVera VERA(Quietly)：Stay.\nVera VERA HALE(Loudly)：Run!\nGiovanni GIOVANNI(Coldly)：Stop.\nGiovanni GIO(Softer)：Please.`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
-    expect(vs.find(v => v.content.includes('名块畸形'))).toBeUndefined();
-  });
-
-  it('称谓首词不参与名块一致性检查', () => {
-    const c = `第 1 集\n1-1 农场 日 外\n人物：Uncle Hale、Uncle Tom\n两位叔叔站在门廊。\nUncle Hale UNCLE HALE(Stern)：Sit.\nUncle Tom UNCLE TOM(Cheerful)：Tea?`;
-    const vs = scanOverseasScript(c, 9000);
-    expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
-  });
-
-  it('英文台词混入中文字符 命中（配音稿必须纯英文）', () => {
-    const c = `第 2 集\n2-1 宴会厅 夜 内\n人物：Noah、Uncle Hale\nNoah站起来。\nNoah NOAH(Raising the envelope)：Before we eat. This goes to the county in the morning. Fifty pages of灰石碱—\nUncle Hale UNCLE HALE(Beaming)：A toast!`;
+  it('英文台词混入中文字符 命中（important）', () => {
+    const c = `第二话\n\n2-1 夜/内 宴会厅\n\n人物：诺亚\n\n▲诺亚站起来。\n\n诺亚（举杯）：五十页灰石碱数据。Noah (Raising glass): Fifty pages of灰石碱 data.`;
     const vs = scanOverseasScript(c, 9000);
     const v = vs.find(v => v.content.includes('英文台词混入中文'));
     expect(v).toBeTruthy();
@@ -112,28 +72,116 @@ describe('新生产格式扫描', () => {
   });
 
   it('纯英文台词不报混入', () => {
-    const c = `第 2 集\n2-1 宴会厅 夜 内\n人物：Noah\nNoah站起来。\nNoah NOAH(Raising the envelope)：Fifty pages of lab data — all of it falsified.`;
+    const c = `第二话\n\n2-1 夜/内 宴会厅\n\n人物：诺亚\n\n▲诺亚站起来。\n\n诺亚（举杯）：全是伪造数据。Noah (Raising glass): All of it falsified.`;
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('英文台词混入中文'))).toBeUndefined();
   });
+
+  it('中文动作行缺▲ 命中', () => {
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n她推门进来，灯管闪烁。\n\n艾玛（冷）：出去。Emma (Coldly): Get out.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('缺▲'))).toBeTruthy();
+  });
+
+  it('内部标记泄漏：[HOOK]/【核心情绪】/△/出场人物 全部命中', () => {
+    const c = `第一话\n出场人物：A、B\n1-1 夜/内 医院·走廊【核心情绪：紧张】\n人物：A\n△开场画面。\n[HOOK]集尾钩子`;
+    const vs = scanOverseasScript(c, 9000);
+    const leak = vs.find(v => v.content.includes('内部标记泄漏'));
+    expect(leak).toBeTruthy();
+    expect(leak!.severity).toBe('important');
+  });
+
+  it('合法交付标记不误报：【卡点】【字幕：】【闪回】【闪出】', () => {
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n【闪回】\n\n▲三年前的雨夜。\n\n【闪出】\n\n▲艾玛站着。\n\n艾玛（冷）：出去。Emma (Coldly): Get out.\n\n【字幕：三天后】\n\n【卡点】`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('内部标记泄漏'))).toBeUndefined();
+    expect(vs.find(v => v.content.includes('缺▲'))).toBeUndefined();
+  });
+
+  it('V.O. 密度超4条命中', () => {
+    const vo = '艾玛（画外音）：我不能放他走。Emma (V.O.): I cannot let him go.';
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她站着。\n\n${vo}\n\n${vo}\n\n${vo}\n\n${vo}\n\n${vo}`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('V.O.边界'))).toBeTruthy();
+  });
+
+  it('弱动作句式仍命中', () => {
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她走过去把门关了一下。\n\n艾玛（冷）：站住。Emma (Coldly): Stay.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('弱动作'))).toBeTruthy();
+  });
+
+  it('超长英文台词命中', () => {
+    const long = 'A '.repeat(60).trim();
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她站着。\n\n艾玛（怒）：${long}。Emma (Angry): ${long}`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('英文台词过长'))).toBeTruthy();
+  });
+
+  it('道具文字行不判为非对照台词（白名单）', () => {
+    const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她翻开卷宗。\n\n纸上写着：GHOST。\n\n收款人一栏：D. Ricci。\n\n{特写}封皮备注：CASE 11-04。\n\n艾玛（冷）：站住。Emma (Coldly): Stay.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('对照'))).toBeUndefined();
+  });
+
+  it('同一中文名对应多个不相关英文名 命中', () => {
+    const c = `第一话\n\n1-1 日/外 农场\n\n人物：薇拉\n\n▲她绞着手帕。\n\n薇拉（轻声）：别动。Vera Hale (Quietly): Stay.\n\n薇拉（大喊）：快跑！Half Voice (Loudly): Run!`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('名块不一致'))).toBeTruthy();
+  });
+
+  it('同名简繁写法与昵称前缀不误报', () => {
+    const c = `第一话\n\n1-1 日/外 农场\n\n人物：薇拉, 乔凡尼\n\n▲她绞着手帕。\n\n薇拉（轻声）：别动。Vera (Quietly): Stay.\n\n薇拉（大喊）：快跑！Vera Hale (Loudly): Run!\n\n乔凡尼（冷）：住手。Giovanni (Coldly): Stop.\n\n乔凡尼（放软）：求你了。Gio (Softer): Please.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
+  });
 });
 
-describe('新生产格式归一化', () => {
-  it('##集标题/出场人物/△/--- 全部归一', () => {
-    const c = `## 第1集：集名\n出场人物：A、B\n1-1  医院 夜 内【核心情绪：紧张】\n人物：A\n△她推门。\n---\n第2集`;
+describe('中英对照格式归一化', () => {
+  it('集标题归一为"第X话"中文数字', () => {
+    expect(normalizeOverseasScript('第10集')).toContain('第十话');
+    expect(normalizeOverseasScript('第1集')).toContain('第一话');
+    expect(normalizeOverseasScript('第十集')).toContain('第十话');
+    expect(normalizeOverseasScript('EP 10')).toContain('第十话');
+    expect(normalizeOverseasScript('第12话')).toContain('第十二话');
+  });
+
+  it('旧式场景头（地点 时间 内外）归一为新式（时间/内外 地点·子）', () => {
+    const n = normalizeOverseasScript('1-5 农场-卧室 日 内');
+    expect(n).toContain('1-5 日/内 农场·卧室');
+  });
+
+  it('新式场景头保持不变', () => {
+    const n = normalizeOverseasScript('9-2 夜/内 王宫·杀阵中枢暗室');
+    expect(n).toContain('9-2 夜/内 王宫·杀阵中枢暗室');
+  });
+
+  it('动作行缺▲自动补▲', () => {
+    const n = normalizeOverseasScript('第一话\n\n1-1 日/外 农场\n\n人物：A\n\n她推门进来。');
+    expect(n).toContain('▲她推门进来。');
+  });
+
+  it('人物行顿号/中文逗号归一为半角逗号', () => {
+    const n = normalizeOverseasScript('人物：奥瑞安王子、哈兰，Kai');
+    expect(n).toContain('人物：奥瑞安王子, 哈兰, Kai');
+  });
+
+  it('##标题/出场人物/△/--- 全部归一', () => {
+    const c = `## 第1集：集名\n出场人物：A、B\n1-1 医院 夜 内【核心情绪：紧张】\n人物：A\n△她推门。\n---\n第2集`;
     const n = normalizeOverseasScript(c);
-    expect(n).toContain('第 1 集');
+    expect(n).toContain('第一话');
+    expect(n).toContain('第二话');
     expect(n).not.toContain('##');
     expect(n).not.toContain('出场人物');
     expect(n).not.toContain('△');
     expect(n).not.toContain('【核心情绪');
     expect(n).not.toContain('---');
+    expect(n).toContain('▲她推门');
   });
 
-  it('(VO)/(V.O) 归一为 (V.O.)，中英名粘连补空格', () => {
-    const c = `ClaudiaCLAUDIA(VO)：I got to him first.`;
-    const n = normalizeOverseasScript(c);
-    expect(n).toContain('Claudia CLAUDIA(V.O.)：');
+  it('(VO)/(v.o.) 归一为 (V.O.)', () => {
+    const n = normalizeOverseasScript('艾玛（画外音）(VO)：我先到的。Emma (v.o.): I got to him first.');
+    expect(n).toContain('(V.O.)');
   });
 
   it('裸镜头词冒号写法归一为花括号，闪回/闪出归一为方头括号', () => {

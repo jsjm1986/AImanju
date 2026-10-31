@@ -155,17 +155,23 @@ ${customPrompt.trim()}`;
             .replace('{time}', scene.timeOptions[0] || '日')
             .replace('{inOut}', scene.inOutOptions[0] || '内');
 
-        const dialogueExample = dialogue.normal
+        const fillDialogue = (tpl: string) => tpl
             .replace('{name}', '张三')
-            .replace('{content}', '你来了');
-
-        const stateDialogueExample = dialogue.withState
-            .replace('{name}', '张三')
+            .replace('{cnName}', '张三')
+            .replace('{EnName}', 'Zhang San')
+            .replace('{cnEmotion}', '冷笑')
+            .replace('{enEmotion}', 'Sneering')
+            .replace('{cnContent}', '你来了')
+            .replace('{enContent}', 'You came')
             .replace('{state}', '冷笑')
             .replace('{content}', '你来了');
 
+        const dialogueExample = fillDialogue(dialogue.normal);
+        const stateDialogueExample = fillDialogue(dialogue.withState);
         const narratorExample = dialogue.narrator
-            .replace('{content}', '三年后...');
+            .replace('{content}', '三年后...')
+            .replace('{cnContent}', '三年后...')
+            .replace('{enContent}', 'Three years later...');
 
         const actionExample = this.buildActionExample(config);
 
@@ -361,32 +367,89 @@ ${customPrompt.trim()}`;
 // 导出单例
 export const outputFormatService = new OutputFormatService();
 
+/** 阿拉伯数字→中文数字（1-199，覆盖常规集数） */
+function toCnNum(n: number): string {
+    const d = '零一二三四五六七八九';
+    if (n <= 10) return n === 10 ? '十' : d[n];
+    if (n < 20) return `十${d[n % 10]}`;
+    if (n < 100) return `${d[Math.floor(n / 10)]}十${n % 10 ? d[n % 10] : ''}`;
+    return `${d[Math.floor(n / 100)]}百${n % 100 ? toCnNum(n % 100) : ''}`;
+}
+
+/** 时间词集合（场景头用） */
+const TIME_WORDS = '日|夜|清晨|凌晨|傍晚|黄昏|深夜|上午|下午|中午|黎明|拂晓';
+/** 场景头（新标准）：`9-2 夜/内 王宫·杀阵中枢暗室` */
+const SCENE_HEADER_STD_RE = new RegExp(`^\\d+-\\d+\\s+(?:${TIME_WORDS})\\s*\\/\\s*(?:内|外|内外)\\s+\\S`);
+/** 旧式场景头（归一化用）：`1-5 农场-溪边 日 外` — 地点+时间+内外顺序 */
+const SCENE_HEADER_LEGACY_RE = new RegExp(`^(\\d+)-(\\d+)\\s+(.+?)\\s+(${TIME_WORDS})\\s+(内\\/外|外\\/内|内|外)\\s*$`);
+
 /**
- * 海外短剧格式的机械性归一化（仅处理排版漂移，不改内容语义）：
- * - 剥离集标题前的 markdown 标题符（## 第1集 → 第 1 集）
- * - 集标题空格归一：第1集 → 第 1 集（对齐正样本排版）
- * - 内心独白变体归一：(VO)/(V.O)/(v.o.) → (V.O.)
- * - 中文名与英文名粘连补空格：ClaudiaCLAUDIA( → Claudia CLAUDIA(
- * - 场标序号后多空格归一为单空格
- * - 剥离内部标记泄漏：[HOOK]行、【核心情绪：X】标签、△前缀、出场人物行→人物行
- * - 剔除 --- 集分隔线（正样本为空行分隔）
+ * 海外短剧格式的机械性归一化（中英台词对照标准，仅处理排版漂移，不改内容语义）：
+ * - 集标题归一为"第X话"中文数字（第10集/EP10/第十集 → 第十话）
+ * - 旧式场景头（地点 时间 内外）转为新式（时间/内外 地点·子场景）
+ * - 剥离集标题前的 markdown 标题符
+ * - 内心独白变体归一：(VO)/(v.o.) → (V.O.)
+ * - 动作行缺▲补▲；△空心三角→▲实心
+ * - 人物行分隔符归一为半角逗号（、→", "）
+ * - 剥离内部标记泄漏：[HOOK]行、【核心情绪：X】标签、出场人物行→人物行
+ * - 剔除 --- 集分隔线
  */
 export function normalizeOverseasScript(content: string): string {
-    return content
-        .replace(/^#{1,6}\s*(第\s*\d+\s*集[^\n]*)/gm, '$1')
-        .replace(/^第\s*(\d+)\s*集/mg, '第 $1 集')
+    const out = content
+        .replace(/^#{1,6}\s*(第[^\n]{0,20})/gm, '$1')
         .replace(/\((?:V\.?O\.?|v\.?o\.?)\)/g, '(V.O.)')
-        .replace(/([a-z\u4e00-\u9fa5'’.\-])([A-Z]{2,}[A-Za-z'’.]*)\s*(?=[（(])/g, '$1 $2')
-        .replace(/([A-Z])['’]\s+([A-Z])/g, "$1'$2")
-        .replace(/^(\d+-\d+) {2,}/gm, '$1 ')
         .replace(/【核心情绪[：:][^】]*】/g, '')
-        .replace(/^△\s*/gm, '')
         .replace(/^(特写|大特写|慢镜头|升格镜头|主观视角)[：:]\s*/gm, '{$1}')
         .replace(/^闪回[：:]\s*/gm, '【闪回】')
         .replace(/^闪出[：:]\s*/gm, '【闪出】')
         .replace(/^出场人物[：:]/gm, '人物：')
         .replace(/^\s*\[HOOK\][^\n]*$/gm, '')
-        .replace(/^\s*-{3,}\s*$/gm, '');
+        .replace(/^\s*-{3,}\s*$/gm, '')
+        .replace(/^△\s*/gm, '▲');
+    const lines = out.split('\n').map((raw) => {
+        const t = raw.trim();
+        if (!t) return raw;
+        // 集标题：第10集/第十集/第10话/EP 10 → 第十话
+        const ep = t.match(/^第\s*([0-9]+|[一二三四五六七八九十百零〇]+)\s*(?:集|话|章)\s*(?:[:：].*)?$|^EP\.?\s*([0-9]+)\s*$/i);
+        if (ep) {
+            const num = ep[1]
+                ? (/^\d+$/.test(ep[1]) ? Number(ep[1]) : cnNumParse(ep[1]))
+                : Number(ep[2]);
+            if (Number.isFinite(num)) return `第${toCnNum(num)}话`;
+        }
+        // 旧式场景头 → 新式（时间/内外 地点·子）
+        const sc = t.match(SCENE_HEADER_LEGACY_RE);
+        if (sc && !SCENE_HEADER_STD_RE.test(t)) {
+            const loc = sc[3].replace(/[\s-]+/g, '·').replace(/·{2,}/g, '·').replace(/^·|·$/g, '');
+            return `${sc[1]}-${sc[2]} ${sc[4]}/${sc[5]} ${loc}`;
+        }
+        // 人物行分隔符归一
+        if (/^人物[：:]/.test(t)) {
+            return `人物：${t.replace(/^人物[：:]\s*/, '').split(/[、，,;；]/).map(s => s.trim()).filter(Boolean).join(', ')}`;
+        }
+        return raw;
+    });
+    // 动作行补▲：非空、非场景头/人物/标题/方括号/花括号/台词行，且含中文、不以▲开头
+    return lines.map((raw) => {
+        const t = raw.trim();
+        if (!t || t.startsWith('▲') || t.startsWith('{') || t.startsWith('【')) return raw;
+        if (SCENE_HEADER_STD_RE.test(t) || /^人物[：:]/.test(t) || /^第[一二三四五六七八九十百零〇\d]+话/.test(t)) return raw;
+        if (PAIRED_DIALOGUE_RE.test(t) || PROP_TEXT_RE.test(t)) return raw;
+        if (/^[^\s：:（(【\[]{1,15}(?:（[^）]{0,30}）|\([^)]{0,40}\))?[：:]/.test(t)) return raw; // 含冒号行（台词/疑似台词）不改
+        if (/[一-鿿]/.test(t)) return `▲${t}`;
+        return raw;
+    }).join('\n');
+}
+
+/** 中文数字→阿拉伯数字（1-199） */
+function cnNumParse(s: string): number {
+    const d: Record<string, number> = { 零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9 };
+    if (s === '十') return 10;
+    const b = s.indexOf('百');
+    if (b >= 0) return (d[s[0]] ?? 1) * 100 + (b + 1 < s.length ? cnNumParse(s.slice(b + 1)) : 0);
+    const i = s.indexOf('十');
+    if (i < 0) return d[s] ?? NaN;
+    return (i === 0 ? 1 : (d[s[0]] ?? NaN)) * 10 + (i + 1 < s.length ? (d[s[i + 1]] ?? NaN) : 0);
 }
 
 export interface OverseasScanViolation {
@@ -396,17 +459,21 @@ export interface OverseasScanViolation {
     suggestion: string;
 }
 
-/** 场景头：`1-5 农场-卧室 日 内`（行业标准空格分隔，可带【闪回】） */
-const SCENE_HEADER_RE = /^\d+-\d+\s+\S/;
+/** 场景头：`9-2 夜/内 王宫·杀阵中枢暗室` */
+const SCENE_HEADER_RE = SCENE_HEADER_STD_RE;
 /** 场景级人物行 */
 const CAST_LINE_RE = /^人物[：:]/;
-/** 合并双语台词行：`Claudia CLAUDIA(Smiling brightly)：English line`（中文名 英文名（英文情绪）：英文台词） */
-const DIALOGUE_LINE_RE = /^[^\s：:（(\[【]{1,12}\s+[A-Za-z][A-Za-z'’.\- ]*\s*(?:（[^）]{1,40}）|\([^)]{1,60}\))?[：:](.+)$/;
-/** 台词行前的行型（非台词判定；字幕/黑屏允许带括号变体如"字幕（特写）："；{起始为镜头指令行） */
-const NON_DIALOGUE_RE = /^(人物|字幕|黑屏)(?:[（(][^）)]{0,20}[）)])?[：:]|^第\s*\d+\s*集|^【|^【闪出】|^\{/;
+/** 中英对照台词行：`中文名（中文情绪）：中文台词English Name (English Emotion): English line`
+ * 结构：中文名 + 全角括号中文情绪 + 全角冒号 + 中文台词 + 英文名(首字母大写,可含空格) + 半角括号英文情绪 + 半角冒号 + 英文台词 */
+const PAIRED_DIALOGUE_RE = /^([^\s（(：:▲【]{1,15})（([^（）]{1,30})）：(.+?)([A-Z][A-Za-z'’&.\-#0-9 ]{0,45}?)\s*\(([^()]{1,70})\)\s*:\s*(.+)$/;
+/** 旧合并格式/畸形名块探测（提示改写）：`Name EN(emo)：...` 或 `中文名 英文名(...)...` */
+const LEGACY_DIALOGUE_HINT_RE = /^[^\s：:（(\[【]{1,15}\s+[A-Z][A-Za-z'’.\- ]*\s*(?:（[^）]{1,40}）|\([^)]{1,60}\))?[：:]/;
+/** 非台词行型（人物行/字幕/黑屏/集标题/方括号标记/花括号镜头/场景头/▲动作） */
+const NON_DIALOGUE_RE = /^(人物|字幕|黑屏)(?:[（(][^）)]{0,20}[）)])?[：:]|^第[一二三四五六七八九十百零〇\d]+\s*[话集]|^【|^\{|^▲/;
 /** 道具/画面文字行（"纸上写着：GHOST""收款人一栏：D. Ricci""页眉一行黑体：许可证"等）——含冒号但非台词 */
 const PROP_TEXT_RE = /^[^\s：:（(【\[]{0,10}(?:写着|显示|备注|打字|刻着|标明|打印|字样|一栏|一行字|一行|页眉|封面|标题|落款|签名|红章|抬头|横幅|弹窗|推送|截图|弹幕|字幕条|提示|公告|新闻|头条|黑体|红字|大字|小字|粗体|斜体|英文|编号|日期|金额|姓名|账号|电话|地址|照片|相片|监控|录像|画面|屏幕|海报|报纸|网页|邮件|短信|文件|报告|名单|清单|病历|合同|证件|档案|报纸头版|头版|配图)[：:]/;
 const ENGLISH_WORD_RE = /[A-Za-z]{2,}/;
+const CJK_RE = /[一-鿿]/;
 
 /** 方法论自检/质检报告等元信息泄漏检测——所有格式通用（海外另有完整格式扫描）。
  * 命中即重要级违规：这些内容是生成过程的元产物，不是交付剧本的一部分。 */
@@ -462,16 +529,17 @@ export function scanDomesticDialogue(content: string): OverseasScanViolation[] {
     return violations;
 }
 
+
 /**
- * 海外短剧格式的确定性正则扫描（不依赖 AI 判断，命中即确凿违规）。
- * 对齐《批量剧制作流程》交付格式：合并双语台词、行业标准场记、场景级人物行、无内部标记。
+ * 海外短剧格式的确定性正则扫描（中英台词对照标准，不依赖 AI 判断，命中即确凿违规）。
+ * 对齐交付规范：第X话标题、集-场 时间/内外 地点场景头、人物行、▲动作行、中英对照同行台词。
  */
 export function scanOverseasScript(content: string, wordLimitMax?: number, sceneMax?: number): OverseasScanViolation[] {
     const violations: OverseasScanViolation[] = [];
     const samples = (arr: string[], n = 3) => arr.slice(0, n).join('；');
     const lines = content.split('\n');
 
-    // ---- 弱动作句式（动作描写仍是中文，沿用） ----
+    // ---- 弱动作句式 ----
     const weakHits = (content.match(/[^，。！？\n「」()（）]{1,10}了[一二]?[下拍声秒]/g) || [])
         .filter(h => {
             const m = h.match(/(.)了[一二]?([下拍声秒])$/);
@@ -486,50 +554,8 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         });
     }
 
-    // ---- 台词括号内中文情绪（生产格式硬契约：下游配音/翻译管线依赖英文描述） ----
-    const cnEmotionHits: string[] = [];
-    for (const raw of lines) {
-        const t = raw.trim();
-        if (!DIALOGUE_LINE_RE.test(t)) continue;
-        for (const pm of t.matchAll(/[（(]([^）)]*)[）)]/g)) {
-            if (/[\u4e00-\u9fa5]/.test(pm[1])) cnEmotionHits.push(`(${pm[1]})`);
-        }
-    }
-    if (cnEmotionHits.length > 0) {
-        violations.push({
-            content: '台词情绪必须为英文：括号内情绪/动作描述不得使用中文',
-            evidence: `命中${cnEmotionHits.length}处：${samples(cnEmotionHits)}`,
-            severity: 'important',
-            suggestion: '改为英文可表演状态，如 (Quietly)/(Voice low)/(Gritting teeth)',
-        });
-    }
-
-    // ---- 非台词行中文抽象语气括号残留 ----
-    const nonDlgLines = lines.filter(l => !DIALOGUE_LINE_RE.test(l.trim())).join('\n');
-    const baseParenHits: string[] = nonDlgLines.match(/（低[声音量]）|（压低声）|（压低声音）|（轻声）|（小声）|（语气平静）/g) || [];
-    if (baseParenHits.length > 0) {
-        violations.push({
-            content: '抽象括号禁止：对白括号内不得出现中文抽象语气词，情绪/动作描述须用英文',
-            evidence: `命中${baseParenHits.length}处：${samples(baseParenHits)}`,
-            severity: 'normal',
-            suggestion: '情绪描述改为英文可表演状态，如 (Quietly)/(Voice low)',
-        });
-    }
-
-    // ---- V.O. 密度 ----
-    const voCount = (content.match(/\(V\.O\.\)/g) || []).length
-        + (content.match(/OS[（(]|\bOS[：:]/g) || []).length;
-    if (voCount > 4) {
-        violations.push({
-            content: 'V.O.边界：内心独白/画外音仅用于情绪与潜台词，单集不得超过4条；禁止用V.O.交代剧情信息',
-            evidence: `本集V.O.共${voCount}条，超阈值`,
-            severity: 'important',
-            suggestion: '将交代信息的V.O.改写为道具行为或高压对白，仅保留纯情绪V.O.',
-        });
-    }
-
-    // ---- 字数上限（双语口径：中文字数+英文词数，英文台词不按字母计） ----
-    const cnChars = (content.match(/[\u4e00-\u9fa5]/g) || []).length;
+    // ---- 字数上限（中文字+英文词口径） ----
+    const cnChars = (content.match(/[一-鿿]/g) || []).length;
     const enWords = (content.match(/[A-Za-z]+(?:['’][A-Za-z]+)?/g) || []).length;
     const effectiveLen = cnChars + enWords;
     if (wordLimitMax && effectiveLen > wordLimitMax) {
@@ -541,25 +567,25 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         });
     }
 
-    // ---- 内部标记泄漏（交付稿不得出现） ----
-    const leakHits = content.match(/\[HOOK\]|【核心情绪[：:]|^△|出场人物[：:]|[A-Za-z\u4e00-\u9fa5]OS[：:]|[A-Za-z\u4e00-\u9fa5]VO[：:]|^#{1,6}\s/gm) || [];
+    // ---- 内部标记泄漏（▲/【卡点】/【字幕：】/【闪回】【闪出】为合法交付标记） ----
+    const leakHits = content.match(/\[HOOK\]|【核心情绪[：:]|^△|出场人物[：:]|[A-Za-z一-鿿]OS[：:]|[A-Za-z一-鿿]VO[：:]|^#{1,6}\s/gm) || [];
     if (leakHits.length > 0) {
         violations.push({
             content: '内部标记泄漏：交付剧本不得出现[HOOK]/【核心情绪】/△/出场人物/OS：/VO：/markdown标题符',
             evidence: `命中${leakHits.length}处：${samples(leakHits)}`,
             severity: 'important',
-            suggestion: '删除内部标记；场景头用行业标准格式，情绪描述写进台词括号内',
+            suggestion: '删除内部标记；合法交付标记只有▲动作、【卡点】、【字幕：】、【闪回】/【闪出】',
         });
     }
 
-    // ---- 场景头存在性与人物行配对 ----
+    // ---- 场景头存在性 ----
     const sceneHeaderIdx: number[] = [];
     for (let i = 0; i < lines.length; i++) {
         if (SCENE_HEADER_RE.test(lines[i].trim())) sceneHeaderIdx.push(i);
     }
     if (sceneHeaderIdx.length === 0) {
         violations.push({
-            content: '缺少场景头（格式：集-场 地点 时间 内/外，如 1-5 农场-卧室 日 内）',
+            content: '缺少场景头（格式：集-场 时间/内外 地点·子场景，如 9-2 夜/内 王宫·杀阵中枢暗室）',
             evidence: '全文未检出场景头',
             severity: 'important',
             suggestion: '为每场补标准场景头行',
@@ -574,17 +600,18 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         });
     }
 
-    // ---- 花括号镜头指令混入拍摄执行参数（实测泄漏：{固定镜头-肩部以上构图-持续3秒}） ----
+    // ---- 花括号镜头指令混入拍摄执行参数 ----
     const execCamHits = lines.filter(l => /^\{[^}\n]*(\d+\s*秒|\d+\s*帧|持续\d|构图|机位|景别|运镜)[^}\n]*\}/.test(l.trim()));
     if (execCamHits.length > 0) {
         violations.push({
             content: '镜头指令含拍摄执行参数：花括号内只写镜头类型/视角标签，不得写时长/构图/机位',
             evidence: `命中${execCamHits.length}处：${samples(execCamHits)}`,
             severity: 'normal',
-            suggestion: '改为纯镜头标签，如 {特写} {升格+慢镜头} {主观视角}；情绪节拍用动作描写表达',
+            suggestion: '改为纯镜头标签，如 {特写} {升格+慢镜头} {主观视角}',
         });
     }
 
+    // ---- 人物行配对 + 硬切检查 ----
     const missingCast: string[] = [];
     const hardCuts: string[] = [];
     const nonEmptyLine = (idx: number, dir: number) => {
@@ -600,7 +627,6 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             missingCast.push(lines[i].trim().slice(0, 24));
             continue;
         }
-        // 人物行之后首行应是动作/镜头行（对白直接开场=硬切）
         let j = i + 1;
         while (j < lines.length && !lines[j].trim()) j++;
         if (CAST_LINE_RE.test(lines[j]?.trim() ?? '')) {
@@ -608,69 +634,71 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             while (j < lines.length && !lines[j].trim()) j++;
         }
         const afterCast = (lines[j] ?? '').trim();
-        if (afterCast && DIALOGUE_LINE_RE.test(afterCast) && !/^\{/.test(afterCast)) {
+        if (afterCast && PAIRED_DIALOGUE_RE.test(afterCast)) {
             hardCuts.push(`${lines[i].trim().slice(0, 16)}… → ${afterCast.slice(0, 20)}…`);
         }
     }
     if (missingCast.length > 0) {
         violations.push({
-            content: '场景人物行缺失：每个场景头下一行必须有"人物：角色A、角色B"',
+            content: '场景人物行缺失：每个场景头下一行必须有"人物：角色A, 角色B"（半角逗号分隔）',
             evidence: `命中${missingCast.length}个场景缺人物行：${samples(missingCast)}`,
             severity: 'important',
-            suggestion: '在每个场景头紧接的下一行补"人物：…"（仅列本场上场角色）',
+            suggestion: '在每个场景头下一行补"人物：…"（仅列本场上场角色）',
         });
     }
     if (hardCuts.length > 0) {
         violations.push({
-            content: '场景开场硬切：人物行后直接接台词，缺少开场动作描写建立画面',
+            content: '场景开场硬切：人物行后直接接台词，缺少▲动作描写建立画面',
             evidence: `命中${hardCuts.length}处：${samples(hardCuts)}`,
             severity: 'normal',
-            suggestion: '在人物行后补一条中文动作描写（可含{镜头指令}）再给台词',
+            suggestion: '在人物行后补一条▲动作描写再给台词',
         });
     }
 
-    // ---- 台词合规：冒号行必须是合并双语格式，且台词内容为英文 ----
+    // ---- 台词合规：中英对照同行 ----
     const badDialogue: string[] = [];
-    const cnDialogue: string[] = [];
+    const enEmotionBad: string[] = [];
     const mixedDialogue: string[] = [];
     const longDialogue: string[] = [];
+    const missingTriangle: string[] = [];
+    const cnToEn = new Map<string, Set<string>>();
     for (const raw of lines) {
         const t = raw.trim();
-        if (!t || NON_DIALOGUE_RE.test(t) || PROP_TEXT_RE.test(t) || SCENE_HEADER_RE.test(t)) continue;
-        if (!/[：:]/.test(t)) continue; // 无冒号=动作行
-        const m = t.match(DIALOGUE_LINE_RE);
-        if (!m) {
-            // 有冒号但不是合并双语行（旧式"角色名：台词"/"角色名（中文状态）：台词"）；
-            // 冒号前词≤6字视为说话人位（动作行的句中冒号前缀通常更长，规避误报）
-            if (/^[^\s：:（(【\[]{1,6}(?:（[^）]{0,20}）|\([^)]{0,30}\))?[：:]/.test(t)) {
-                badDialogue.push(t.slice(0, 30));
-            }
+        if (!t) continue;
+        if (SCENE_HEADER_RE.test(t) || CAST_LINE_RE.test(t) || NON_DIALOGUE_RE.test(t)) continue;
+        if (PROP_TEXT_RE.test(t)) continue;
+        const m = t.match(PAIRED_DIALOGUE_RE);
+        if (m) {
+            const [, cnName, , , enName, enEmotion, enSpeech] = m;
+            if (CJK_RE.test(enEmotion)) enEmotionBad.push(`(${enEmotion.slice(0, 24)})`);
+            if (CJK_RE.test(enSpeech)) mixedDialogue.push(t.slice(0, 46));
+            if (enSpeech.length > 110) longDialogue.push(t.slice(0, 46));
+            if (!cnToEn.has(cnName)) cnToEn.set(cnName, new Set());
+            cnToEn.get(cnName)!.add(enName.trim().toUpperCase());
             continue;
         }
-        const spoken = m[1].trim();
-        if (!ENGLISH_WORD_RE.test(spoken)) {
-            cnDialogue.push(t.slice(0, 34));
-        } else if (/[\u4e00-\u9fff]/.test(spoken)) {
-            mixedDialogue.push(t.slice(0, 40));
+        if (/[：:]/.test(t) && (/^[^\s：:（(【\[]{1,15}(?:（[^）]{0,30}）|\([^)]{0,40}\))?[：:]/.test(t) || LEGACY_DIALOGUE_HINT_RE.test(t))) {
+            badDialogue.push(t.slice(0, 44));
+            continue;
         }
-        if (spoken.length > 110) {
-            longDialogue.push(t.slice(0, 40));
+        if (CJK_RE.test(t) && !t.startsWith('▲') && !t.startsWith('{') && !/[：:]/.test(t)) {
+            missingTriangle.push(t.slice(0, 30));
         }
     }
     if (badDialogue.length > 0) {
         violations.push({
-            content: '台词必须为合并双语单行：中文名 英文名（英文情绪）：英文台词',
-            evidence: `命中${badDialogue.length}行非双语台词：${samples(badDialogue)}`,
+            content: '台词必须为中英对照同行：中文名（中文情绪）：中文台词English Name (English Emotion): English line',
+            evidence: `命中${badDialogue.length}行非对照台词：${samples(badDialogue)}`,
             severity: 'important',
-            suggestion: '改写为 Claudia CLAUDIA(Smiling brightly)：English line 结构',
+            suggestion: '改写为 奥瑞安（惊怒）：什么？！Orian (Shocked): What?! 结构——中文台词与英文对照同一行',
         });
     }
-    if (cnDialogue.length > 0) {
+    if (enEmotionBad.length > 0) {
         violations.push({
-            content: '英文台词缺失：冒号后必须是英文原声文案（美式口语），不得用中文',
-            evidence: `命中${cnDialogue.length}行中文台词：${samples(cnDialogue)}`,
+            content: '英文情绪必须为英文：英文名后的半角括号内情绪/动作描述不得使用中文',
+            evidence: `命中${enEmotionBad.length}处：${samples(enEmotionBad)}`,
             severity: 'important',
-            suggestion: '将台词正文改写为英文原声（中文名/情绪保留，台词用英文）',
+            suggestion: '改为英文可表演状态，如 (Quietly)/(Voice low)/(Gritting teeth)',
         });
     }
     if (mixedDialogue.length > 0) {
@@ -678,52 +706,32 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             content: '英文台词混入中文字符：配音稿英文部分必须是纯英文（术语/名词需本地化翻译，不得留中文）',
             evidence: `命中${mixedDialogue.length}行：${samples(mixedDialogue)}`,
             severity: 'important',
-            suggestion: '把台词里的中文词改写为英文对应表达（如"灰石碱"→"grayscale alkali"）',
+            suggestion: '把英文台词里的中文词改写为英文对应表达（如"灰石碱"→"greystone alkali"）',
         });
     }
     if (longDialogue.length > 0) {
         violations.push({
-            content: '英文台词过长：单句英文台词建议≤80字符（约15词），超长需拆行',
+            content: '英文台词过长：单句英文台词建议≤80字符（约15词），超长需拆为两条对照行',
             evidence: `命中${longDialogue.length}行：${samples(longDialogue)}`,
             severity: 'normal',
-            suggestion: '拆成两句或删冗余修饰，保留短促有力的口语',
+            suggestion: '拆成两条对照行或删冗余修饰，保留短促有力的口语',
+        });
+    }
+    if (missingTriangle.length > 0) {
+        violations.push({
+            content: '动作描写缺▲标记：每条动作/画面描写必须以▲开头',
+            evidence: `命中${missingTriangle.length}行：${samples(missingTriangle)}`,
+            severity: 'normal',
+            suggestion: '动作行开头补▲（▲奥瑞安拔剑，魔力暴涨。）',
         });
     }
 
-    // ---- 双语名块：英文名块畸形 + 同一中文名对应多个不相关英文名 ----
-    // 实测缺陷样例：`Vera HALF- VOICE(Hands to mouth)`——情绪词被写进名字槽位
-    const NAME_BLOCK_RE = /^([^\s：:（(\[【]{1,12})\s+([A-Za-z][A-Za-z'’.\- ]*?)\s*(?:（[^）]{1,40}）|\([^)]{1,60}\))?[：:]/;
-    const malformedEnNames: string[] = [];
-    const cnToEn = new Map<string, Set<string>>();
-    for (const raw of lines) {
-        const t = raw.trim();
-        if (!t || NON_DIALOGUE_RE.test(t) || PROP_TEXT_RE.test(t) || SCENE_HEADER_RE.test(t) || !DIALOGUE_LINE_RE.test(t)) continue;
-        const m = t.match(NAME_BLOCK_RE);
-        if (!m) continue;
-        const cnName = m[1];
-        const enName = m[2].trim().toUpperCase();
-        if (/[-–—]\s|\s[-–—]|\d/.test(enName)) {
-            malformedEnNames.push(`${cnName} ${m[2].trim()}`);
-        }
-        if (!cnToEn.has(cnName)) cnToEn.set(cnName, new Set());
-        cnToEn.get(cnName)!.add(enName);
-    }
-    if (malformedEnNames.length > 0) {
-        violations.push({
-            content: '英文名块畸形：台词名块中的英文名含连字符断词或数字（情绪词被误写进名字槽位）',
-            evidence: `命中${malformedEnNames.length}处：${samples(malformedEnNames)}`,
-            severity: 'important',
-            suggestion: '英文名块写人物卡中的完整英文名（大写），情绪/动作写进括号内',
-        });
-    }
+    // ---- 同一中文名对应多个不相关英文名 ----
     const nameConflicts: string[] = [];
-    // 称谓/角色描述词作首词时不是唯一身份（"Uncle Hale"/"Uncle Tom"共享首词），跳过防误报
-    const TITLE_PREFIXES = new Set(['Uncle','Aunt','Mr','Mrs','Miss','Ms','Dr','Sheriff','Professor','Father','Mother','Brother','Sister','Lady','Lord','Old','Young','Officer','Agent','Captain','Boss','King','Queen','Prince','Princess','Grandpa','Grandma','打手','保镖','女仆','管家','佣人','司机','医生','护士','手下','老大','老板','助理','秘书','仆人','侍从','卫兵','执事']);
+    const TITLE_PREFIXES = new Set(['Uncle','Aunt','Mr','Mrs','Miss','Ms','Dr','Sheriff','Professor','Father','Mother','Brother','Sister','Lady','Lord','Old','Young','Officer','Agent','Captain','Boss','King','Queen','Prince','Princess','Grandpa','Grandma','Noble','Townsperson','Guard','Bodyguard','打手','保镖','女仆','管家','佣人','司机','医生','护士','手下','老大','老板','助理','秘书','仆人','侍从','卫兵','执事','贵族','镇民群像','群演','执刑官']);
     for (const [cn, ens] of cnToEn) {
         if (ens.size <= 1 || TITLE_PREFIXES.has(cn)) continue;
         const arr = [...ens];
-        // 互为包含或共享任一词元（"VERA" vs "VERA HALE"）视为同一名的简繁写法，不算冲突；
-        // 昵称前缀（"GIO" vs "GIOVANNI"）按前缀包含放行，避免误报
         const unrelated = arr.some(a => arr.some(b =>
             a !== b &&
             !a.split(/\s+/).some(tok => b.split(/\s+/).includes(tok)) &&
@@ -736,7 +744,19 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             content: '双语名块不一致：同一中文名对应多个互不相同的英文名',
             evidence: `命中${nameConflicts.length}处：${samples(nameConflicts)}`,
             severity: 'important',
-            suggestion: '全剧统一为人物卡中的英文名（大写），不得换用其他词',
+            suggestion: '全剧统一为人物卡中的英文名（首字母大写），不得换用其他词',
+        });
+    }
+
+    // ---- V.O. 密度 ----
+    const voCount = (content.match(/\(V\.O\.\)/g) || []).length
+        + (content.match(/OS[（(]|\bOS[：:]/g) || []).length;
+    if (voCount > 4) {
+        violations.push({
+            content: 'V.O.边界：内心独白/画外音仅用于情绪与潜台词，单集不得超过4条；禁止用V.O.交代剧情信息',
+            evidence: `本集V.O.共${voCount}条，超阈值`,
+            severity: 'important',
+            suggestion: '将交代信息的V.O.改写为道具行为或高压对白，仅保留纯情绪V.O.',
         });
     }
 
