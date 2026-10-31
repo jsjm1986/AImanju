@@ -71,7 +71,7 @@ export function parseCharacterCards(text: string): ParsedCharacter[] {
 
     // 括号内容拆分：新格式为"中文译名·角色定位"，旧格式为纯"角色定位"或纯"中文译名"
     // 身份描述词表（实测泄漏：家族掌权者/祖母、恶亲戚/假千金之母、养母 混入 nameCn）
-    const ROLE_KEYWORDS = /主角|反派|配角|客串|龙套|对手|boss|群像|男主|女主|男配|女配|掌权|夫人|婆婆|祖母|父亲|母亲|养母|姨妈|叔叔|管家|医生|总裁|千金|少爷|小姐|长老|女王|猎人|侍者|司机|保姆|闺蜜|情妇|私生子|恶/i;
+    const ROLE_KEYWORDS = /主角|反派|配角|客串|龙套|对手|boss|群像|男主|女主|男配|女配|掌权|夫人|婆婆|祖母|父亲|母亲|养母|姨妈|叔叔|管家|医生|总裁|千金|少爷|小姐|长老|女王|猎人|侍者|司机|保姆|闺蜜|情妇|私生子|恶|真凶|不可靠|已故|幕后|黑手|共谋|内鬼|卧底|双面|线人|证人|旧部|教父/i;
     const parenParts = parensRaw.split(/[·，,—]/).map(s => s.trim()).filter(Boolean);
     // 单段括号 + 命中角色词 → 纯角色定位（旧格式）；多段时按段判定
     const isRolePart = (p: string) => ROLE_KEYWORDS.test(p) || p.includes('/');

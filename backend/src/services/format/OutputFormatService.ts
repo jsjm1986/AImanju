@@ -378,8 +378,8 @@ function toCnNum(n: number): string {
 
 /** 时间词集合（场景头用） */
 const TIME_WORDS = '日|夜|清晨|凌晨|傍晚|黄昏|深夜|上午|下午|中午|黎明|拂晓';
-/** 场景头（新标准）：`9-2 夜/内 王宫·杀阵中枢暗室` */
-const SCENE_HEADER_STD_RE = new RegExp(`^\\d+-\\d+\\s+(?:${TIME_WORDS})\\s*\\/\\s*(?:内|外|内外)\\s+\\S`);
+/** 场景头（新标准）：`9-2 夜/内 王宫·杀阵中枢暗室`；时间槽可为复合段（`1-3 三个月前/夜/内 王室星耀宴会大厅`），内外永远是最后一个斜杠段 */
+const SCENE_HEADER_STD_RE = /^\d+-\d+\s+\S+\s*\/\s*(?:内|外|内外)\s+\S/;
 /** 旧式场景头（归一化用）：`1-5 农场-溪边 日 外` — 地点+时间+内外顺序 */
 const SCENE_HEADER_LEGACY_RE = new RegExp(`^(\\d+)-(\\d+)\\s+(.+?)\\s+(${TIME_WORDS})\\s+(内\\/外|外\\/内|内|外)\\s*$`);
 
@@ -468,6 +468,12 @@ const CAST_LINE_RE = /^人物[：:]/;
 const PAIRED_DIALOGUE_RE = /^([^\s（(：:▲【]{1,15})（([^（）]{1,30})）：(.+?)([A-Z][A-Za-z'’&.\-#0-9 ]{0,45}?)\s*\(([^()]{1,70})\)\s*:\s*(.+)$/;
 /** 旧合并格式/畸形名块探测（提示改写）：`Name EN(emo)：...` 或 `中文名 英文名(...)...` */
 const LEGACY_DIALOGUE_HINT_RE = /^[^\s：:（(\[【]{1,15}\s+[A-Z][A-Za-z'’.\- ]*\s*(?:（[^）]{1,40}）|\([^)]{1,60}\))?[：:]/;
+/** 中英分行台词-中文头：`凯（眼神冰冷）：祖父，你最好祈祷我死透。`（下一行须为英文对照行） */
+const CN_PAIR_HEAD_RE = /^[^\s（(：:▲【]{1,15}（[^（）]{1,30}）：\S/;
+/** 中英分行台词-英文尾：`Kai (Cold, clear voice): Grandfather...` 或 `Harlan faked a smile to ragged Kai: "Family..."`（名块可带动作描述，台词须非中文开头） */
+const EN_PAIR_TAIL_RE = /^[A-Z][A-Za-z'’&.,\-#0-9 ]{0,55}?(?:\([^()]{1,100}\))?\s*:\s*[^\s一-鿿].*$/;
+/** -VO- 旁白行（docx 合法交付格式，形式不限：-VO-：中文 / -VO- Name (Emotion): EN / -VO-：高燃BGM骤起） */
+const VO_NARRATOR_RE = /^-VO-/;
 /** 非台词行型（人物行/字幕/黑屏/集标题/方括号标记/花括号镜头/场景头/▲动作） */
 const NON_DIALOGUE_RE = /^(人物|字幕|黑屏)(?:[（(][^）)]{0,20}[）)])?[：:]|^第[一二三四五六七八九十百零〇\d]+\s*[话集]|^【|^\{|^▲/;
 /** 道具/画面文字行（"纸上写着：GHOST""收款人一栏：D. Ricci""页眉一行黑体：许可证"等）——含冒号但非台词 */
@@ -568,7 +574,7 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
     }
 
     // ---- 内部标记泄漏（▲/【卡点】/【字幕：】/【闪回】【闪出】为合法交付标记） ----
-    const leakHits = content.match(/\[HOOK\]|【核心情绪[：:]|^△|出场人物[：:]|[A-Za-z一-鿿]OS[：:]|[A-Za-z一-鿿]VO[：:]|^#{1,6}\s/gm) || [];
+    const leakHits = content.match(/\[HOOK\]|【核心情绪[：:]|^△|出场人物[：:]|^[^\s（(：:▲【]{1,15}(?:OS|VO)[：:]|^#{1,6}\s/gm) || [];
     if (leakHits.length > 0) {
         violations.push({
             content: '内部标记泄漏：交付剧本不得出现[HOOK]/【核心情绪】/△/出场人物/OS：/VO：/markdown标题符',
@@ -664,18 +670,29 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
     const longDialogue: string[] = [];
     const missingTriangle: string[] = [];
     const cnToEn = new Map<string, Set<string>>();
-    for (const raw of lines) {
-        const t = raw.trim();
+    const nextNonEmptyOf = (from: number) => {
+        for (let j = from + 1; j < lines.length; j++) {
+            const x = lines[j].trim();
+            if (x) return x;
+        }
+        return '';
+    };
+    let prevNonEmpty = '';
+    for (let li = 0; li < lines.length; li++) {
+        const t = lines[li].trim();
         if (!t) continue;
+        // -VO- 旁白行（docx 合法交付标记，中英各一行）
+        if (VO_NARRATOR_RE.test(t)) { prevNonEmpty = t; continue; }
         // ▲开头的行里若藏"名字(情绪): 文本"结构＝台词行误加▲且名块结构错误（真实缺陷样例：▲Camela (Cold Fury): 中文。English.）
         if (t.startsWith('▲')) {
             if (/^▲\s*[^\s（(：:]{1,15}\s*\([^)]{1,60}\)\s*[:：]/.test(t)) {
                 badDialogue.push(t.slice(0, 44));
             }
+            prevNonEmpty = t;
             continue;
         }
-        if (SCENE_HEADER_RE.test(t) || CAST_LINE_RE.test(t) || NON_DIALOGUE_RE.test(t)) continue;
-        if (PROP_TEXT_RE.test(t)) continue;
+        if (SCENE_HEADER_RE.test(t) || CAST_LINE_RE.test(t) || NON_DIALOGUE_RE.test(t)) { prevNonEmpty = t; continue; }
+        if (PROP_TEXT_RE.test(t)) { prevNonEmpty = t; continue; }
         const m = t.match(PAIRED_DIALOGUE_RE);
         if (m) {
             const [, cnName, , cnSpeech, enName, enEmotion, enSpeech] = m;
@@ -683,18 +700,30 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             if (!CJK_RE.test(cnName)) noCnName.push(`${cnName}`);
             if (CJK_RE.test(enEmotion)) enEmotionBad.push(`(${enEmotion.slice(0, 24)})`);
             if (CJK_RE.test(enSpeech)) mixedDialogue.push(t.slice(0, 46));
-            if (enSpeech.length > 110) longDialogue.push(t.slice(0, 46));
+            if (enSpeech.length > 170) longDialogue.push(t.slice(0, 46));
             if (!cnToEn.has(cnName)) cnToEn.set(cnName, new Set());
             cnToEn.get(cnName)!.add(enName.trim().toUpperCase());
+            prevNonEmpty = t;
+            continue;
+        }
+        // 中英分行台词：中文头行下一非空行须为英文对照行；英文尾行上一非空行须为中文头
+        if (CN_PAIR_HEAD_RE.test(t) && EN_PAIR_TAIL_RE.test(nextNonEmptyOf(li))) {
+            prevNonEmpty = t;
+            continue;
+        }
+        if (EN_PAIR_TAIL_RE.test(t) && CN_PAIR_HEAD_RE.test(prevNonEmpty)) {
+            prevNonEmpty = t;
             continue;
         }
         if (/[：:]/.test(t) && (/^[^\s：:（(【\[]{1,15}(?:（[^）]{0,30}）|\([^)]{0,40}\))?[：:]/.test(t) || LEGACY_DIALOGUE_HINT_RE.test(t) || /^[^\s（(：:]{1,15}\s*\([^)]{1,60}\)\s*[:：]/.test(t))) {
             badDialogue.push(t.slice(0, 44));
+            prevNonEmpty = t;
             continue;
         }
         if (CJK_RE.test(t) && !t.startsWith('▲') && !t.startsWith('{') && !/[：:]/.test(t)) {
             missingTriangle.push(t.slice(0, 30));
         }
+        prevNonEmpty = t;
     }
     if (badDialogue.length > 0) {
         violations.push({
@@ -738,7 +767,7 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
     }
     if (longDialogue.length > 0) {
         violations.push({
-            content: '英文台词过长：单句英文台词建议≤80字符（约15词），超长需拆为两条对照行',
+            content: '英文台词过长：单句英文台词超过170字符需拆为两条对照行（交付实样上限约165字符）',
             evidence: `命中${longDialogue.length}行：${samples(longDialogue)}`,
             severity: 'normal',
             suggestion: '拆成两条对照行或删冗余修饰，保留短促有力的口语',

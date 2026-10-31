@@ -130,7 +130,7 @@ describe('中英对照格式扫描', () => {
   });
 
   it('超长英文台词命中', () => {
-    const long = 'A '.repeat(60).trim();
+    const long = 'A '.repeat(100).trim();
     const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她站着。\n\n艾玛（怒）：${long}。Emma (Angry): ${long}`;
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('英文台词过长'))).toBeTruthy();
@@ -152,6 +152,46 @@ describe('中英对照格式扫描', () => {
     const c = `第一话\n\n1-1 日/外 农场\n\n人物：薇拉, 乔凡尼\n\n▲她绞着手帕。\n\n薇拉（轻声）：别动。Vera (Quietly): Stay.\n\n薇拉（大喊）：快跑！Vera Hale (Loudly): Run!\n\n乔凡尼（冷）：住手。Giovanni (Coldly): Stop.\n\n乔凡尼（放软）：求你了。Gio (Softer): Please.`;
     const vs = scanOverseasScript(c, 9000);
     expect(vs.find(v => v.content.includes('名块不一致'))).toBeUndefined();
+  });
+
+  it('docx 实样变体全部放行：复合场景头/分行台词/-VO-/卡点前钩/15s回忆/OS在行内', () => {
+    // 直接取自《暗域之王》docx 正文的真实行
+    const c = `第三话
+
+3-1 日/内 温特家族庄园·门厅
+
+人物：凯·温特, 哈兰·温特
+
+▲凯·温特站在门厅中央。
+
+哈兰（对着落魄的凯假笑）：“家族凑王室宴会血脉名额，接你回家。”
+Harlan faked a smile to ragged Kai: "Family needs a blood quota for royal banquet, welcome home."
+
+▲门缝外，罗南·温特的身影僵在原地，拳头攥紧【罗南OS：我就知道，他从来没把凯当家人】。
+
+-VO-：凯·温特OS：三个月。给我三个月。
+-VO- Kai Vinter (Inner Voice): Three months. Give me three months.
+
+-VO-：高燃BGM骤起
+
+【卡点前钩】哈兰转身面向观众，高举双手。
+
+【15s快闪回忆】▲镜头1：伊莱娜临终前苍白的脸。
+
+【字幕：暗域之王·凯·温特】【Subtitle: Kai Vinter, the Dark Realm Sovereign】
+
+1-3 三个月前/夜/内 王室星耀宴会大厅
+
+人物：凯·温特, 莉娅
+
+▲水晶灯下。
+
+凯（眼神冰冷，声音清晰）：祖父，你最好祈祷我死透。
+Kai (Staring Down at the Abyss, dark purple magic swirling at his fingertips): Grandfather, you'd better pray I die for good.
+`;
+    const vs = scanOverseasScript(c, 99999);
+    const important = vs.filter(v => v.severity === 'important');
+    expect(important, important.map(v => `${v.content}|${v.evidence}`).join('\n')).toHaveLength(0);
   });
 });
 
