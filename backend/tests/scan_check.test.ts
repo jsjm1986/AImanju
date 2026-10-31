@@ -57,6 +57,18 @@ describe('中英对照格式扫描', () => {
     expect(vs.find(v => v.content.includes('对照'))).toBeTruthy();
   });
 
+  it('▲前缀的台词行（名字(英文情绪): 中文。English.）命中——实测漏检缺陷', () => {
+    const c = `第一话\n\n1-1 日/内 教堂·葬礼大厅\n\n人物：卡梅拉\n\n▲棺木停在祭坛前。\n\n▲Camela (Cold Fury): 私生女无权继承。No bastard gets a dime.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('对照'))).toBeTruthy();
+  });
+
+  it('无▲的英文名打头台词变体（Camela (Cold Fury): 中文。English.）命中', () => {
+    const c = `第一话\n\n1-1 日/内 教堂·葬礼大厅\n\n人物：卡梅拉\n\n▲棺木停在祭坛前。\n\nCamela (Cold Fury): 私生女无权继承。No bastard gets a dime.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('对照'))).toBeTruthy();
+  });
+
   it('中文槽位写英文 命中（中文台词缺失）', () => {
     const c = `第一话\n\n1-1 夜/内 排水涵洞\n\n人物：艾琳\n\n▲她压着声音。\n\n艾琳（极低）：Same direction. Same cut. Irene (Very low): Same direction. Same cut.`;
     const vs = scanOverseasScript(c, 9000);

@@ -667,6 +667,13 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
     for (const raw of lines) {
         const t = raw.trim();
         if (!t) continue;
+        // ▲开头的行里若藏"名字(情绪): 文本"结构＝台词行误加▲且名块结构错误（真实缺陷样例：▲Camela (Cold Fury): 中文。English.）
+        if (t.startsWith('▲')) {
+            if (/^▲\s*[^\s（(：:]{1,15}\s*\([^)]{1,60}\)\s*[:：]/.test(t)) {
+                badDialogue.push(t.slice(0, 44));
+            }
+            continue;
+        }
         if (SCENE_HEADER_RE.test(t) || CAST_LINE_RE.test(t) || NON_DIALOGUE_RE.test(t)) continue;
         if (PROP_TEXT_RE.test(t)) continue;
         const m = t.match(PAIRED_DIALOGUE_RE);
@@ -681,7 +688,7 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             cnToEn.get(cnName)!.add(enName.trim().toUpperCase());
             continue;
         }
-        if (/[：:]/.test(t) && (/^[^\s：:（(【\[]{1,15}(?:（[^）]{0,30}）|\([^)]{0,40}\))?[：:]/.test(t) || LEGACY_DIALOGUE_HINT_RE.test(t))) {
+        if (/[：:]/.test(t) && (/^[^\s：:（(【\[]{1,15}(?:（[^）]{0,30}）|\([^)]{0,40}\))?[：:]/.test(t) || LEGACY_DIALOGUE_HINT_RE.test(t) || /^[^\s（(：:]{1,15}\s*\([^)]{1,60}\)\s*[:：]/.test(t))) {
             badDialogue.push(t.slice(0, 44));
             continue;
         }
