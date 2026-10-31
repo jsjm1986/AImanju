@@ -657,6 +657,8 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
 
     // ---- 台词合规：中英对照同行 ----
     const badDialogue: string[] = [];
+    const noCnSpeech: string[] = [];
+    const noCnName: string[] = [];
     const enEmotionBad: string[] = [];
     const mixedDialogue: string[] = [];
     const longDialogue: string[] = [];
@@ -669,7 +671,9 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         if (PROP_TEXT_RE.test(t)) continue;
         const m = t.match(PAIRED_DIALOGUE_RE);
         if (m) {
-            const [, cnName, , , enName, enEmotion, enSpeech] = m;
+            const [, cnName, , cnSpeech, enName, enEmotion, enSpeech] = m;
+            if (!CJK_RE.test(cnSpeech)) noCnSpeech.push(t.slice(0, 46));
+            if (!CJK_RE.test(cnName)) noCnName.push(`${cnName}`);
             if (CJK_RE.test(enEmotion)) enEmotionBad.push(`(${enEmotion.slice(0, 24)})`);
             if (CJK_RE.test(enSpeech)) mixedDialogue.push(t.slice(0, 46));
             if (enSpeech.length > 110) longDialogue.push(t.slice(0, 46));
@@ -691,6 +695,22 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
             evidence: `命中${badDialogue.length}行非对照台词：${samples(badDialogue)}`,
             severity: 'important',
             suggestion: '改写为 奥瑞安（惊怒）：什么？！Orian (Shocked): What?! 结构——中文台词与英文对照同一行',
+        });
+    }
+    if (noCnSpeech.length > 0) {
+        violations.push({
+            content: '中文台词缺失：对照行的中文槽位必须是中文台词（英文原声的中文对照译文），不得写英文',
+            evidence: `命中${noCnSpeech.length}行：${samples(noCnSpeech)}`,
+            severity: 'important',
+            suggestion: '中文槽位写该句英文台词的中文对照译文（奥瑞安（惊怒）：什么？！Orian (Shocked): What?!）',
+        });
+    }
+    if (noCnName.length > 0) {
+        violations.push({
+            content: '中文名槽位应为中文名：对照行开头写角色的中文名（人物卡中的中文名），英文名放在中文台词之后',
+            evidence: `命中${noCnName.length}行：${samples([...new Set(noCnName)])}`,
+            severity: 'normal',
+            suggestion: '改为 中文名（中文情绪）：中文台词English Name (Emotion): English line',
         });
     }
     if (enEmotionBad.length > 0) {

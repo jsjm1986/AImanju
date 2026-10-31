@@ -57,6 +57,12 @@ describe('中英对照格式扫描', () => {
     expect(vs.find(v => v.content.includes('对照'))).toBeTruthy();
   });
 
+  it('中文槽位写英文 命中（中文台词缺失）', () => {
+    const c = `第一话\n\n1-1 夜/内 排水涵洞\n\n人物：艾琳\n\n▲她压着声音。\n\n艾琳（极低）：Same direction. Same cut. Irene (Very low): Same direction. Same cut.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('中文台词缺失'))).toBeTruthy();
+  });
+
   it('英文情绪混入中文 命中', () => {
     const c = `第一话\n\n1-1 夜/内 医院·走廊\n\n人物：艾玛\n\n▲她站着。\n\n艾玛（冷）：出去。Emma (冷冷地): Get out.`;
     const vs = scanOverseasScript(c, 9000);
