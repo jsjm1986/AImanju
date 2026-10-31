@@ -193,6 +193,18 @@ Kai (Staring Down at the Abyss, dark purple magic swirling at his fingertips): G
     const important = vs.filter(v => v.severity === 'important');
     expect(important, important.map(v => `${v.content}|${v.evidence}`).join('\n')).toHaveLength(0);
   });
+
+  it('人物行写英文名 命中（docx标准为中文名）', () => {
+    const c = `第一话\n\n1-1 日/内 宅邸·书房\n\n人物：Camela Rizzo, Antonio Rizzo, Vera Rizzo\n\n▲一叠银行流水单摔在桌上。\n\n卡梅拉（扬声）：维拉·里佐。Camela Rizzo (Loud): Vera Rizzo.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('人物行应为中文名'))).toBeTruthy();
+  });
+
+  it('人物行中文名+（化名）/（门内）注释 不误报', () => {
+    const c = `第一话\n\n1-1 日/内 王宫·宴会厅\n\n人物：凯·温特（化名维恩·暗）, 莉娅, 奥瑞安王子, 贵族宾客群\n\n▲水晶灯下。\n\n凯（低声）：别回头。Kai (Low): Don't look back.\n\n1-2 夜/内 偏厅\n\n人物：哈兰·温特（门内）, 侍从\n\n▲门开了。\n\n哈兰（假笑）：欢迎回家。Harlan (Fake smile): Welcome home.`;
+    const vs = scanOverseasScript(c, 9000);
+    expect(vs.find(v => v.content.includes('人物行应为中文名'))).toBeUndefined();
+  });
 });
 
 describe('中英对照格式归一化', () => {

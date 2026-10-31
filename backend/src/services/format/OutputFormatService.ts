@@ -661,6 +661,25 @@ export function scanOverseasScript(content: string, wordLimitMax?: number, scene
         });
     }
 
+    // ---- 人物行应为中文名（docx 实样：人物：凯·温特, 哈兰·温特；允许（化名…）/（门内）注释） ----
+    const enCastEntries: string[] = [];
+    for (const raw of lines) {
+        const t = raw.trim();
+        if (!CAST_LINE_RE.test(t)) continue;
+        for (const entry of t.replace(/^人物[：:]\s*/, '').split(',')) {
+            const name = entry.trim().replace(/[（(][^）)]*[）)]/g, '').trim();
+            if (name && !/[一-鿿]/.test(name)) enCastEntries.push(`${t.slice(0, 24)} → ${name}`);
+        }
+    }
+    if (enCastEntries.length > 0) {
+        violations.push({
+            content: '人物行应为中文名：演员表条目与台词中文名槽一致（中文名），不写英文名',
+            evidence: `命中${enCastEntries.length}处：${samples(enCastEntries)}`,
+            severity: 'normal',
+            suggestion: '人物行改用中文译名（如 人物：维拉·里佐, 卡梅拉·里佐），可保留（化名…）/（门内）注释',
+        });
+    }
+
     // ---- 台词合规：中英对照同行 ----
     const badDialogue: string[] = [];
     const noCnSpeech: string[] = [];
